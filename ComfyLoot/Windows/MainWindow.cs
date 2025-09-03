@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
@@ -13,19 +14,35 @@ public class MainWindow : Window, IDisposable
     	private string GoatImagePath;
     	private Plugin Plugin;
 
-	// We give this window a hidden ID using ##.
-	// The user will see "My Amazing Window" as window title,
-	// but for ImGui the ID is "My Amazing Window##With a hidden ID"
-	public MainWindow(Plugin plugin, string goatImagePath)
-		: base("My Amazing Window##With a hidden ID", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
+	/// <summary>
+	/// MainWindow:ctor
+	/// </summary>
+	/// <param name="plugin"></param>
+	public MainWindow(Plugin plugin)
+		: base("ComfyLoot", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
 	{
-		SizeConstraints = new WindowSizeConstraints {
+		SizeConstraints = new WindowSizeConstraints
+		{
 			MinimumSize = new Vector2(375, 330),
 			MaximumSize = new Vector2(float.MaxValue, float.MaxValue)
 		};
 
-		GoatImagePath = goatImagePath;
 		Plugin = plugin;
+
+		TitleBarButtons = new() {
+			new TitleBarButton() {
+				Icon = FontAwesomeIcon.Cog,
+				Click = (msg) => {
+		    			Plugin.ToggleConfigUI();
+				},
+				IconOffset = new(2,1),
+				ShowTooltip = () => {
+		    			ImGui.BeginTooltip();
+		    			ImGui.Text("Open Settings");
+		    			ImGui.EndTooltip();
+				}
+	    		}
+		};
 	}
 
 	public void Dispose() { }
@@ -33,35 +50,18 @@ public class MainWindow : Window, IDisposable
 	public override void
 	Draw()
 	{
-		ImGui.TextUnformatted($"The random config bool is {Plugin.Configuration.SomePropertyToBeSavedAndWithADefault}");
-
-		if (ImGui.Button("Show Settings"))
-			Plugin.ToggleConfigUI();
-
+		ImGui.TextUnformatted($"Total count: 666");
+		ImGui.TextUnformatted($"Total Value: 42069");
 		ImGui.Spacing();
 
 		// Normally a BeginChild() would have to be followed by an unconditional EndChild(),
 		// ImRaii takes care of this after the scope ends.
 		// This works for all ImGui functions that require specific handling, examples are BeginTable() or Indent().
-		using (var child = ImRaii.Child("SomeChildWithAScrollbar", Vector2.Zero, true))
-		{
+		using (var child = ImRaii.Child("SomeChildWithAScrollbar", Vector2.Zero, true)) {
+			
 			// Check if this child is drawing
 			if (child.Success)
 			{
-				ImGui.TextUnformatted("Have a goat:");
-				var goatImage = Plugin.TextureProvider.GetFromFile(GoatImagePath).GetWrapOrDefault();
-				if (goatImage != null)
-				{
-					using (ImRaii.PushIndent(55f))
-					{
-						ImGui.Image(goatImage.Handle, goatImage.Size);
-					}
-				}
-				else
-				{
-					ImGui.TextUnformatted("Image not found.");
-				}
-
 				ImGuiHelpers.ScaledDummy(20.0f);
 
 				// Example for other services that Dalamud provides.
@@ -96,4 +96,4 @@ public class MainWindow : Window, IDisposable
 			}
 		}
 	}
-}	
+}
