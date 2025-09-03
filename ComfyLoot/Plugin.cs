@@ -4,9 +4,9 @@ using Dalamud.Plugin;
 using System.IO;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
-using SamplePlugin.Windows;
+using ComfyLoot.Windows;
 
-namespace SamplePlugin;
+namespace ComfyLoot;
 
 public sealed class Plugin : IDalamudPlugin
 {
