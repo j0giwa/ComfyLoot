@@ -1,0 +1,10 @@
+{
+  "Author": "j0giwa",
+  "Name": "ComfyLoot",
+  "Punchline": "Cozy drop tracker",
+  "Description": "A description that shows up in /xlplugins. List any major slash-command(s).",
+  "ApplicableVersion": "any",
+  "Tags": [
+    "loot"
+  ]
+}

@@ -15,6 +15,6 @@ public class Configuration : IPluginConfiguration
 	public void
 	Save()
 	{
-		Plugin.PluginInterface.SavePluginConfig(this);
+		ComfyLoot.Dalamud.SavePluginConfig(this);
 	}
 }
