@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Windowing;
@@ -21,19 +22,18 @@ public class ConfigWindow : Window, IDisposable
 		Configuration = plugin.Configuration;
 	}
 
-	public void
-	Dispose()
-	{ 
 
-	}
-	
+
 	public override void
 	PreDraw()
 	{
 		// Flags must be added or removed before Draw() is being called, or they won't apply
-		if (Configuration.IsConfigWindowMovable) {
+		if (Configuration.IsConfigWindowMovable)
+		{
 			Flags &= ~ImGuiWindowFlags.NoMove;
-		} else {
+		}
+		else
+		{
 			Flags |= ImGuiWindowFlags.NoMove;
 		}
 	}
@@ -56,5 +56,11 @@ public class ConfigWindow : Window, IDisposable
 			Configuration.IsConfigWindowMovable = movable;
 			Configuration.Save();
 		}
+	}
+
+	public void
+	Dispose()
+	{
+
 	}
 }   

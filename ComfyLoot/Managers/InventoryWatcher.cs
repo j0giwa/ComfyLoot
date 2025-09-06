@@ -4,18 +4,21 @@ using System.Collections.Generic;
 using Dalamud.Game.Inventory;
 using Dalamud.Game.Inventory.InventoryEventArgTypes;
 using Dalamud.Plugin.Services;
+using ComfyLoot.Service;
 
 namespace ComfyLoot.Servive;
 
-public sealed class InventoryWatcher : IDisposable
+public class InventoryWatcher : IDisposable
 {
 	private readonly IGameInventory _inventory;
 	private readonly IPluginLog _log;
+	private readonly LootManager _loot;
 
-	public InventoryWatcher(IGameInventory inventory, IPluginLog log)
+	public InventoryWatcher(IGameInventory inventory, IPluginLog log, LootManager loot)
 	{
 		_inventory = inventory;
 		_log = log;
+		_loot = loot;
 
 		_inventory.InventoryChanged += OnInventoryChanged;
 	}
@@ -33,6 +36,7 @@ public sealed class InventoryWatcher : IDisposable
 			_log.Information(
 				$"[ADD] {args.Item.ItemId} x{args.Item.Quantity} " +
 				$"in {args.Inventory} (slot {args.Slot})");
+			_loot.AddItem(args);
 			break;
 		default:
 			break;
@@ -42,16 +46,22 @@ public sealed class InventoryWatcher : IDisposable
 	private void
 	HandleChangeItem(InventoryItemChangedArgs args)
 	{
-		switch (args.Inventory) {
-		case GameInventoryType.Inventory1: /* FALLTHROUGH */
+		switch (args.Inventory){
+		case GameInventoryType.Inventory1:
 		case GameInventoryType.Inventory2:
 		case GameInventoryType.Inventory3:
 		case GameInventoryType.Inventory4:
 		case GameInventoryType.Crystals:
 		case GameInventoryType.Currency:
-			_log.Information(
-				$"[CHANGE] {args.Item.ItemId} x{args.Item.Quantity} " +
-				$"in {args.Inventory} (slot {args.Slot})");
+			{
+				int previousQty = args.OldItemState.Quantity;
+				int addedAmount = args.Item.Quantity - previousQty;
+				if (args.Item.Quantity > previousQty) {
+					_log.Information(
+						$"[CHANGE] {args.Item.ItemId} x{addedAmount} in {args.Inventory} (slot {args.Slot})");
+					_loot.UpdateItem(args.Item.ItemId, addedAmount);
+				}
+			}
 			break;
 		default:
 			break;
