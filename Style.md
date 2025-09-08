@@ -106,7 +106,7 @@ Bar(x, y);
 
 - Return type and modifiers **on their own line**.
 - Function name and argument list on next line. This allows to grep for function names simply using grep ^functionname(
-- Opening { on own line (function definitions are a special case of blocks as they cannot be nested).
+- Opening { on own line.
 
 ```csharp
 private static int
