@@ -129,12 +129,6 @@ ComputeSum(int a, int b)
 
 - Use `static` for fields/methods not accessed from instance.
 - Avoid Hungarian notation or prefixes like `m_` or `_`.
-- Keep pointer-star-style spacing close to variable name if using `unsafe` code:
-
-```csharp
-int* ptr; // not int *ptr;
-```
-
 - Otherwise use typical C# conventions without noise.
 
 ---
@@ -188,7 +182,6 @@ using MyApp.Core;
 
 ## Naming and Types
 
-- Avoid `type_t` naming (e.g., `buffer_t`) — it's reserved and unreadable.
 - Use **PascalCase** for type names.
 - Use **camelCase** for variables and parameters.
 - Do **not typedef or alias** built-in types (e.g., don’t create `using MyInt = int;`).
