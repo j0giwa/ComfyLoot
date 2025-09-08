@@ -7,7 +7,7 @@ Project maintainers have discretion to interpret these rules as appropriate.
 
 > "Code is more often read than written. Write it like you're writing for someone who knows nothing but has to understand everything." – Adapted from suckless & Bell Labs traditions.
 
-## 📚 Recommended Reading
+## Recommended Reading
 
 The following contain good information, some of which is repeated below, some of which is contradicted below.
 These references come from C, but the spirit applies to minimalist and maintainable C# code
