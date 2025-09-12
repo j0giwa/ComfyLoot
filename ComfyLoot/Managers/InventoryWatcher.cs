@@ -4,12 +4,12 @@ using System.Collections.Generic;
 using Dalamud.Game.Inventory;
 using Dalamud.Game.Inventory.InventoryEventArgTypes;
 using Dalamud.Plugin.Services;
-using ComfyLoot.Service;
+using ComfyLoot.Managers;
 
 namespace ComfyLoot.Servive;
 
-public class InventoryWatcher : IDisposable
-{
+public class InventoryWatcher : IDisposable {
+	
 	private readonly IGameInventory _inventory;
 	private readonly IPluginLog _log;
 	private readonly LootManager _loot;
@@ -34,8 +34,11 @@ public class InventoryWatcher : IDisposable
 		case GameInventoryType.Crystals:
 		case GameInventoryType.Currency:
 			_log.Information(
-				$"[ADD] {args.Item.ItemId} x{args.Item.Quantity} " +
-				$"in {args.Inventory} (slot {args.Slot})");
+				"[ADD] {Quantity}x {ItemId} in {Inventory} (slot {args.Slot})",
+				args.Item.Quantity,
+				args.Item.ItemId,
+				args.Inventory,
+				args.Slot);
 			_loot.AddItem(args);
 			break;
 		default:
@@ -46,21 +49,26 @@ public class InventoryWatcher : IDisposable
 	private void
 	HandleChangeItem(InventoryItemChangedArgs args)
 	{
-		switch (args.Inventory){
+		int previousQty;
+		int addedAmount;
+
+		switch (args.Inventory) {
 		case GameInventoryType.Inventory1:
 		case GameInventoryType.Inventory2:
 		case GameInventoryType.Inventory3:
 		case GameInventoryType.Inventory4:
 		case GameInventoryType.Crystals:
 		case GameInventoryType.Currency:
-			{
-				int previousQty = args.OldItemState.Quantity;
-				int addedAmount = args.Item.Quantity - previousQty;
-				if (args.Item.Quantity > previousQty) {
-					_log.Information(
-						$"[CHANGE] {args.Item.ItemId} x{addedAmount} in {args.Inventory} (slot {args.Slot})");
-					_loot.UpdateItem(args.Item.ItemId, addedAmount);
-				}
+			previousQty = args.OldItemState.Quantity;
+			addedAmount = args.Item.Quantity - previousQty;
+			if (args.Item.Quantity > previousQty) {
+				_log.Information(
+					"[CHANGE] {Quantity}x {ItemId} in {Inventory} (slot {args.Slot})",
+					addedAmount,
+					args.Item.ItemId,
+					args.Inventory,
+					args.Slot);
+				_loot.UpdateItem(args.Item.ItemId, addedAmount);
 			}
 			break;
 		default:

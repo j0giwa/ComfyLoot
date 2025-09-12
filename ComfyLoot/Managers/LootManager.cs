@@ -6,82 +6,126 @@ using Dalamud.Game.Inventory.InventoryEventArgTypes;
 using Dalamud.Plugin.Services;
 using Lumina.Excel.Sheets;
 
-namespace ComfyLoot.Service;
+namespace ComfyLoot.Managers;
 
-public record TrackedItem(uint ItemId, int Quantity);
+public record LootItem(
+	uint ItemId,
+	int Quantity,
+	int Value
+);
 
 public class LootManager : IDisposable
 {
-	public Dictionary<string, List<string>> Loot { get; set; }
-	public IReadOnlyDictionary<string, List<TrackedItem>> ItemsByZone => itemsByZone;
-
-	private readonly IClientState clientState;
-	private readonly IDataManager dataManager;
+	private readonly IClientState client;
+	private readonly IDataManager data;
 	private readonly IPluginLog log;
 
-	private readonly Dictionary<string, List<TrackedItem>> itemsByZone = new();
+	private readonly Dictionary<string, List<LootItem>> loot;
+	public IReadOnlyDictionary<string, List<LootItem>> Loot => loot;
 
-	public LootManager(IClientState clientState, IDataManager dataManager, IPluginLog log)
+	/// <summary>
+	/// LootManager:ctor
+	/// </summary>
+	/// <param name="clientState"></param>
+	/// <param name="dataManager"></param>
+	/// <param name="log"></param>
+	public LootManager(
+		IClientState clientState,
+		IDataManager dataManager,
+		IPluginLog log)
 	{
-		this.clientState = clientState;
-		this.dataManager = dataManager;
 		this.log = log;
-	}
-
-	private string
-	GetCurrentZoneName()
-	{
-		uint territoryId = clientState.TerritoryType;
-		if (dataManager.GetExcelSheet<TerritoryType>()!.TryGetRow(territoryId, out TerritoryType territoryRow)) {
-			return territoryRow.PlaceName.Value.Name.ToString() ?? "Unknown Zone";
-		} else {
-			return "Invalid territory";
-		}
-	}
-
-	public void
-	AddItem(InventoryItemAddedArgs added)
-	{
-		string zoneName = GetCurrentZoneName();
-
-		TrackedItem tracked = new TrackedItem(
-		    added.Item.ItemId,
-		    added.Item.Quantity
-		);
-
-		if (!itemsByZone.TryGetValue(zoneName, out List<TrackedItem>? list)) {
-			list = new List<TrackedItem>();
-			itemsByZone[zoneName] = list;
-		}
-
-		list.Add(tracked);
-
-		log.Information("[TRACK] {Quantity}x {ItemId} in {Zone}", tracked.Quantity, tracked.ItemId, zoneName);
+		client = clientState;
+		data = dataManager;
+		
+		loot = new Dictionary<string, List<LootItem>>();
 	}
 
 	/// <summary>
-	/// Updates an item's quantity if the new quantity is higher than the currently tracked one.
+	/// 
+	/// </summary>
+	/// <returns></returns>
+	private string
+	GetCurrentZoneName()
+	{
+		uint id;
+		string? zoneName;
+		TerritoryType zoneRow;
+
+		zoneName = null;
+		id = client.TerritoryType;
+		if (data.GetExcelSheet<TerritoryType>()!.TryGetRow(id, out zoneRow))
+			zoneName = zoneRow.PlaceName.Value.Name.ToString();
+
+		if (zoneName == null)
+			zoneName = "Unknown Zone";
+
+
+		return zoneName;
+	}
+
+	/// <summary>
+	/// 
+	/// </summary>
+	/// <param name="added"></param>
+	public void
+	AddItem(InventoryItemAddedArgs added)
+	{
+		string zone;
+		List<LootItem>? list;
+
+		zone = GetCurrentZoneName();
+
+		LootItem tracked = new LootItem(
+		    added.Item.ItemId,
+		    added.Item.Quantity,
+		    0 /* placeholder till we got universalis value*/
+		);
+
+		if (!loot.TryGetValue(zone, out list)) {
+			list = new List<LootItem>();
+			loot[zone] = list;
+		}
+
+		list.Add(tracked);
+		log.Information(
+			"[TRACK] {Quantity}x {ItemId} in {Zone}",
+			tracked.Quantity,
+			tracked.ItemId,
+			zone);
+	}
+
+	/// <summary>
+	/// Updates an item's quantity.
 	/// </summary>
 	public void
 	UpdateItem(uint itemId, int addedAmount)
 	{
-		string zoneName = GetCurrentZoneName();
-
-		if (!itemsByZone.TryGetValue(zoneName, out List<TrackedItem>? list)) {
-			list = new List<TrackedItem>();
-			itemsByZone[zoneName] = list;
+		string zoneName;
+		LootItem? item;
+		List<LootItem>? items;
+		
+		zoneName = GetCurrentZoneName();
+		if (!loot.TryGetValue(zoneName, out items)) {
+			items = new List<LootItem>();
+			loot[zoneName] = items;
 		}
 
-		TrackedItem? existing = list.Find(t => t.ItemId == itemId);
-		if (existing != null) {
-			list.Remove(existing);
-			list.Add(new TrackedItem(itemId, existing.Quantity + addedAmount));
-			log.Information("[TRACK] {ItemId} x{Quantity} in {Zone} (previous {PreviousQuantity})",
-			    addedAmount, itemId, zoneName, existing.Quantity);
-
-		} else {
-			list.Add(new TrackedItem(itemId, addedAmount));
-			log.Information("[TRACK] {ItemId} x{Quantity} in {Zone} (new item)", addedAmount, itemId, zoneName);
+		item = items.Find(t => t.ItemId == itemId);
+		if (item != null) {
+			items.Remove(item);
+			items.Add(new LootItem(
+				itemId,
+				item.Quantity + addedAmount,
+				item.Value
+			));
+			log.Information(
+				"[TRACK] {ItemId} x{Quantity} in {Zone} (previous {PreviousQuantity})",
+				itemId,
+				addedAmount,
+				zoneName,
+				item.Quantity
+			);
 		}
 	}
 
@@ -92,14 +136,10 @@ public class LootManager : IDisposable
 	GetItemQuantity(uint itemId)
 	{
 		int total = 0;
-		foreach (var list in itemsByZone.Values)
-		{
-			foreach (TrackedItem tracked in list)
-			{
+		foreach (var list in loot.Values)
+			foreach (LootItem tracked in list)
 				if (tracked.ItemId == itemId)
 					total += tracked.Quantity;
-			}
-		}
 		return total;
 	}
 
@@ -111,9 +151,8 @@ public class LootManager : IDisposable
 	GetTotalItemQuantity()
 	{
 		int totalQuantity = 0;
-		/* TODO: remove var bullshit */
-		foreach (var zoneList in itemsByZone.Values) {
-			foreach (var tracked in zoneList) {
+		foreach (List<LootItem> zoneList in loot.Values) {
+			foreach (LootItem tracked in zoneList) {
 				switch (tracked.ItemId) {
 				case (int)Currencys.GIL:
 				case (int)Currencys.STORM_SEAL:
