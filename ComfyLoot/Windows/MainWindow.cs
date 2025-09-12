@@ -34,6 +34,7 @@ public class MainWindow : Window, IDisposable
 		Plugin = plugin;
 		dataManager = dataManager;
 
+		/* SMELL: Likely originated from Epsteinsync */
 		TitleBarButtons = new() {
 			new TitleBarButton() {
 				Icon = FontAwesomeIcon.Cog,
