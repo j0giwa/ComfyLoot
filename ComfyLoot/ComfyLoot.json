@@ -2,9 +2,21 @@
   "Author": "j0giwa",
   "Name": "ComfyLoot",
   "Punchline": "Cozy drop tracker",
-  "Description": "A description that shows up in /xlplugins. List any major slash-command(s).",
+  "Description": "Keep track of todays loot",
   "ApplicableVersion": "any",
+  "RepoUrl": "https://github.com/j0giwa/ComfyLoot",
   "Tags": [
-    "loot"
-  ]
+    "loot",
+    "drops",
+    "marketboard"
+  ],
+  "CategoryTags": [
+    "utility",
+    "other"
+  ],
+  "DalamudApiLevel": 13,
+  "LoadPriority": 0,
+  "IconUrl": "https://github.com/j0giwa/ComfyLoot/blob/master/Data/icon.png",
+  "ImageUrls": [],
+  "DownloadCount": 0
 }
