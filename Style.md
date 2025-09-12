@@ -241,9 +241,9 @@ try {
 
 ```csharp
 private enum Direction {
-	X,
-	Y,
-	Z
+	DIRECTION_X,
+	DIRECTION_Y,
+	DIRECTION_Z
 }
 
 private const int MaxBufferSize = 4096;

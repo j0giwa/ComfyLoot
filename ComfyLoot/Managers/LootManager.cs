@@ -1,6 +1,7 @@
 
 using System;
 using System.Collections.Generic;
+using ComfyLoot.Data;
 using Dalamud.Game.Inventory.InventoryEventArgTypes;
 using Dalamud.Plugin.Services;
 using Lumina.Excel.Sheets;
@@ -77,7 +78,7 @@ public class LootManager : IDisposable
 			list.Add(new TrackedItem(itemId, existing.Quantity + addedAmount));
 			log.Information("[TRACK] {ItemId} x{Quantity} in {Zone} (previous {PreviousQuantity})",
 			    addedAmount, itemId, zoneName, existing.Quantity);
-			
+
 		} else {
 			list.Add(new TrackedItem(itemId, addedAmount));
 			log.Information("[TRACK] {ItemId} x{Quantity} in {Zone} (new item)", addedAmount, itemId, zoneName);
@@ -102,43 +103,52 @@ public class LootManager : IDisposable
 		return total;
 	}
 
+	/// <summary>
+	/// Counts items across all zone
+	/// </summary>
+	/// <returns>Total number of Items gatherd</returns>
 	public int
 	GetTotalItemQuantity()
 	{
 		int totalQuantity = 0;
-		foreach (var zoneList in itemsByZone.Values)
-		{
+		/* TODO: remove var bullshit */
+		foreach (var zoneList in itemsByZone.Values) {
 			foreach (var tracked in zoneList) {
-				/* TODO: Evil magic numbers */
 				switch (tracked.ItemId) {
-					case 28:
-					case 20:
-					case 21:
-					case 22:
-					case 25:
-					case 36656:
-					case 27:
-					case 10307:
-					case 26533:
-					case 26807:
-					case 25199:
-					case 25200:
-            				case 33913:
-            				case 33914:
-            				case 28063:
-						/* skip Currencys */
-						continue;
-					default:
-						/* everything not a currency*/
-						totalQuantity += tracked.Quantity;
-						break;
+				case (int)Currencys.GIL:
+				case (int)Currencys.STORM_SEAL:
+				case (int)Currencys.SERPENT_SEAL:
+				case (int)Currencys.FLAME_SEAL:
+				case (int)Currencys.ALLIED_SEALS:
+				case (int)Currencys.WOLF_MARKS:
+				case (int)Currencys.MGP:
+				case (int)Currencys.TROPHY_CRYSTALS:
+				case (int)Currencys.TOMESTONE_POETICS:
+				case (int)Currencys.TOMESTONE_AESTETICS:
+				case (int)Currencys.TOMESTONE_MATHEMATICS:
+				case (int)Currencys.TOMESTONE_HELIOMETRY:
+				case (int)Currencys.CENTURIO_SEALS:
+				case (int)Currencys.SACK_OF_NUTS:
+				case (int)Currencys.BICOLOR_GEMSTONES:
+				case (int)Currencys.WHITE_CRAFTER_SCRIPS:
+				case (int)Currencys.PURPLE_CRAFTER_SCRIPS:
+				case (int)Currencys.ORANGE_CRAFTER_SCRIPS:
+				case (int)Currencys.WHITE_GATHERER_SCRIPS:
+				case (int)Currencys.PURPLE_GATHERER_SCRIPS:
+				case (int)Currencys.ORANGE_GATHERER_SCRIPS:
+				case (int)Currencys.SKYBUILDER_SCRIPS:
+					continue; /* Currencys are not items */
+				default:
+					totalQuantity += tracked.Quantity;
+					break;
 				}
 			}
 		}
 		return totalQuantity;
 	}
 
-	public void Dispose()
+	public void
+	Dispose()
 	{
 		throw new NotImplementedException();
 	}
