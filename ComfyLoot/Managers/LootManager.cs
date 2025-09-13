@@ -2,24 +2,30 @@
 using System;
 using System.Collections.Generic;
 using ComfyLoot.Data;
-using Dalamud.Game.Inventory.InventoryEventArgTypes;
+using Dalamud.Game.Inrentory.InventoryEventArgTypes;
 using Dalamud.Plugin.Services;
 using Lumina.Excel.Sheets;
 
 namespace ComfyLoot.Managers;
 
+/// <summary>
+/// A Drop picked up by the player
+/// </summary>
 public record LootItem(
 	uint ItemId,
 	int Quantity,
 	int Value
 );
 
-public class LootManager : IDisposable
-{
+public class LootManager : IDisposable {
+
 	private readonly IClientState client;
 	private readonly IDataManager data;
 	private readonly IPluginLog log;
 
+	/// <summary>
+	/// Drolist, contains everything the player collected
+	/// </summary>
 	private readonly Dictionary<string, List<LootItem>> loot;
 	public IReadOnlyDictionary<string, List<LootItem>> Loot => loot;
 
@@ -37,35 +43,41 @@ public class LootManager : IDisposable
 		this.log = log;
 		client = clientState;
 		data = dataManager;
-		
+
 		loot = new Dictionary<string, List<LootItem>>();
 	}
 
 	/// <summary>
-	/// 
+	/// Gets the name of the current zone.
+	/// Aka: Where is the player right now?
 	/// </summary>
-	/// <returns></returns>
-	private string
+	/// <returns>Name of the current zone,</returns>
+	private string 
 	GetCurrentZoneName()
 	{
 		uint id;
-		string? zoneName;
+		string name;
+		ExcelSheet<TerritoryType> sheet;
 		TerritoryType zoneRow;
 
-		zoneName = null;
 		id = client.TerritoryType;
-		if (data.GetExcelSheet<TerritoryType>()!.TryGetRow(id, out zoneRow))
-			zoneName = zoneRow.PlaceName.Value.Name.ToString();
+		name = "Unknown Zone"; /* In case for (unlikely) failures */
 
-		if (zoneName == null)
-			zoneName = "Unknown Zone";
+		sheet = data.GetExcelSheet<TerritoryType>();
+		if (sheet != null) {
+			zoneRow = sheet.GetRow(id);
 
+			if (zoneRow != null 
+			&& zoneRow.PlaceName != null 
+			&& zoneRow.PlaceName.Value != null)
+				name = zoneRow.PlaceName.Value.Name.ToString();
+		}
 
-		return zoneName;
-	}
+		return name;
+	}	
 
 	/// <summary>
-	/// 
+	/// Add an Item to the droplist
 	/// </summary>
 	/// <param name="added"></param>
 	public void
@@ -104,7 +116,7 @@ public class LootManager : IDisposable
 		string zoneName;
 		LootItem? item;
 		List<LootItem>? items;
-		
+
 		zoneName = GetCurrentZoneName();
 		if (!loot.TryGetValue(zoneName, out items)) {
 			items = new List<LootItem>();
@@ -136,7 +148,7 @@ public class LootManager : IDisposable
 	GetItemQuantity(uint itemId)
 	{
 		int total = 0;
-		foreach (var list in loot.Values)
+		foreach (List<LootItem> list in loot.Values)
 			foreach (LootItem tracked in list)
 				if (tracked.ItemId == itemId)
 					total += tracked.Quantity;
@@ -188,7 +200,5 @@ public class LootManager : IDisposable
 
 	public void
 	Dispose()
-	{
-		throw new NotImplementedException();
-	}
+	{}
 }

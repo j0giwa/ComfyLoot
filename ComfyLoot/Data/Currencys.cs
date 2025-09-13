@@ -1,7 +1,7 @@
 
 namespace ComfyLoot.Data;
 
-public enum Currencys {
+public enum Currency {
 	GIL = 1,
 	STORM_SEAL = 20,
 	SERPENT_SEAL = 21,

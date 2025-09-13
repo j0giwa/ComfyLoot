@@ -12,7 +12,7 @@ insert_final_newline = false
 [*.cs]
 indent_style = tab
 indent_size = 8
-max_line_length = 80
+max_line_length = 79
 csharp_new_line_before_open_brace = all
 csharp_preserve_single_line_statements = false
 
