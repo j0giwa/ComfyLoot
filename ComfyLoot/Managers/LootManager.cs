@@ -1,15 +1,16 @@
 
 using System;
 using System.Collections.Generic;
-using ComfyLoot.Data;
 using Dalamud.Game.Inrentory.InventoryEventArgTypes;
 using Dalamud.Plugin.Services;
 using Lumina.Excel.Sheets;
 
+using ComfyLoot.Data;
+
 namespace ComfyLoot.Managers;
 
 /// <summary>
-/// A Drop picked up by the player
+/// A drop picked up by the player
 /// </summary>
 public record LootItem(
 	uint ItemId,
@@ -17,6 +18,9 @@ public record LootItem(
 	int Value
 );
 
+/// <summary>
+/// Kees track of Player loot
+/// </summay>
 public class LootManager : IDisposable {
 
 	private readonly IClientState client;
@@ -24,7 +28,8 @@ public class LootManager : IDisposable {
 	private readonly IPluginLog log;
 
 	/// <summary>
-	/// Drolist, contains everything the player collected
+	/// Droplist,
+	/// contains everything the player collected
 	/// </summary>
 	private readonly Dictionary<string, List<LootItem>> loot;
 	public IReadOnlyDictionary<string, List<LootItem>> Loot => loot;
@@ -48,38 +53,9 @@ public class LootManager : IDisposable {
 	}
 
 	/// <summary>
-	/// Gets the name of the current zone.
-	/// Aka: Where is the player right now?
-	/// </summary>
-	/// <returns>Name of the current zone,</returns>
-	private string 
-	GetCurrentZoneName()
-	{
-		uint id;
-		string name;
-		ExcelSheet<TerritoryType> sheet;
-		TerritoryType zoneRow;
-
-		id = client.TerritoryType;
-		name = "Unknown Zone"; /* In case for (unlikely) failures */
-
-		sheet = data.GetExcelSheet<TerritoryType>();
-		if (sheet != null) {
-			zoneRow = sheet.GetRow(id);
-
-			if (zoneRow != null 
-			&& zoneRow.PlaceName != null 
-			&& zoneRow.PlaceName.Value != null)
-				name = zoneRow.PlaceName.Value.Name.ToString();
-		}
-
-		return name;
-	}	
-
-	/// <summary>
 	/// Add an Item to the droplist
 	/// </summary>
-	/// <param name="added"></param>
+	/// <param name="added">Added item</param>
 	public void
 	AddItem(InventoryItemAddedArgs added)
 	{
@@ -91,7 +67,8 @@ public class LootManager : IDisposable {
 		LootItem tracked = new LootItem(
 		    added.Item.ItemId,
 		    added.Item.Quantity,
-		    0 /* placeholder till we got universalis value*/
+		    GetItemValue(added.Item.ItemId),
+		    //0 /* placeholder till we got universalis value*/
 		);
 
 		if (!loot.TryGetValue(zone, out list)) {
@@ -108,37 +85,32 @@ public class LootManager : IDisposable {
 	}
 
 	/// <summary>
-	/// Updates an item's quantity.
+	/// Gets the name of the current zone.
+	/// Aka: Where is the player right now?
 	/// </summary>
-	public void
-	UpdateItem(uint itemId, int addedAmount)
+	/// <returns>Name of the current zone,</returns>
+	private string
+	GetCurrentZoneName()
 	{
-		string zoneName;
-		LootItem? item;
-		List<LootItem>? items;
+		uint id;
+		string name;
+		ExcelSheet<TerritoryType> sheet;
+		TerritoryType zoneRow;
 
-		zoneName = GetCurrentZoneName();
-		if (!loot.TryGetValue(zoneName, out items)) {
-			items = new List<LootItem>();
-			loot[zoneName] = items;
+		id = client.TerritoryType;
+		name = "Unknown Zone"; /* In case for (unlikely) failures */
+
+		sheet = data.GetExcelSheet<TerritoryType>();
+		if (sheet != null) {
+			zoneRow = sheet.GetRow(id);
+
+			if (zoneRow != null
+			&& zoneRow.PlaceName != null
+			&& zoneRow.PlaceName.Value != null)
+				name = zoneRow.PlaceName.Value.Name.ToString();
 		}
 
-		item = items.Find(t => t.ItemId == itemId);
-		if (item != null) {
-			items.Remove(item);
-			items.Add(new LootItem(
-				itemId,
-				item.Quantity + addedAmount,
-				item.Value
-			));
-			log.Information(
-				"[TRACK] {ItemId} x{Quantity} in {Zone} (previous {PreviousQuantity})",
-				itemId,
-				addedAmount,
-				zoneName,
-				item.Quantity
-			);
-		}
+		return name;
 	}
 
 	/// <summary>
@@ -153,6 +125,41 @@ public class LootManager : IDisposable {
 				if (tracked.ItemId == itemId)
 					total += tracked.Quantity;
 		return total;
+	}
+
+	public int
+	GetItemValue(uint itemId)
+	{
+		int value;
+
+		switch (itemId) {
+		case (int)Currencys.GIL:
+			value = 1;
+			break;
+		case (int)SpecialItems.ALLAGAN_TIN_PIECE:
+			value = 25;
+			break;
+		case (int)SpecialItems.ALLAGAN_BRONZE_PIECE:
+		case (int)SpecialItems.NIGHTWORLD_BRONZE_PIECE:
+			value = 100;
+			break;
+		case (int)SpecialItems.ALLAGAN_SILVER_PIECE:
+		case (int)SpecialItems.NIGHTWORLD_SILVER_PIECE:
+			value = 500;
+			break;
+		case (int)SpecialItems.ALLAGAN_GOLD_PIECE:
+			value = 2500;
+			break;
+		case (int)SpecialItems.ALLAGAN_PLATINUM_PIECE:
+			value = 10000;
+			break;
+		case default:
+			value = 1; /* TODO: Get universalis data */
+			/* TODO: return 0 when not not sellable on MB */
+			break;
+		}
+
+		return value;
 	}
 
 	/// <summary>
@@ -196,6 +203,40 @@ public class LootManager : IDisposable {
 			}
 		}
 		return totalQuantity;
+	}
+
+	/// <summary>
+	/// Updates an item's quantity.
+	/// </summary>
+	public void
+	UpdateItem(uint itemId, int addedAmount)
+	{
+		string zoneName;
+		LootItem? item;
+		List<LootItem>? items;
+
+		zoneName = GetCurrentZoneName();
+		if (!loot.TryGetValue(zoneName, out items)) {
+			items = new List<LootItem>();
+			loot[zoneName] = items;
+		}
+
+		item = items.Find(t => t.ItemId == itemId);
+		if (item != null) {
+			items.Remove(item);
+			items.Add(new LootItem(
+				itemId,
+				item.Quantity + addedAmount,
+				item.Value
+			));
+			log.Information(
+				"[TRACK] {ItemId} x{Quantity} in {Zone} (previous {PreviousQuantity})",
+				itemId,
+				addedAmount,
+				zoneName,
+				item.Quantity
+			);
+		}
 	}
 
 	public void

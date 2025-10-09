@@ -4,12 +4,16 @@ using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+
 using ComfyLoot.Managers;
 using ComfyLoot.Servive;
 using ComfyLoot.Windows;
 
 namespace ComfyLoot;
 
+/// <summary>
+/// ComfyLoot plugin core
+/// </summary>
 public sealed class ComfyLoot : IDalamudPlugin
 {
 	private const string CommandName = "/loot";
@@ -45,7 +49,8 @@ public sealed class ComfyLoot : IDalamudPlugin
 		Configuration config;
 
 		rawConfig = Dalamud.GetPluginConfig();
-		if (rawConfig != null && rawConfig is Configuration)
+		if (rawConfig != null 
+		&& rawConfig is Configuration)
 			config = (Configuration)rawConfig;
 		else
 			config = new Configuration();

@@ -8,6 +8,7 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
+
 using ComfyLoot.Managers;
 
 namespace ComfyLoot.Windows;
@@ -33,12 +34,13 @@ public class MainWindow : Window, IDisposable {
 		Plugin = plugin;
 		dataManager = dataManager;
 
-		/* SMELL: Likely originated from Epsteinsync */
+		/* SMELL: this snippet likely originated from an Epsteinsync */
 		TitleBarButtons = new() {
 			new TitleBarButton() {
 				Icon = FontAwesomeIcon.Cog,
 				Click = (msg) => {
-		    			//Plugin.ToggleConfigUI();
+		    			/* NOTE: No configs yet */
+					//Plugin.ToggleConfigUI();
 				},
 				IconOffset = new(2,1),
 				ShowTooltip = () => {
@@ -53,8 +55,8 @@ public class MainWindow : Window, IDisposable {
 	public override void
 	Draw()
 	{
+		string zoneName;
 		ImGuiTableFlags tableFlags;
-
 
 		ImGui.TextUnformatted($"Total count: {Plugin.LootManager.GetTotalItemQuantity()}");
 		ImGui.TextUnformatted($"Total Value: N/A");
@@ -80,7 +82,7 @@ public class MainWindow : Window, IDisposable {
 				ImGui.TableHeadersRow();
 
 				foreach (var kvp in Plugin.LootManager.Loot) {
-					string zoneName = kvp.Key ?? "<Unknown Zone>";
+					zoneName = kvp.Key ?? "<Unknown Zone>";
 					List<LootItem> items = kvp.Value ?? new();
 
 					/* Pretty subheader */
