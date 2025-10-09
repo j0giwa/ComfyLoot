@@ -4,20 +4,27 @@ using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using ComfyLoot.Service;
+
+using ComfyLoot.Managers;
 using ComfyLoot.Servive;
 using ComfyLoot.Windows;
 
 namespace ComfyLoot;
 
+/// <summary>
+/// ComfyLoot plugin core
+/// </summary>
 public sealed class ComfyLoot : IDalamudPlugin
 {
+	private const string CommandName = "/loot";
+	public readonly WindowSystem WindowSystem = new("ComfyLoot");
+	
 	[PluginService]
 	internal static IDalamudPluginInterface Dalamud { get; private set; } = null!;
 	[PluginService]
-	internal static ITextureProvider TextureProvider { get; private set; } = null!;
+	internal static ITextureProvider Textures { get; private set; } = null!;
 	[PluginService]
-	internal static ICommandManager CommandManager { get; private set; } = null!;
+	internal static ICommandManager Commands { get; private set; } = null!;
 	[PluginService]
 	internal static IClientState ClientState { get; private set; } = null!;
 	[PluginService]
@@ -27,18 +34,14 @@ public sealed class ComfyLoot : IDalamudPlugin
 	[PluginService]
 	internal static IGameInventory GameInventory { get; private set; } = null!;
 
-	private const string CommandName = "/loot";
-
 	public Configuration Configuration { get; init; }
-	public readonly WindowSystem WindowSystem = new("ComfyLoot");
+	public LootManager LootManager { get; set; }
+	public InventoryWatcher Watcher;
 	private ConfigWindow ConfigWindow { get; init; }
 	private MainWindow MainWindow { get; init; }
 
-	private InventoryWatcher watcher;
-	public LootManager LootManager { get; set; }
-
 	/// <summary>
-	/// Plugin:ctor
+	/// ComfyLoot:ctor
 	/// </summary>
 	public ComfyLoot()
 	{
@@ -46,24 +49,24 @@ public sealed class ComfyLoot : IDalamudPlugin
 		Configuration config;
 
 		rawConfig = Dalamud.GetPluginConfig();
-		if (rawConfig != null && rawConfig is Configuration)
+		if (rawConfig != null 
+		&& rawConfig is Configuration)
 			config = (Configuration)rawConfig;
 		else
 			config = new Configuration();
 		Configuration = config;
 
-		LootManager = new LootManager(ClientState, DataManager, Log);
-		watcher = new InventoryWatcher(GameInventory, Log, LootManager);
+		LootManager = new LootManager(Log);
+		Watcher = new InventoryWatcher(LootManager, Log);
 
 		ConfigWindow = new ConfigWindow(this);
-		MainWindow = new MainWindow(this, DataManager);
+		MainWindow = new MainWindow(this);
 
 		WindowSystem.AddWindow(ConfigWindow);
 		WindowSystem.AddWindow(MainWindow);
 
-		CommandManager.AddHandler(CommandName,
-			new CommandInfo(OnCommand)
-			{
+		Commands.AddHandler(CommandName,
+			new CommandInfo(OnCommand) {
 				HelpMessage = "A useful message to display in /xlhelp"
 			});
 
@@ -91,6 +94,6 @@ public sealed class ComfyLoot : IDalamudPlugin
 		ConfigWindow.Dispose();
 		MainWindow.Dispose();
 
-		CommandManager.RemoveHandler(CommandName);
+		Commands.RemoveHandler(CommandName);
 	}
 }
