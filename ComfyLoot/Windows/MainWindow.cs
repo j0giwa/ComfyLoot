@@ -16,9 +16,7 @@ namespace ComfyLoot.Windows;
 
 public class MainWindow : Window, IDisposable {
 
-	private ComfyLoot Plugin;
-
-	//private IDataManager dataManager;
+	private readonly ComfyLoot _plugin;
 
 	/// <summary>
 	/// MainWindow:ctor
@@ -32,7 +30,7 @@ public class MainWindow : Window, IDisposable {
 			MaximumSize = new Vector2(float.MaxValue, float.MaxValue)
 		};
 
-		Plugin = plugin;
+		_plugin = plugin;
 
 		/* WARN: 
 		 * This snippet likely originated from an Epsteinsync
@@ -58,12 +56,18 @@ public class MainWindow : Window, IDisposable {
 	public override void
 	Draw()
 	{
+		int totalValue;
 		string zoneName;
 		ImGuiTableFlags tableFlags;
 		List<LootItem> items;
-		
-		ImGui.TextUnformatted($"Total count: {Plugin.LootManager.GetTotalItemQuantity()}");
-		ImGui.TextUnformatted($"Total Value: N/A");
+
+		totalValue = _plugin.LootManager.GetTotalItemValue();
+
+		ImGui.TextUnformatted($"Total count: {_plugin.LootManager.GetTotalItemQuantity()}");
+		if (totalValue == 0)
+			ImGui.TextUnformatted($"Total Value: N/A");
+		else
+			ImGui.TextUnformatted($"Total Value: {totalValue}");
 		ImGui.Spacing();
 
 		using var child = ImRaii.Child("LootChild", Vector2.Zero, true);
@@ -84,7 +88,7 @@ public class MainWindow : Window, IDisposable {
 			ImGui.TableSetupColumn("Value", ImGuiTableColumnFlags.WidthFixed, 80.0f);
 
 			ImGui.TableHeadersRow();
-			foreach (KeyValuePair<string, List<LootItem>> kvp in Plugin.LootManager.Loot) {
+			foreach (KeyValuePair<string, List<LootItem>> kvp in _plugin.LootManager.Loot) {
 				zoneName = kvp.Key ?? "<Unknown Zone>";
 				items = kvp.Value ?? new List<LootItem>();
 
@@ -138,7 +142,6 @@ public class MainWindow : Window, IDisposable {
 	private void
 	DrawItemRow(LootItem item)
 	{
-		int GetItemValue;
 		ReadOnlySeString itemName;
 
 		ImGui.TableNextRow();
