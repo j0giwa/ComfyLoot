@@ -1,8 +1,9 @@
 
 using System;
 using System.Collections.Generic;
-using Dalamud.Game.Inrentory.InventoryEventArgTypes;
+using Dalamud.Game.Inventory.InventoryEventArgTypes;
 using Dalamud.Plugin.Services;
+using Lumina.Excel;
 using Lumina.Excel.Sheets;
 
 using ComfyLoot.Data;
@@ -53,9 +54,36 @@ public class LootManager : IDisposable {
 	}
 
 	/// <summary>
+	/// Gets the name of the current zone.
+	/// Aka: Where is the player right now?
+	/// </summary>
+	/// <returns>Name of the current zone,</returns>
+	private string
+	GetCurrentZoneName()
+	{
+		uint id;
+		string? name;
+		ExcelSheet<TerritoryType> sheet;
+		TerritoryType zoneRow;
+
+		name = null;
+		id = client.TerritoryType;
+		sheet = data.GetExcelSheet<TerritoryType>();
+
+		if (sheet != null
+		&& sheet.TryGetRow(id, out zoneRow))
+			name = zoneRow.PlaceName.Value.Name.ToString();
+
+		if (name == null) /* In case for (unlikely) failures */
+			name = "Unknown Zone";
+
+		return name;
+	}
+
+	/// <summary>
 	/// Add an Item to the droplist
 	/// </summary>
-	/// <param name="added">Added item</param>
+	/// <param name="added"></param>
 	public void
 	AddItem(InventoryItemAddedArgs added)
 	{
@@ -67,7 +95,7 @@ public class LootManager : IDisposable {
 		LootItem tracked = new LootItem(
 		    added.Item.ItemId,
 		    added.Item.Quantity,
-		    GetItemValue(added.Item.ItemId),
+		    GetItemValue(added.Item.ItemId)
 		    //0 /* placeholder till we got universalis value*/
 		);
 
@@ -82,35 +110,6 @@ public class LootManager : IDisposable {
 			tracked.Quantity,
 			tracked.ItemId,
 			zone);
-	}
-
-	/// <summary>
-	/// Gets the name of the current zone.
-	/// Aka: Where is the player right now?
-	/// </summary>
-	/// <returns>Name of the current zone,</returns>
-	private string
-	GetCurrentZoneName()
-	{
-		uint id;
-		string name;
-		ExcelSheet<TerritoryType> sheet;
-		TerritoryType zoneRow;
-
-		id = client.TerritoryType;
-		name = "Unknown Zone"; /* In case for (unlikely) failures */
-
-		sheet = data.GetExcelSheet<TerritoryType>();
-		if (sheet != null) {
-			zoneRow = sheet.GetRow(id);
-
-			if (zoneRow != null
-			&& zoneRow.PlaceName != null
-			&& zoneRow.PlaceName.Value != null)
-				name = zoneRow.PlaceName.Value.Name.ToString();
-		}
-
-		return name;
 	}
 
 	/// <summary>
@@ -133,7 +132,7 @@ public class LootManager : IDisposable {
 		int value;
 
 		switch (itemId) {
-		case (int)Currencys.GIL:
+		case (int)Currency.GIL:
 			value = 1;
 			break;
 		case (int)SpecialItems.ALLAGAN_TIN_PIECE:
@@ -153,7 +152,7 @@ public class LootManager : IDisposable {
 		case (int)SpecialItems.ALLAGAN_PLATINUM_PIECE:
 			value = 10000;
 			break;
-		case default:
+		default:
 			value = 1; /* TODO: Get universalis data */
 			/* TODO: return 0 when not not sellable on MB */
 			break;
@@ -173,28 +172,28 @@ public class LootManager : IDisposable {
 		foreach (List<LootItem> zoneList in loot.Values) {
 			foreach (LootItem tracked in zoneList) {
 				switch (tracked.ItemId) {
-				case (int)Currencys.GIL:
-				case (int)Currencys.STORM_SEAL:
-				case (int)Currencys.SERPENT_SEAL:
-				case (int)Currencys.FLAME_SEAL:
-				case (int)Currencys.ALLIED_SEALS:
-				case (int)Currencys.WOLF_MARKS:
-				case (int)Currencys.MGP:
-				case (int)Currencys.TROPHY_CRYSTALS:
-				case (int)Currencys.TOMESTONE_POETICS:
-				case (int)Currencys.TOMESTONE_AESTETICS:
-				case (int)Currencys.TOMESTONE_MATHEMATICS:
-				case (int)Currencys.TOMESTONE_HELIOMETRY:
-				case (int)Currencys.CENTURIO_SEALS:
-				case (int)Currencys.SACK_OF_NUTS:
-				case (int)Currencys.BICOLOR_GEMSTONES:
-				case (int)Currencys.WHITE_CRAFTER_SCRIPS:
-				case (int)Currencys.PURPLE_CRAFTER_SCRIPS:
-				case (int)Currencys.ORANGE_CRAFTER_SCRIPS:
-				case (int)Currencys.WHITE_GATHERER_SCRIPS:
-				case (int)Currencys.PURPLE_GATHERER_SCRIPS:
-				case (int)Currencys.ORANGE_GATHERER_SCRIPS:
-				case (int)Currencys.SKYBUILDER_SCRIPS:
+				case (int)Currency.GIL:
+				case (int)Currency.STORM_SEAL:
+				case (int)Currency.SERPENT_SEAL:
+				case (int)Currency.FLAME_SEAL:
+				case (int)Currency.ALLIED_SEALS:
+				case (int)Currency.WOLF_MARKS:
+				case (int)Currency.MGP:
+				case (int)Currency.TROPHY_CRYSTALS:
+				case (int)Currency.TOMESTONE_POETICS:
+				case (int)Currency.TOMESTONE_AESTETICS:
+				case (int)Currency.TOMESTONE_MATHEMATICS:
+				case (int)Currency.TOMESTONE_HELIOMETRY:
+				case (int)Currency.CENTURIO_SEALS:
+				case (int)Currency.SACK_OF_NUTS:
+				case (int)Currency.BICOLOR_GEMSTONES:
+				case (int)Currency.WHITE_CRAFTER_SCRIPS:
+				case (int)Currency.PURPLE_CRAFTER_SCRIPS:
+				case (int)Currency.ORANGE_CRAFTER_SCRIPS:
+				case (int)Currency.WHITE_GATHERER_SCRIPS:
+				case (int)Currency.PURPLE_GATHERER_SCRIPS:
+				case (int)Currency.ORANGE_GATHERER_SCRIPS:
+				case (int)Currency.SKYBUILDER_SCRIPS:
 					continue; /* Currencys are not items */
 				default:
 					totalQuantity += tracked.Quantity;

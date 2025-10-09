@@ -79,7 +79,7 @@ public class InventoryWatcher : IDisposable {
 	private void
 	OnInventoryChanged(IReadOnlyCollection<InventoryEventArgs> events)
 	{
-		foreach (var evt in events) {
+		foreach (var evt in events)
 			switch (evt) {
 			case InventoryItemAddedArgs added:
 				HandleAddItem(added);
@@ -90,12 +90,9 @@ public class InventoryWatcher : IDisposable {
 			default:
 				break;
 			}
-		}
 	}
 
 	public void
 	Dispose()
-	{
-		throw new NotImplementedException();
-	}
+	{}
 }	

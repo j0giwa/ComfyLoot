@@ -62,76 +62,75 @@ public class MainWindow : Window, IDisposable {
 		ImGui.TextUnformatted($"Total Value: N/A");
 		ImGui.Spacing();
 
-		using (var child = ImRaii.Child("LootChild", Vector2.Zero, true)) {
-			if (!child.Success)
-				return;
+		using var child = ImRaii.Child("LootChild", Vector2.Zero, true);
 
-			tableFlags = ImGuiTableFlags.RowBg |
-				ImGuiTableFlags.BordersInnerV |
-				ImGuiTableFlags.BordersInnerH |
-				ImGuiTableFlags.SizingStretchProp |
-				ImGuiTableFlags.ScrollY;
+		if (!child.Success)
+			return;
 
-			if (ImGui.BeginTable("LootTable", 4, tableFlags)) {
-				
-				ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 35.0f);
-				ImGui.TableSetupColumn("Item", ImGuiTableColumnFlags.WidthStretch);
-				ImGui.TableSetupColumn("Amount", ImGuiTableColumnFlags.WidthFixed, 80.0f);
-				ImGui.TableSetupColumn("Value", ImGuiTableColumnFlags.WidthFixed, 80.0f);
+		tableFlags = ImGuiTableFlags.RowBg |
+			ImGuiTableFlags.BordersInnerV |
+			ImGuiTableFlags.BordersInnerH |
+			ImGuiTableFlags.SizingStretchProp |
+			ImGuiTableFlags.ScrollY;
 
-				ImGui.TableHeadersRow();
+		if (ImGui.BeginTable("LootTable", 4, tableFlags)) {
 
-				foreach (var kvp in Plugin.LootManager.Loot) {
-					zoneName = kvp.Key ?? "<Unknown Zone>";
-					List<LootItem> items = kvp.Value ?? new();
+			ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 35.0f);
+			ImGui.TableSetupColumn("Item", ImGuiTableColumnFlags.WidthStretch);
+			ImGui.TableSetupColumn("Amount", ImGuiTableColumnFlags.WidthFixed, 80.0f);
+			ImGui.TableSetupColumn("Value", ImGuiTableColumnFlags.WidthFixed, 80.0f);
+			ImGui.TableHeadersRow();
 
-					/* Pretty subheader */
-					ImGui.TableNextRow();
-					var headerBg = ImGui.GetColorU32(ImGuiCol.TableHeaderBg);
-					for (int col = 0; col < 4; col++)
-						ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, headerBg, ImGui.TableGetRowIndex());
-					ImGui.TableSetColumnIndex(0);
-					ImGui.PushID(zoneName);
-					bool zoneOpen = ImGui.TreeNodeEx("##zone",
-						ImGuiTreeNodeFlags.FramePadding |
-						ImGuiTreeNodeFlags.DefaultOpen |
-						ImGuiTreeNodeFlags.SpanAvailWidth);
-					ImGui.PopID();
+			foreach (var kvp in Plugin.LootManager.Loot) {
+				zoneName = kvp.Key ?? "<Unknown Zone>";
+				List<LootItem> items = kvp.Value ?? new();
 
-					ImGui.TableSetColumnIndex(1);
-					ImGui.TextUnformatted(zoneName);
-					ImGui.TableSetColumnIndex(2);
-					ImGui.TableSetColumnIndex(3);
+				/* Pretty subheader */
+				ImGui.TableNextRow();
+				var headerBg = ImGui.GetColorU32(ImGuiCol.TableHeaderBg);
+				for (int col = 0; col < 4; col++)
+					ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, headerBg, ImGui.TableGetRowIndex());
+				ImGui.TableSetColumnIndex(0);
+				ImGui.PushID(zoneName);
+				bool zoneOpen = ImGui.TreeNodeEx("##zone",
+					ImGuiTreeNodeFlags.FramePadding |
+					ImGuiTreeNodeFlags.DefaultOpen |
+					ImGuiTreeNodeFlags.SpanAvailWidth);
+				ImGui.PopID();
 
-					// --- Items ---
-					if (zoneOpen) {
-						foreach (var item in items) {
-							ImGui.TableNextRow();
+				ImGui.TableSetColumnIndex(1);
+				ImGui.TextUnformatted(zoneName);
+				ImGui.TableSetColumnIndex(2);
+				ImGui.TableSetColumnIndex(3);
 
-							ImGui.TableSetColumnIndex(0); 
-							ImGui.TextUnformatted(""); /* empty for indentation */
+				// --- Items ---
+				if (zoneOpen) {
+					foreach (var item in items) {
+						ImGui.TableNextRow();
 
-							ImGui.TableSetColumnIndex(1);
-							var itemSeString = ItemUtil.GetItemName(item.ItemId, true);
-							ImGui.TextUnformatted(itemSeString.ToString());
+						ImGui.TableSetColumnIndex(0);
+						ImGui.TextUnformatted(""); /* empty for indentation */
 
-							ImGui.TableSetColumnIndex(2);
-							ImGui.TextUnformatted(item.Quantity.ToString());
+						ImGui.TableSetColumnIndex(1);
+						var itemSeString = ItemUtil.GetItemName(item.ItemId, true);
+						ImGui.TextUnformatted(itemSeString.ToString());
 
-							ImGui.TableSetColumnIndex(3);
-							ImGui.TextUnformatted("N/A");
-						}
+						ImGui.TableSetColumnIndex(2);
+						ImGui.TextUnformatted(item.Quantity.ToString());
 
-						ImGui.TreePop();
+						ImGui.TableSetColumnIndex(3);
+						ImGui.TextUnformatted("N/A");
 					}
-				}
 
-				ImGui.EndTable();
+					ImGui.TreePop();
+				}
 			}
+
+			ImGui.EndTable();
 		}
 	}
 
 	public void
 	Dispose()
-	{ }
+	{}
 }
