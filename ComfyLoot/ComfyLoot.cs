@@ -36,7 +36,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 
 	public Configuration Configuration { get; init; }
 	public LootManager LootManager { get; set; }
-	private InventoryWatcher watcher;
+	public InventoryWatcher Watcher;
 	private ConfigWindow ConfigWindow { get; init; }
 	private MainWindow MainWindow { get; init; }
 
@@ -56,11 +56,11 @@ public sealed class ComfyLoot : IDalamudPlugin
 			config = new Configuration();
 		Configuration = config;
 
-		LootManager = new LootManager(ClientState, DataManager, Log);
-		watcher = new InventoryWatcher(GameInventory, Log, LootManager);
+		LootManager = new LootManager(Log);
+		Watcher = new InventoryWatcher(LootManager, Log);
 
 		ConfigWindow = new ConfigWindow(this);
-		MainWindow = new MainWindow(this, DataManager);
+		MainWindow = new MainWindow(this);
 
 		WindowSystem.AddWindow(ConfigWindow);
 		WindowSystem.AddWindow(MainWindow);

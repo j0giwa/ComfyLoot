@@ -24,31 +24,22 @@ public record LootItem(
 /// </summay>
 public class LootManager : IDisposable {
 
-	private readonly IClientState client;
-	private readonly IDataManager data;
 	private readonly IPluginLog log;
+	private readonly Dictionary<string, List<LootItem>> loot;
 
 	/// <summary>
-	/// Droplist,
-	/// contains everything the player collected
+	/// Droplist, contains everything the player collected
 	/// </summary>
-	private readonly Dictionary<string, List<LootItem>> loot;
 	public IReadOnlyDictionary<string, List<LootItem>> Loot => loot;
 
 	/// <summary>
 	/// LootManager:ctor
 	/// </summary>
-	/// <param name="clientState"></param>
-	/// <param name="dataManager"></param>
 	/// <param name="log"></param>
-	public LootManager(
-		IClientState clientState,
-		IDataManager dataManager,
-		IPluginLog log)
+	public LootManager(IPluginLog log)
 	{
 		this.log = log;
-		client = clientState;
-		data = dataManager;
+		//data = dataManager;
 
 		loot = new Dictionary<string, List<LootItem>>();
 	}
@@ -67,8 +58,8 @@ public class LootManager : IDisposable {
 		TerritoryType zoneRow;
 
 		name = null;
-		id = client.TerritoryType;
-		sheet = data.GetExcelSheet<TerritoryType>();
+		id = ComfyLoot.ClientState.TerritoryType;
+		sheet = ComfyLoot.DataManager.GetExcelSheet<TerritoryType>();
 
 		if (sheet != null
 		&& sheet.TryGetRow(id, out zoneRow))
@@ -80,53 +71,7 @@ public class LootManager : IDisposable {
 		return name;
 	}
 
-	/// <summary>
-	/// Add an Item to the droplist
-	/// </summary>
-	/// <param name="added"></param>
-	public void
-	AddItem(InventoryItemAddedArgs added)
-	{
-		string zone;
-		List<LootItem>? list;
-
-		zone = GetCurrentZoneName();
-
-		LootItem tracked = new LootItem(
-		    added.Item.ItemId,
-		    added.Item.Quantity,
-		    GetItemValue(added.Item.ItemId)
-		    //0 /* placeholder till we got universalis value*/
-		);
-
-		if (!loot.TryGetValue(zone, out list)) {
-			list = new List<LootItem>();
-			loot[zone] = list;
-		}
-
-		list.Add(tracked);
-		log.Information(
-			"[TRACK] {Quantity}x {ItemId} in {Zone}",
-			tracked.Quantity,
-			tracked.ItemId,
-			zone);
-	}
-
-	/// <summary>
-	/// Returns the total quantity of a tracked item across all zones.
-	/// </summary>
-	public int
-	GetItemQuantity(uint itemId)
-	{
-		int total = 0;
-		foreach (List<LootItem> list in loot.Values)
-			foreach (LootItem tracked in list)
-				if (tracked.ItemId == itemId)
-					total += tracked.Quantity;
-		return total;
-	}
-
-	public int
+	private int
 	GetItemValue(uint itemId)
 	{
 		int value;
@@ -159,6 +104,52 @@ public class LootManager : IDisposable {
 		}
 
 		return value;
+	}
+
+	/// <summary>
+	/// Add an Item to the droplist
+	/// </summary>
+	/// <param name="addedItem"></param>
+	public void
+	AddItem(InventoryItemAddedArgs addedItem)
+	{
+		string zone;
+		List<LootItem>? list;
+
+		zone = GetCurrentZoneName();
+
+		LootItem item = new LootItem(
+		    addedItem.Item.ItemId,
+		    addedItem.Item.Quantity,
+		    0 /* placeholder till we got universalis value*/
+		//GetItemValue(added.Item.ItemId)
+		);
+
+		if (!loot.TryGetValue(zone, out list))
+			list = new List<LootItem>();
+
+		list.Add(item);
+		log.Information(
+			"[TRACK] {Quantity}x {ItemId} in {Zone}",
+			item.Quantity,
+			item.ItemId,
+			zone);
+
+		loot[zone] = list;
+	}
+
+	/// <summary>
+	/// Returns the total quantity of a tracked item across all zones.
+	/// </summary>
+	public int
+	GetItemQuantity(uint itemId)
+	{
+		int total = 0;
+		foreach (List<LootItem> list in loot.Values)
+			foreach (LootItem tracked in list)
+				if (tracked.ItemId == itemId)
+					total += tracked.Quantity;
+		return total;
 	}
 
 	/// <summary>
@@ -215,10 +206,8 @@ public class LootManager : IDisposable {
 		List<LootItem>? items;
 
 		zoneName = GetCurrentZoneName();
-		if (!loot.TryGetValue(zoneName, out items)) {
+		if (!loot.TryGetValue(zoneName, out items))
 			items = new List<LootItem>();
-			loot[zoneName] = items;
-		}
 
 		item = items.Find(t => t.ItemId == itemId);
 		if (item != null) {
@@ -236,9 +225,11 @@ public class LootManager : IDisposable {
 				item.Quantity
 			);
 		}
+
+		loot[zoneName] = items;
 	}
 
 	public void
 	Dispose()
-	{}
+	{ }
 }
