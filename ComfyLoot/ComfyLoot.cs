@@ -89,6 +89,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 	public void
 	Dispose()
 	{
+
 		WindowSystem.RemoveAllWindows();
 
 		ConfigWindow.Dispose();
