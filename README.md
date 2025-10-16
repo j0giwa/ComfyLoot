@@ -20,6 +20,15 @@ Upon install Comfyloot keeps track of every item you aquire over this play sessi
 - What is this for?
   > I started working on this because i wanted a way to keep track of my stuff during map runs.
 
+- Why is ever item valued "N/A"
+  > The Value is N/A if the item is either untradable, or universalis can't be reached.
+  > This relies on Universalis data, if this feature is disabled the value will aslo be "N/A"
+
+- Why is Univesalis disabled by default
+  > Even tho this is the whole point of the plugin, this has to be disbabled.
+  > Im based in the EU, due to privacy laws i have to make this an opt-in feature.
+  > Nothing i can do about that.
+
 - Is this trustworthy?
   > If you feel the need to ask this question, you have already aswered it yourself: *no, probably not*. (And well done for actually reading the `Dalamud` third-party disclaimer. Here is your cookie: 🍪) <br><br>
   > This is, at this point not endoresed by `Dalamud`, Square Enix (durr) or anyone else, if you heard something else, they were lying. The code contains snippets from sources, that are at best, questionable. 
