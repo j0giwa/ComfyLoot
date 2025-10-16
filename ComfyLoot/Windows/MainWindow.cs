@@ -59,6 +59,11 @@ public class MainWindow : Window, IDisposable {
 		string zoneName;
 		ImGuiTableFlags tableFlags;
 		List<LootItem> items;
+		Dictionary<string, List<LootItem>> snapshot;
+		lock (_plugin.LootManager._lock)
+		{
+			snapshot = new Dictionary<string, List<LootItem>>(_plugin.LootManager.Loot);
+		}
 
 		totalValue = _plugin.LootManager.GetTotalItemValue();
 
@@ -87,11 +92,11 @@ public class MainWindow : Window, IDisposable {
 			ImGui.TableSetupColumn("Value", ImGuiTableColumnFlags.WidthFixed, 80.0f);
 
 			ImGui.TableHeadersRow();
-			foreach (KeyValuePair<string, List<LootItem>> kvp in _plugin.LootManager.Loot) {
+			foreach (KeyValuePair<string, List<LootItem>> kvp in snapshot) {
 				zoneName = kvp.Key ?? "<Unknown Zone>";
 				items = kvp.Value ?? new List<LootItem>();
 
-				DrawZoneSection(zoneName, items);
+				DrawZoneSection($"{zoneName} {items.Count} ", items);
 			}
 
 			ImGui.EndTable();
@@ -145,7 +150,7 @@ public class MainWindow : Window, IDisposable {
 
 		ImGui.TableNextRow();
 		ImGui.TableSetColumnIndex(0);
-		ImGui.TextUnformatted(""); // indentation placeholder
+		ImGui.TextUnformatted(""); /* indentation placeholder */
 
 		ImGui.TableSetColumnIndex(1);
 		itemName = ItemUtil.GetItemName(item.ItemId, true);

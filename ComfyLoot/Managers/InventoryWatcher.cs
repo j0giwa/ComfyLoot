@@ -1,6 +1,7 @@
 /* See LICENSE file for copyright and license details. */
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Dalamud.Game.Inventory;
 using Dalamud.Game.Inventory.InventoryEventArgTypes;
 using Dalamud.Plugin.Services;
@@ -44,7 +45,8 @@ public class InventoryWatcher : IDisposable {
 				args.Item.ItemId,
 				args.Inventory,
 				args.Slot);
-			_loot.AddItem(args);
+			//_loot.AddItem(args);
+			_ = Task.Run(() => _loot.AddItem(args));
 			break;
 		default:
 			break;

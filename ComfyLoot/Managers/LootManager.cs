@@ -1,13 +1,15 @@
 /* See LICENSE file for copyright and license details. */
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Dalamud.Game.Inventory.InventoryEventArgTypes;
 using Dalamud.Plugin.Services;
 using Lumina.Excel;
 using Lumina.Excel.Sheets;
 
 using ComfyLoot.Data;
-using System.Threading.Tasks;
+using Dalamud.Game.ClientState.Objects.SubKinds;
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 
 namespace ComfyLoot.Managers;
 
@@ -25,13 +27,23 @@ public record LootItem(
 /// </summay>
 public class LootManager : IDisposable {
 
-	private readonly IPluginLog log;
-	private readonly Dictionary<string, List<LootItem>> loot;
+	public readonly object _lock;
+	private readonly IPluginLog _log;
+	private readonly Dictionary<string, List<LootItem>> _loot;
 
 	/// <summary>
 	/// Droplist, contains everything the player collected
 	/// </summary>
-	public IReadOnlyDictionary<string, List<LootItem>> Loot => loot;
+	public IReadOnlyDictionary<string, List<LootItem>> Loot
+	{
+		get
+		{
+			lock (_lock)
+			{
+				return new Dictionary<string, List<LootItem>>(_loot);
+			}
+		}
+	}
 
 	/// <summary>
 	/// LootManager:ctor
@@ -39,8 +51,9 @@ public class LootManager : IDisposable {
 	/// <param name="log">Logger</param>
 	public LootManager(IPluginLog log)
 	{
-		this.log = log;
-		loot = new Dictionary<string, List<LootItem>>();
+		this._log = log;
+		_loot = new Dictionary<string, List<LootItem>>();
+		_lock = new();
 	}
 
 	/// <summary>
@@ -80,7 +93,7 @@ public class LootManager : IDisposable {
 	/// Univesalis value, if the item can be sold on the marketboard;
 	/// 0, if none of the above applies</item>
 	/// </returns>
-	private static int
+	private async Task<int>
 	GetItemValue(uint itemId, bool hq)
 	{
 		int value;
@@ -107,29 +120,54 @@ public class LootManager : IDisposable {
 		case (int)SpecialItems.ALLAGAN_PLATINUM_PIECE:
 			value = 10000;
 			break;
-		default:
-			value = 0; /* fallback value */
-			worldname = ComfyLoot.ClientState
-				.LocalPlayer.HomeWorld.Value.Name.ToString();
-			value = GetUniveralisValue(itemId, worldname, hq).Result;
-			break;
+			default:
+				value = 0; /* fallback value */
+				worldname = GetHomeWorld();
+				_log.Information(worldname);
+				value = await GetUniveralisValue(itemId, worldname, hq);
+				break;
 		}
 
 		return value;
 	}
 
+	private unsafe string
+	GetHomeWorld()
+	{
+		uint id;
+		string? name;
+		ExcelSheet<World> sheet;
+		World worldRow;
+
+		name = null;
+		id = AgentLobby.Instance()->LobbyData.HomeWorldId;
+		sheet = ComfyLoot.DataManager.GetExcelSheet<World>();
+
+		if (sheet != null
+		    && sheet.TryGetRow(id, out worldRow))
+			name = worldRow.Name.ToString();
+
+		if (name == null) /* In case of (unlikely) failures */
+			name = "Unknown Homeworld";
+
+		return name;
+	}
 
 	private static async Task<int>
 	GetUniveralisValue(uint itemId, string worldname, bool hq)
 	{
-		const string endpoint = "/api/v2/aggregated";
+		const string endpoint = "https://universalis.app";
 
 		int value;
 		string uri;
 		MarketBoardData? data;
 
 		value = 0;
-		uri = $"{endpoint}/{worldname}/{itemId}";
+
+		if (worldname.Equals("Unknown World"))
+			return value;
+
+		uri = $"{endpoint}/api/v2/aggregated/{worldname}/{itemId}";
 		data = await HttpHelper.GetAsync<MarketBoardData>(uri);
 
 		if (data == null
@@ -187,35 +225,42 @@ public class LootManager : IDisposable {
 	/// Add an Item to the droplist
 	/// </summary>
 	/// <param name="addedItem">The Item</param>
-	public void
+	public async Task
 	AddItem(InventoryItemAddedArgs addedItem)
 	{
 		uint id;
 		int quantity;
+		int itemValue;
 		string zone;
+		LootItem item;
 		List<LootItem>? list;
 
 		id = addedItem.Item.ItemId;
 		quantity = addedItem.Item.Quantity;
 		zone = GetCurrentZoneName();
 
-		LootItem item = new LootItem(
+		itemValue = await GetItemValue(id, addedItem.Item.IsHq);
+
+		item = new LootItem(
 			id,
 		    	quantity,
-		    	GetItemValue(id, addedItem.Item.IsHq)
+			itemValue
 		);
 
-		if (!loot.TryGetValue(zone, out list))
-			list = new List<LootItem>();
+		lock (_lock) {
+			if (!_loot.TryGetValue(zone, out list))
+				list = new List<LootItem>();
 
-		list.Add(item);
-		log.Information(
+			list.Add(item);
+		}
+
+		_log.Information(
 			"[TRACK] {Quantity}x {ItemId} in {Zone}",
 			quantity,
 			id,
 			zone);
 
-		loot[zone] = list;
+		_loot[zone] = list;
 	}
 
 	/// <summary>
@@ -228,7 +273,7 @@ public class LootManager : IDisposable {
 	{
 		int totalQuantity = 0;
 
-		foreach (List<LootItem> zoneList in loot.Values)
+		foreach (List<LootItem> zoneList in _loot.Values)
 			totalQuantity += GetZoneItemValue(zoneList);
 
 		return totalQuantity;
@@ -243,7 +288,7 @@ public class LootManager : IDisposable {
 	{
 		int totalQuantity = 0;
 
-		foreach (List<LootItem> zoneList in loot.Values)
+		foreach (List<LootItem> zoneList in _loot.Values)
 			totalQuantity += GetZoneItemQuantity(zoneList);
 
 		return totalQuantity;
@@ -295,7 +340,7 @@ public class LootManager : IDisposable {
 		List<LootItem>? items;
 
 		zoneName = GetCurrentZoneName();
-		if (!loot.TryGetValue(zoneName, out items))
+		if (!_loot.TryGetValue(zoneName, out items))
 			items = new List<LootItem>();
 
 		item = items.Find(t => t.ItemId == itemId);
@@ -306,7 +351,7 @@ public class LootManager : IDisposable {
 				item.Quantity + addedAmount,
 				item.Value
 			));
-			log.Information(
+			_log.Information(
 				"[TRACK] {ItemId} x{Quantity} in {Zone} (previous {PreviousQuantity})",
 				itemId,
 				addedAmount,
@@ -315,7 +360,7 @@ public class LootManager : IDisposable {
 			);
 		}
 
-		loot[zoneName] = items;
+		_loot[zoneName] = items;
 	}
 
 	public void
