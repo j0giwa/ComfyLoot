@@ -59,12 +59,7 @@ public class MainWindow : Window, IDisposable {
 		string zoneName;
 		ImGuiTableFlags tableFlags;
 		List<LootItem> items;
-		Dictionary<string, List<LootItem>> snapshot;
-		lock (_plugin.LootManager._lock)
-		{
-			snapshot = new Dictionary<string, List<LootItem>>(_plugin.LootManager.Loot);
-		}
-
+		
 		totalValue = _plugin.LootManager.GetTotalItemValue();
 
 		ImGui.TextUnformatted($"Total count: {_plugin.LootManager.GetTotalItemQuantity()}");
@@ -92,11 +87,11 @@ public class MainWindow : Window, IDisposable {
 			ImGui.TableSetupColumn("Value", ImGuiTableColumnFlags.WidthFixed, 80.0f);
 
 			ImGui.TableHeadersRow();
-			foreach (KeyValuePair<string, List<LootItem>> kvp in snapshot) {
+			foreach (KeyValuePair<string, List<LootItem>> kvp in _plugin.LootManager.Loot) {
 				zoneName = kvp.Key ?? "<Unknown Zone>";
 				items = kvp.Value ?? new List<LootItem>();
 
-				DrawZoneSection($"{zoneName} {items.Count} ", items);
+				DrawZoneSection(zoneName, items);
 			}
 
 			ImGui.EndTable();
@@ -107,7 +102,7 @@ public class MainWindow : Window, IDisposable {
 	/// Draws a zone header row and its item list as subtables.
 	/// </summary>
 	private void
-	DrawZoneSection(string zoneName, List<LootItem> items)
+	DrawZoneSection(string zoneName,List<LootItem> items)
 	{
 		bool zoneOpen;
 		uint headerBg;
@@ -129,7 +124,9 @@ public class MainWindow : Window, IDisposable {
 		ImGui.TableSetColumnIndex(1);
 		ImGui.TextUnformatted(zoneName);
 		ImGui.TableSetColumnIndex(2);
+		ImGui.TextUnformatted(LootManager.GetZoneItemQuantity(items).ToString());
 		ImGui.TableSetColumnIndex(3);
+		ImGui.TextUnformatted(LootManager.GetZoneItemValue(items).ToString());
 
 		if (!zoneOpen)
 			return;
@@ -163,7 +160,7 @@ public class MainWindow : Window, IDisposable {
 		if (item.Value == 0)
 			ImGui.TextUnformatted("N/A");
 		else
-			ImGui.TextUnformatted(item.Value.ToString());
+			ImGui.TextUnformatted((item.Value * item.Quantity).ToString());
 	}
 
 	public void

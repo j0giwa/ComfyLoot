@@ -27,23 +27,13 @@ public record LootItem(
 /// </summay>
 public class LootManager : IDisposable {
 
-	public readonly object _lock;
 	private readonly IPluginLog _log;
 	private readonly Dictionary<string, List<LootItem>> _loot;
 
 	/// <summary>
 	/// Droplist, contains everything the player collected
 	/// </summary>
-	public IReadOnlyDictionary<string, List<LootItem>> Loot
-	{
-		get
-		{
-			lock (_lock)
-			{
-				return new Dictionary<string, List<LootItem>>(_loot);
-			}
-		}
-	}
+	public IReadOnlyDictionary<string, List<LootItem>> Loot => _loot;
 
 	/// <summary>
 	/// LootManager:ctor
@@ -53,7 +43,6 @@ public class LootManager : IDisposable {
 	{
 		this._log = log;
 		_loot = new Dictionary<string, List<LootItem>>();
-		_lock = new();
 	}
 
 	/// <summary>
@@ -247,12 +236,9 @@ public class LootManager : IDisposable {
 			itemValue
 		);
 
-		lock (_lock) {
-			if (!_loot.TryGetValue(zone, out list))
-				list = new List<LootItem>();
-
-			list.Add(item);
-		}
+		if (!_loot.TryGetValue(zone, out list))
+			list = new List<LootItem>();
+		list.Add(item);
 
 		_log.Information(
 			"[TRACK] {Quantity}x {ItemId} in {Zone}",
@@ -271,12 +257,12 @@ public class LootManager : IDisposable {
 	public int
 	GetTotalItemValue()
 	{
-		int totalQuantity = 0;
+		int totalValue = 0;
 
 		foreach (List<LootItem> zoneList in _loot.Values)
-			totalQuantity += GetZoneItemValue(zoneList);
+			totalValue += GetZoneItemValue(zoneList);
 
-		return totalQuantity;
+		return totalValue;
 	}
 
 	/// <summary>
@@ -324,7 +310,7 @@ public class LootManager : IDisposable {
 		int zoneTotal = 0;
 
 		foreach (LootItem item in zoneItems)
-			zoneTotal += item.Value;
+			zoneTotal += item.Value * item.Quantity;
 
 		return zoneTotal;
 	}
