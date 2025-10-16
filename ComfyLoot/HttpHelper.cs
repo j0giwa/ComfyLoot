@@ -1,4 +1,4 @@
-
+/* See LICENSE file for copyright and license details. */
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;

@@ -5,9 +5,7 @@ using Dalamud.Game.Inventory;
 using Dalamud.Game.Inventory.InventoryEventArgTypes;
 using Dalamud.Plugin.Services;
 
-using ComfyLoot.Managers;
-
-namespace ComfyLoot.Servive;
+namespace ComfyLoot.Managers;
 
 public class InventoryWatcher : IDisposable {
 
@@ -107,5 +105,7 @@ public class InventoryWatcher : IDisposable {
 
 	public void
 	Dispose()
-	{}
+	{
+		
+	}
 }

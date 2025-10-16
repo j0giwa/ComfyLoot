@@ -7,9 +7,7 @@ using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 
 using ComfyLoot.Managers;
-using ComfyLoot.Servive;
 using ComfyLoot.Windows;
-
 
 namespace ComfyLoot;
 
@@ -36,11 +34,11 @@ public sealed class ComfyLoot : IDalamudPlugin
 	[PluginService]
 	internal static IGameInventory GameInventory { get; private set; } = null!;
 
-	public Configuration Configuration { get; init; }
-	public LootManager LootManager { get; set; }
-	public InventoryWatcher Watcher;
 	private ConfigWindow ConfigWindow { get; init; }
 	private MainWindow MainWindow { get; init; }
+	public Configuration Configuration { get; init; }
+	public LootManager LootManager { get; set; }
+	public InventoryWatcher Watcher { get; set; }
 
 	/// <summary>
 	/// ComfyLoot:ctor

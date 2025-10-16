@@ -7,6 +7,7 @@ using Lumina.Excel;
 using Lumina.Excel.Sheets;
 
 using ComfyLoot.Data;
+using System.Threading.Tasks;
 
 namespace ComfyLoot.Managers;
 
@@ -39,8 +40,6 @@ public class LootManager : IDisposable {
 	public LootManager(IPluginLog log)
 	{
 		this.log = log;
-		//data = dataManager;
-
 		loot = new Dictionary<string, List<LootItem>>();
 	}
 
@@ -82,9 +81,10 @@ public class LootManager : IDisposable {
 	/// 0, if none of the above applies</item>
 	/// </returns>
 	private static int
-	GetItemValue(uint itemId)
+	GetItemValue(uint itemId, bool hq)
 	{
 		int value;
+		string worldname;
 
 		switch (itemId) {
 		case (int)Currency.GIL:
@@ -108,10 +108,41 @@ public class LootManager : IDisposable {
 			value = 10000;
 			break;
 		default:
-			value = 0; /* TODO: Get universalis data */
-			/* TODO: return 0 when not not sellable on MB */
+			value = 0; /* fallback value */
+			worldname = ComfyLoot.ClientState
+				.LocalPlayer.HomeWorld.Value.Name.ToString();
+			value = GetUniveralisValue(itemId, worldname, hq).Result;
 			break;
 		}
+
+		return value;
+	}
+
+
+	private static async Task<int>
+	GetUniveralisValue(uint itemId, string worldname, bool hq)
+	{
+		const string endpoint = "/api/v2/aggregated";
+
+		int value;
+		string uri;
+		MarketBoardData? data;
+
+		value = 0;
+		uri = $"{endpoint}/{worldname}/{itemId}";
+		data = await HttpHelper.GetAsync<MarketBoardData>(uri);
+
+		if (data == null
+		|| data.Results == null
+		|| data.Results.Count == 0)
+			return value;
+
+		if (hq)
+			value = (int)data.Results[0].HQ.
+				MinListing.World.Price;
+		else
+			value = (int)data.Results[0].NQ.
+				MinListing.World.Price;
 
 		return value;
 	}
@@ -122,32 +153,33 @@ public class LootManager : IDisposable {
 	private static bool
 	IsCurrency(uint itemId)
 	{
-		switch (itemId) {
-		case (int)Currency.GIL: /* FALLTHROUGH */
-		case (int)Currency.STORM_SEAL:
-		case (int)Currency.SERPENT_SEAL:
-		case (int)Currency.FLAME_SEAL:
-		case (int)Currency.ALLIED_SEALS:
-		case (int)Currency.WOLF_MARKS:
-		case (int)Currency.MGP:
-		case (int)Currency.TROPHY_CRYSTALS:
-		case (int)Currency.TOMESTONE_POETICS:
-		case (int)Currency.TOMESTONE_AESTETICS:
-		case (int)Currency.TOMESTONE_MATHEMATICS:
-		case (int)Currency.TOMESTONE_HELIOMETRY:
-		case (int)Currency.CENTURIO_SEALS:
-		case (int)Currency.SACK_OF_NUTS:
-		case (int)Currency.BICOLOR_GEMSTONES:
-		case (int)Currency.WHITE_CRAFTER_SCRIPS:
-		case (int)Currency.PURPLE_CRAFTER_SCRIPS:
-		case (int)Currency.ORANGE_CRAFTER_SCRIPS:
-		case (int)Currency.WHITE_GATHERER_SCRIPS:
-		case (int)Currency.PURPLE_GATHERER_SCRIPS:
-		case (int)Currency.ORANGE_GATHERER_SCRIPS:
-		case (int)Currency.SKYBUILDER_SCRIPS:
-			return true;
-		default:
-			return false;
+		switch (itemId)
+		{
+			case (int)Currency.GIL: /* FALLTHROUGH */
+			case (int)Currency.STORM_SEAL:
+			case (int)Currency.SERPENT_SEAL:
+			case (int)Currency.FLAME_SEAL:
+			case (int)Currency.ALLIED_SEALS:
+			case (int)Currency.WOLF_MARKS:
+			case (int)Currency.MGP:
+			case (int)Currency.TROPHY_CRYSTALS:
+			case (int)Currency.TOMESTONE_POETICS:
+			case (int)Currency.TOMESTONE_AESTETICS:
+			case (int)Currency.TOMESTONE_MATHEMATICS:
+			case (int)Currency.TOMESTONE_HELIOMETRY:
+			case (int)Currency.CENTURIO_SEALS:
+			case (int)Currency.SACK_OF_NUTS:
+			case (int)Currency.BICOLOR_GEMSTONES:
+			case (int)Currency.WHITE_CRAFTER_SCRIPS:
+			case (int)Currency.PURPLE_CRAFTER_SCRIPS:
+			case (int)Currency.ORANGE_CRAFTER_SCRIPS:
+			case (int)Currency.WHITE_GATHERER_SCRIPS:
+			case (int)Currency.PURPLE_GATHERER_SCRIPS:
+			case (int)Currency.ORANGE_GATHERER_SCRIPS:
+			case (int)Currency.SKYBUILDER_SCRIPS:
+				return true;
+			default:
+				return false;
 		}
 	}
 
@@ -170,7 +202,7 @@ public class LootManager : IDisposable {
 		LootItem item = new LootItem(
 			id,
 		    	quantity,
-		    	GetItemValue(id)
+		    	GetItemValue(id, addedItem.Item.IsHq)
 		);
 
 		if (!loot.TryGetValue(zone, out list))
