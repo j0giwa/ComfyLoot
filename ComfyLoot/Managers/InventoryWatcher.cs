@@ -1,4 +1,4 @@
-
+/* See LICENSE file for copyright and license details. */
 using System;
 using System.Collections.Generic;
 using Dalamud.Game.Inventory;
@@ -10,10 +10,13 @@ using ComfyLoot.Managers;
 namespace ComfyLoot.Servive;
 
 public class InventoryWatcher : IDisposable {
-	
+
 	private readonly IPluginLog _log;
 	private readonly LootManager _loot;
 
+	/// <summary>
+	/// InventoryWatcher:ctor
+	/// </summary>
 	public InventoryWatcher(
 		LootManager loot,
 		IPluginLog log)
@@ -24,6 +27,9 @@ public class InventoryWatcher : IDisposable {
 		ComfyLoot.GameInventory.InventoryChanged += OnInventoryChanged;
 	}
 
+	/// <summary>
+	/// Hande add item event
+	/// </summary>
 	private void
 	HandleAddItem(InventoryItemAddedArgs args)
 	{
@@ -47,6 +53,9 @@ public class InventoryWatcher : IDisposable {
 		}
 	}
 
+	/// <summary>
+	/// Hande change item event
+	/// </summary>
 	private void
 	HandleChangeItem(InventoryItemChangedArgs args)
 	{
@@ -77,6 +86,9 @@ public class InventoryWatcher : IDisposable {
 		}
 	}
 
+	/// <summary>
+	/// Hande iventory change event
+	/// </summary>
 	private void
 	OnInventoryChanged(IReadOnlyCollection<InventoryEventArgs> events)
 	{
@@ -96,4 +108,4 @@ public class InventoryWatcher : IDisposable {
 	public void
 	Dispose()
 	{}
-}	
+}

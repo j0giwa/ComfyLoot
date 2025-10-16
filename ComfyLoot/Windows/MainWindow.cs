@@ -1,4 +1,4 @@
-﻿
+﻿/* See LICENSE file for copyright and license details. */
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -6,7 +6,6 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
-using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 
 using ComfyLoot.Managers;
@@ -92,7 +91,7 @@ public class MainWindow : Window, IDisposable {
 				zoneName = kvp.Key ?? "<Unknown Zone>";
 				items = kvp.Value ?? new List<LootItem>();
 
-				DrawZoneSection( $"zoneName {kvp.Value.Count} ", items);
+				DrawZoneSection(zoneName, items);
 			}
 
 			ImGui.EndTable();

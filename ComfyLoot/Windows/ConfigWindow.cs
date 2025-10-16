@@ -1,4 +1,4 @@
-﻿
+﻿/* See LICENSE file for copyright and license details. */
 using System;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;

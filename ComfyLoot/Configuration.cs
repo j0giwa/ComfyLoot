@@ -1,5 +1,6 @@
-﻿using Dalamud.Configuration;
+﻿/* See LICENSE file for copyright and license details. */
 using System;
+using Dalamud.Configuration;
 
 namespace ComfyLoot;
 

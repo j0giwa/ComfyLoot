@@ -1,4 +1,5 @@
-
+/* See LICENSE file for copyright and license details. */
+using Dalamud.Configuration;
 using Dalamud.Game.Command;
 using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
@@ -8,6 +9,7 @@ using Dalamud.Plugin.Services;
 using ComfyLoot.Managers;
 using ComfyLoot.Servive;
 using ComfyLoot.Windows;
+
 
 namespace ComfyLoot;
 
@@ -45,13 +47,12 @@ public sealed class ComfyLoot : IDalamudPlugin
 	/// </summary>
 	public ComfyLoot()
 	{
-		object? rawConfig;
+		IPluginConfiguration? rawConfig;
 		Configuration config;
 
 		rawConfig = Dalamud.GetPluginConfig();
-		if (rawConfig != null 
-		&& rawConfig is Configuration)
-			config = (Configuration)rawConfig;
+		if (rawConfig is Configuration configuration)
+			config = configuration;
 		else
 			config = new Configuration();
 		Configuration = config;
