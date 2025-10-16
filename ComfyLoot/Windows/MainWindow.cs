@@ -39,8 +39,7 @@ public class MainWindow : Window, IDisposable {
 			new TitleBarButton() {
 				Icon = FontAwesomeIcon.Cog,
 				Click = (msg) => {
-		    			/* NOTE: No configs yet */
-					//Plugin.ToggleConfigUI();
+					_plugin.ToggleConfigUI();
 				},
 				IconOffset = new(2,1),
 				ShowTooltip = () => {

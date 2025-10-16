@@ -55,7 +55,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 			config = new Configuration();
 		Configuration = config;
 
-		LootManager = new LootManager(Log);
+		LootManager = new LootManager(this, Log);
 		Watcher = new InventoryWatcher(LootManager, Log);
 
 		ConfigWindow = new ConfigWindow(this);

@@ -2,14 +2,13 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Dalamud.Game.Inventory.InventoryEventArgTypes;
 using Dalamud.Plugin.Services;
 using Lumina.Excel;
 using Lumina.Excel.Sheets;
 
 using ComfyLoot.Data;
-using Dalamud.Game.ClientState.Objects.SubKinds;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 
 namespace ComfyLoot.Managers;
 
@@ -29,6 +28,7 @@ public class LootManager : IDisposable {
 
 	private readonly IPluginLog _log;
 	private readonly Dictionary<string, List<LootItem>> _loot;
+	private readonly Configuration _config;
 
 	/// <summary>
 	/// Droplist, contains everything the player collected
@@ -39,10 +39,11 @@ public class LootManager : IDisposable {
 	/// LootManager:ctor
 	/// </summary>
 	/// <param name="log">Logger</param>
-	public LootManager(IPluginLog log)
+	public LootManager(ComfyLoot plugin, IPluginLog log)
 	{
 		this._log = log;
 		_loot = new Dictionary<string, List<LootItem>>();
+		_config = plugin.Configuration;
 	}
 
 	/// <summary>
@@ -109,12 +110,13 @@ public class LootManager : IDisposable {
 		case (int)SpecialItems.ALLAGAN_PLATINUM_PIECE:
 			value = 10000;
 			break;
-			default:
-				value = 0; /* fallback value */
+		default:
+			value = 0; /* fallback value */
+			if (_config.UniversalisEnabled) {
 				worldname = GetHomeWorld();
-				_log.Information(worldname);
 				value = await GetUniveralisValue(itemId, worldname, hq);
-				break;
+			}
+			break;
 		}
 
 		return value;

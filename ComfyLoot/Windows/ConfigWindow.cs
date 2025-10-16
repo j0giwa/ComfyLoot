@@ -39,16 +39,10 @@ public class ConfigWindow : Window, IDisposable
 	Draw()
 	{
 		// Can't ref a property, so use a local copy
-		var configValue = Configuration.SomePropertyToBeSavedAndWithADefault;
-		if (ImGui.Checkbox("Random Config Bool", ref configValue)) {
-			Configuration.SomePropertyToBeSavedAndWithADefault = configValue;
+		var configValue = Configuration.UniversalisEnabled;
+		if (ImGui.Checkbox("Enable Universalis data", ref configValue)) {
+			Configuration.UniversalisEnabled = configValue;
 			// Can save immediately on change if you don't want to provide a "Save and Close" button
-			Configuration.Save();
-		}
-
-		var movable = Configuration.IsConfigWindowMovable;
-		if (ImGui.Checkbox("Movable Config Window", ref movable)) {
-			Configuration.IsConfigWindowMovable = movable;
 			Configuration.Save();
 		}
 	}
