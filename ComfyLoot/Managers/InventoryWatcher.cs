@@ -8,10 +8,15 @@ using Dalamud.Plugin.Services;
 
 namespace ComfyLoot.Managers;
 
-public class InventoryWatcher : IDisposable {
+/// <summary>
+/// Monitors player inventory
+/// </summary>
+public class InventoryWatcher : IDisposable
+{
 
 	private readonly IPluginLog _log;
 	private readonly LootManager _loot;
+	private readonly HashSet<(uint itemId, GameInventoryType inventory, uint slot)> _seenItems;
 
 	/// <summary>
 	/// InventoryWatcher:ctor
@@ -22,6 +27,7 @@ public class InventoryWatcher : IDisposable {
 	{
 		_log = log;
 		_loot = loot;
+		_seenItems = new HashSet<(uint itemId, GameInventoryType inventory, uint slot)>();
 
 		ComfyLoot.GameInventory.InventoryChanged += OnInventoryChanged;
 	}
@@ -32,24 +38,24 @@ public class InventoryWatcher : IDisposable {
 	private void
 	HandleAddItem(InventoryItemAddedArgs args)
 	{
-		switch (args.Inventory){
-		case GameInventoryType.Inventory1: /* FALLTHROUGH */
-		case GameInventoryType.Inventory2:
-		case GameInventoryType.Inventory3:
-		case GameInventoryType.Inventory4:
-		case GameInventoryType.Crystals:
-		case GameInventoryType.Currency:
-			_log.Information(
-				"[ADD] {Quantity}x {ItemId} in {Inventory} (slot {Slot})",
-				args.Item.Quantity,
-				args.Item.ItemId,
-				args.Inventory,
-				args.Slot);
-			//_loot.AddItem(args);
-			_ = Task.Run(() => _loot.AddItem(args));
-			break;
-		default:
-			break;
+		switch (args.Inventory)
+		{
+			case GameInventoryType.Inventory1: /* FALLTHROUGH */
+			case GameInventoryType.Inventory2:
+			case GameInventoryType.Inventory3:
+			case GameInventoryType.Inventory4:
+			case GameInventoryType.Crystals:
+			case GameInventoryType.Currency:
+				_log.Information(
+					"[ADD] {Quantity}x {ItemId} in {Inventory} (slot {Slot})",
+					args.Item.Quantity,
+					args.Item.ItemId,
+					args.Inventory,
+					args.Slot);
+				_ = Task.Run(() => _loot.AddItem(args));
+				break;
+			default:
+				break;
 		}
 	}
 
@@ -61,28 +67,38 @@ public class InventoryWatcher : IDisposable {
 	{
 		int previousQty;
 		int addedAmount;
+		(uint ItemId, GameInventoryType Inventory, uint Slot) key;
 
-		switch (args.Inventory) {
-		case GameInventoryType.Inventory1:
-		case GameInventoryType.Inventory2:
-		case GameInventoryType.Inventory3:
-		case GameInventoryType.Inventory4:
-		case GameInventoryType.Crystals:
-		case GameInventoryType.Currency:
-			previousQty = args.OldItemState.Quantity;
-			addedAmount = args.Item.Quantity - previousQty;
-			if (args.Item.Quantity > previousQty) {
-				_log.Information(
-					"[CHANGE] {Quantity}x {ItemId} in {Inventory} (slot {Slot})",
-					addedAmount,
-					args.Item.ItemId,
-					args.Inventory,
-					args.Slot);
-				_loot.UpdateItem(args.Item.ItemId, addedAmount);
-			}
-			break;
-		default:
-			break;
+		switch (args.Inventory)
+		{
+			case GameInventoryType.Inventory1:
+			case GameInventoryType.Inventory2:
+			case GameInventoryType.Inventory3:
+			case GameInventoryType.Inventory4:
+			case GameInventoryType.Crystals:
+			case GameInventoryType.Currency:
+				previousQty = args.OldItemState.Quantity;
+				key = (args.Item.ItemId, args.Inventory, args.Slot);
+				/* First time seeing this item — treat as "baseline", not an actual change */
+				if (!_seenItems.Contains(key))
+				{
+					_seenItems.Add(key);
+					return; /* Ignore first update */
+				}
+				addedAmount = args.Item.Quantity - previousQty;
+				if (args.Item.Quantity > 0)
+				{
+					_log.Information(
+						"[CHANGE] {Quantity}x {ItemId} in {Inventory} (slot {Slot})",
+						addedAmount,
+						args.Item.ItemId,
+						args.Inventory,
+						args.Slot);
+					_loot.UpdateItem(args.Item.ItemId, addedAmount);
+				}
+				break;
+			default:
+				break;
 		}
 	}
 
@@ -93,21 +109,20 @@ public class InventoryWatcher : IDisposable {
 	OnInventoryChanged(IReadOnlyCollection<InventoryEventArgs> events)
 	{
 		foreach (var evt in events)
-			switch (evt) {
-			case InventoryItemAddedArgs added:
-				HandleAddItem(added);
-				break;
-			case InventoryItemChangedArgs changed:
-				HandleChangeItem(changed);
-				break;
-			default:
-				break;
+			switch (evt)
+			{
+				case InventoryItemAddedArgs added:
+					HandleAddItem(added);
+					break;
+				case InventoryItemChangedArgs changed:
+					HandleChangeItem(changed);
+					break;
+				default:
+					break;
 			}
 	}
 
 	public void
 	Dispose()
-	{
-		
-	}
+	{ }
 }

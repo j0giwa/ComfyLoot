@@ -41,7 +41,7 @@ public class LootManager : IDisposable {
 	/// <param name="log">Logger</param>
 	public LootManager(ComfyLoot plugin, IPluginLog log)
 	{
-		this._log = log;
+		_log = log;
 		_loot = new Dictionary<string, List<LootItem>>();
 		_config = plugin.Configuration;
 	}
@@ -340,12 +340,10 @@ public class LootManager : IDisposable {
 				item.Value
 			));
 			_log.Information(
-				"[TRACK] {ItemId} x{Quantity} in {Zone} (previous {PreviousQuantity})",
-				itemId,
-				addedAmount,
-				zoneName,
-				item.Quantity
-			);
+			"[TRACK] {ItemId} {Quantity}x  in {Zone}",
+			itemId,
+			item.Quantity + addedAmount,
+			zoneName);
 		}
 
 		_loot[zoneName] = items;
