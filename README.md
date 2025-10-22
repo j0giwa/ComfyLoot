@@ -33,6 +33,8 @@ For patches that fit your personal taste and you want to share with the communit
 For patches that should be included in main, feel free to submit a pull request.
 However it's possible whatever you may want to implement is out of scope for this project, as it's by design intendet to be as barebones as possible.
 
+Check the guide in goatcorp's [SamplePlugin](https://github.com/goatcorp/SamplePlugin) to get started.
+
 ## FAQ
 
 - Is this trustworthy?

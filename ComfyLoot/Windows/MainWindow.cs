@@ -33,7 +33,7 @@ public class MainWindow : Window, IDisposable {
 
 		/* WARN: 
 		 * This snippet likely originated from an Epsteinsync
-		 * Cba to trace it's origins, assume yes
+		 * cba to trace it's origins, assume yes
 		 */
 		TitleBarButtons = new() {
 			new TitleBarButton() {

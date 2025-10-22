@@ -14,13 +14,13 @@ public class ConfigWindow : Window, IDisposable
 	// This allows for labels to be dynamic, like "{FPS Counter}fps###XYZ counter window",
 	// and he window ID will always be "###XYZ counter window" for ImGui
 	public ConfigWindow(ComfyLoot plugin) 
-		: base("A Wonderful Configuration Window###With a constant ID")
+		: base("ComfyLoot config###With a constant ID")
 	{
-		Flags = ImGuiWindowFlags.NoResize |
-			ImGuiWindowFlags.NoCollapse |
-			ImGuiWindowFlags.NoScrollbar |
-			ImGuiWindowFlags.NoScrollWithMouse;
-		Size = new Vector2(232, 90);
+		SizeConstraints = new WindowSizeConstraints {
+			MinimumSize = new Vector2(600, 400),
+			MaximumSize = new Vector2(600, 2000),
+		};
+
 		SizeCondition = ImGuiCond.Always;
 		Configuration = plugin.Configuration;
 	}
@@ -40,11 +40,16 @@ public class ConfigWindow : Window, IDisposable
 	{
 		// Can't ref a property, so use a local copy
 		var configValue = Configuration.UniversalisEnabled;
-		if (ImGui.Checkbox("Enable Universalis data", ref configValue)) {
+
+		ImGui.TextUnformatted("Read this!!!");
+		ImGui.TextWrapped("Ugh, another conscent thingy. We hate them too, but apparently it's the law. If you enable this, your ip, homeworld, and items you picked up will be sent to Universalis. We don't know what they will do with this data.");
+		ImGui.TextWrapped("Click 'Enable' so we can all pretend this mattered.");
+
+		if (ImGui.Checkbox("Enable Universalis", ref configValue)) {
 			Configuration.UniversalisEnabled = configValue;
-			// Can save immediately on change if you don't want to provide a "Save and Close" button
 			Configuration.Save();
 		}
+		ImGui.Separator();
 	}
 
 	public void
