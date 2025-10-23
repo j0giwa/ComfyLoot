@@ -1,4 +1,11 @@
-/* See LICENSE file for copyright and license details. */
+/* See LICENSE file for copyright and license details. 
+ *
+ * WARN: 
+ * The base of this class was transfered from another project.
+ * It is likely that it AI generated, but i can neither confirm or deny this. 
+ * There no obvious deficencys, so for the time beeing it's concidered "acceptable",
+ * from an security perspective.
+ */
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -11,7 +18,6 @@ namespace ComfyLoot;
 /// <summary>
 /// Generic Http request helper
 /// </summary>
-/* WARN: Likely AI generated, but has no obvious deficicenfys */
 public static class HttpHelper {
 
 	private static readonly HttpClient _client = new HttpClient();

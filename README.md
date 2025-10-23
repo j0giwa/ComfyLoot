@@ -5,6 +5,7 @@
 # Comfy Loot
 
 Cozy drop tracker inspired by [RuneLite](https://github.com/runelite/runelite/wiki/Loot-Tracker)
+
 ## Main Points
 
 - Simple UI

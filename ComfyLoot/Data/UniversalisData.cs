@@ -19,40 +19,40 @@ public class AggregatedResult {
 	public int ItemId { get; set; }
 
 	[JsonProperty("nq")]
-	public QualityData NQ { get; set; }
+	public QualityData? NQ { get; set; }
 
 	[JsonProperty("hq")]
-	public QualityData HQ { get; set; }
+	public QualityData? HQ { get; set; }
 
 	[JsonProperty("worldUploadTimes")]
-	public List<WorldUploadTime> WorldUploadTimes { get; set; }
+	public List<WorldUploadTime>? WorldUploadTimes { get; set; }
 }
 
 public class QualityData {
 
 	[JsonProperty("minListing")]
-	public Listing MinListing { get; set; }
+	public Listing? MinListing { get; set; }
 
 	[JsonProperty("recentPurchase")]
-	public Listing RecentPurchase { get; set; }
+	public Listing? RecentPurchase { get; set; }
 
 	[JsonProperty("averageSalePrice")]
-	public Listing AverageSalePrice { get; set; }
+	public Listing? AverageSalePrice { get; set; }
 
 	[JsonProperty("dailySaleVelocity")]
-	public Listing DailySaleVelocity { get; set; }
+	public Listing? DailySaleVelocity { get; set; }
 }
 
 public class Listing {
 
 	[JsonProperty("world")]
-	public ListingEntry World { get; set; }
+	public ListingEntry? World { get; set; }
 
 	[JsonProperty("dc")]
-	public ListingEntry Dc { get; set; }
+	public ListingEntry? Dc { get; set; }
 
 	[JsonProperty("region")]
-	public ListingEntry Region { get; set; }
+	public ListingEntry? Region { get; set; }
 }
 
 public class ListingEntry {

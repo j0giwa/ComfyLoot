@@ -122,7 +122,7 @@ public class LootManager : IDisposable {
 		return value;
 	}
 
-	private unsafe string
+	private static unsafe string
 	GetHomeWorld()
 	{
 		uint id;
@@ -166,6 +166,7 @@ public class LootManager : IDisposable {
 		|| data.Results.Count == 0)
 			return value;
 
+		// TODO: null safe value exctract
 		if (hq)
 			value = (int)data.Results[0].HQ.
 				MinListing.World.Price;
@@ -349,7 +350,16 @@ public class LootManager : IDisposable {
 		_loot[zoneName] = items;
 	}
 
-	public void
+	public void 
 	Dispose()
-	{}
+	{
+		Dispose(true);
+		GC.SuppressFinalize(this);
+	}
+
+	protected virtual void
+	Dispose(bool disposing)
+	{
+		// Cleanup
+	}
 }

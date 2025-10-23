@@ -12,7 +12,10 @@ public class Configuration : IPluginConfiguration
 	public bool IsConfigWindowMovable { get; set; } = true;
 	public bool UniversalisEnabled { get; set; } = false; /* disabled for legal reasons */
 
-	// The below exist just to make saving less cumbersome
+	/// <summary>
+	/// Saves plugin config
+	/// </summary>
+	/* The below exist just to make saving less cumbersome */
 	public void
 	Save()
 	{

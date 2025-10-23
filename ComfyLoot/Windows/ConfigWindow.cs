@@ -8,7 +8,7 @@ namespace ComfyLoot.Windows;
 
 public class ConfigWindow : Window, IDisposable
 {
-	private Configuration Configuration;
+	private readonly Configuration Configuration;
 
 	// We give this window a constant ID using ###.
 	// This allows for labels to be dynamic, like "{FPS Counter}fps###XYZ counter window",
@@ -52,7 +52,16 @@ public class ConfigWindow : Window, IDisposable
 		ImGui.Separator();
 	}
 
-	public void
+	public void 
 	Dispose()
-	{}
+	{
+		Dispose(true);
+		GC.SuppressFinalize(this);
+	}
+
+	protected virtual void
+	Dispose(bool disposing)
+	{
+		// Cleanup
+	}
 }   

@@ -1,6 +1,6 @@
 /* See LICENSE file for copyright and license details.
  *
- * Contains ItemId's that may require special care
+ * Contains ItemId's that may require special care.
  */
 namespace ComfyLoot.Data;
 

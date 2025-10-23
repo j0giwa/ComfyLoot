@@ -100,7 +100,7 @@ public class MainWindow : Window, IDisposable {
 	/// <summary>
 	/// Draws a zone header row and its item list as subtables.
 	/// </summary>
-	private void
+	private static void
 	DrawZoneSection(string zoneName,List<LootItem> items)
 	{
 		bool zoneOpen;
@@ -139,7 +139,7 @@ public class MainWindow : Window, IDisposable {
 	/// <summary>
 	/// Draws a single loot item row inside a zone.
 	/// </summary>
-	private void
+	private static void
 	DrawItemRow(LootItem item)
 	{
 		ReadOnlySeString itemName;
@@ -162,7 +162,16 @@ public class MainWindow : Window, IDisposable {
 			ImGui.TextUnformatted((item.Value * item.Quantity).ToString());
 	}
 
-	public void
+	public void 
 	Dispose()
-	{ }
+	{
+		Dispose(true);
+		GC.SuppressFinalize(this);
+	}
+
+	protected virtual void
+	Dispose(bool disposing)
+	{
+		// Cleanup
+	}
 }
