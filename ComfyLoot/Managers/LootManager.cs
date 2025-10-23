@@ -135,7 +135,7 @@ public class LootManager : IDisposable {
 		sheet = ComfyLoot.DataManager.GetExcelSheet<World>();
 
 		if (sheet != null
-		    && sheet.TryGetRow(id, out worldRow))
+		&& sheet.TryGetRow(id, out worldRow))
 			name = worldRow.Name.ToString();
 
 		if (name == null) /* In case of (unlikely) failures */
@@ -183,33 +183,32 @@ public class LootManager : IDisposable {
 	private static bool
 	IsCurrency(uint itemId)
 	{
-		switch (itemId)
-		{
-			case (int)Currency.GIL: /* FALLTHROUGH */
-			case (int)Currency.STORM_SEAL:
-			case (int)Currency.SERPENT_SEAL:
-			case (int)Currency.FLAME_SEAL:
-			case (int)Currency.ALLIED_SEALS:
-			case (int)Currency.WOLF_MARKS:
-			case (int)Currency.MGP:
-			case (int)Currency.TROPHY_CRYSTALS:
-			case (int)Currency.TOMESTONE_POETICS:
-			case (int)Currency.TOMESTONE_AESTETICS:
-			case (int)Currency.TOMESTONE_MATHEMATICS:
-			case (int)Currency.TOMESTONE_HELIOMETRY:
-			case (int)Currency.CENTURIO_SEALS:
-			case (int)Currency.SACK_OF_NUTS:
-			case (int)Currency.BICOLOR_GEMSTONES:
-			case (int)Currency.WHITE_CRAFTER_SCRIPS:
-			case (int)Currency.PURPLE_CRAFTER_SCRIPS:
-			case (int)Currency.ORANGE_CRAFTER_SCRIPS:
-			case (int)Currency.WHITE_GATHERER_SCRIPS:
-			case (int)Currency.PURPLE_GATHERER_SCRIPS:
-			case (int)Currency.ORANGE_GATHERER_SCRIPS:
-			case (int)Currency.SKYBUILDER_SCRIPS:
-				return true;
-			default:
-				return false;
+		switch (itemId) {
+		case (int)Currency.GIL: /* FALLTHROUGH */
+		case (int)Currency.STORM_SEAL:
+		case (int)Currency.SERPENT_SEAL:
+		case (int)Currency.FLAME_SEAL:
+		case (int)Currency.ALLIED_SEALS:
+		case (int)Currency.WOLF_MARKS:
+		case (int)Currency.MGP:
+		case (int)Currency.TROPHY_CRYSTALS:
+		case (int)Currency.TOMESTONE_POETICS:
+		case (int)Currency.TOMESTONE_AESTETICS:
+		case (int)Currency.TOMESTONE_MATHEMATICS:
+		case (int)Currency.TOMESTONE_HELIOMETRY:
+		case (int)Currency.CENTURIO_SEALS:
+		case (int)Currency.SACK_OF_NUTS:
+		case (int)Currency.BICOLOR_GEMSTONES:
+		case (int)Currency.WHITE_CRAFTER_SCRIPS:
+		case (int)Currency.PURPLE_CRAFTER_SCRIPS:
+		case (int)Currency.ORANGE_CRAFTER_SCRIPS:
+		case (int)Currency.WHITE_GATHERER_SCRIPS:
+		case (int)Currency.PURPLE_GATHERER_SCRIPS:
+		case (int)Currency.ORANGE_GATHERER_SCRIPS:
+		case (int)Currency.SKYBUILDER_SCRIPS:
+			return true;
+		default:
+			return false;
 		}
 	}
 

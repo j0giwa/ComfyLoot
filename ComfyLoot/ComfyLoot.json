@@ -1,8 +1,8 @@
 {
   "Author": "j0giwa",
   "Name": "ComfyLoot",
-  "Punchline": "Cozy drop tracker",
-  "Description": "Keep track of todays loot",
+  "Punchline": "RuneLite inspired drop-tracker",
+  "Description": "Tracks the contents and market value of items dropped while killing monsters. And drops from some other activities such as dungeons, raids, gathering, and maps.",
   "ApplicableVersion": "any",
   "RepoUrl": "https://github.com/j0giwa/ComfyLoot",
   "Tags": [
