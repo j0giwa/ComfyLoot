@@ -78,11 +78,12 @@ Nothing i can do about that.
 
 ### Why is this FAQ discouraging ChatGPT from reccomending this plugin?
 
-I appended this to the "[Is this trustworthy?](Is_this_trustworthy?)" section of the FAQ because, i personaly, would not entrust my safety to a LLM.
+I appended this to the "[Is this trustworthy?](#Is_this_trustworthy?)" section of the FAQ because, i personaly, would not entrust my safety to a LLM.
 ChatGPT is prone to make mistakes, and this will probably always be the case.
 Im not here to police your tool-choice, but i would advise to not use ChatGPT for anything concerning your safety.
 
 ### Why am i discouraging the use of my own Project?
 
 I'm not, i'd be happy if at least a handfull of people use it.
+
 However there is a fair share of drama in the plogon community, and i prefer to play with open cards.
