@@ -1,4 +1,4 @@
-﻿
+/* See LICENSE file for copyright and license details. */
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -6,7 +6,6 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
-using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 
 using ComfyLoot.Managers;
@@ -32,27 +31,26 @@ public class MainWindow : Window, IDisposable {
 
 		_plugin = plugin;
 
-		/* WARN: 
+		/* WARN:
 		 * This snippet likely originated from an Epsteinsync
-		 * Cba to trace it's origins, assume yes
+		 * cba to trace it's origins, assume yes
 		 */
 		TitleBarButtons = new() {
 			new TitleBarButton() {
 				Icon = FontAwesomeIcon.Cog,
 				Click = (msg) => {
-		    			/* NOTE: No configs yet */
-					//Plugin.ToggleConfigUI();
+					_plugin.ToggleConfigUI();
 				},
 				IconOffset = new(2,1),
 				ShowTooltip = () => {
-		    			ImGui.BeginTooltip();
-		    			ImGui.Text("Open Settings");
-		    			ImGui.EndTooltip();
+					ImGui.BeginTooltip();
+					ImGui.Text("Open Settings");
+					ImGui.EndTooltip();
 				}
-	    		}
+			}
 		};
 	}
-	
+
 	public override void
 	Draw()
 	{
@@ -79,7 +77,7 @@ public class MainWindow : Window, IDisposable {
 			ImGuiTableFlags.BordersInnerH |
 			ImGuiTableFlags.SizingStretchProp |
 			ImGuiTableFlags.ScrollY;
-			
+
 		if (ImGui.BeginTable("LootTable", 4, tableFlags)) {
 
 			ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 35.0f);
@@ -92,7 +90,7 @@ public class MainWindow : Window, IDisposable {
 				zoneName = kvp.Key ?? "<Unknown Zone>";
 				items = kvp.Value ?? new List<LootItem>();
 
-				DrawZoneSection( $"zoneName {kvp.Value.Count} ", items);
+				DrawZoneSection(zoneName, items);
 			}
 
 			ImGui.EndTable();
@@ -102,8 +100,8 @@ public class MainWindow : Window, IDisposable {
 	/// <summary>
 	/// Draws a zone header row and its item list as subtables.
 	/// </summary>
-	private void
-	DrawZoneSection(string zoneName, List<LootItem> items)
+	private static void
+	DrawZoneSection(string zoneName,List<LootItem> items)
 	{
 		bool zoneOpen;
 		uint headerBg;
@@ -125,7 +123,9 @@ public class MainWindow : Window, IDisposable {
 		ImGui.TableSetColumnIndex(1);
 		ImGui.TextUnformatted(zoneName);
 		ImGui.TableSetColumnIndex(2);
+		ImGui.TextUnformatted(LootManager.GetZoneItemQuantity(items).ToString());
 		ImGui.TableSetColumnIndex(3);
+		ImGui.TextUnformatted(LootManager.GetZoneItemValue(items).ToString());
 
 		if (!zoneOpen)
 			return;
@@ -139,14 +139,14 @@ public class MainWindow : Window, IDisposable {
 	/// <summary>
 	/// Draws a single loot item row inside a zone.
 	/// </summary>
-	private void
+	private static void
 	DrawItemRow(LootItem item)
 	{
 		ReadOnlySeString itemName;
 
 		ImGui.TableNextRow();
 		ImGui.TableSetColumnIndex(0);
-		ImGui.TextUnformatted(""); // indentation placeholder
+		ImGui.TextUnformatted(""); /* indentation placeholder */
 
 		ImGui.TableSetColumnIndex(1);
 		itemName = ItemUtil.GetItemName(item.ItemId, true);
@@ -159,10 +159,19 @@ public class MainWindow : Window, IDisposable {
 		if (item.Value == 0)
 			ImGui.TextUnformatted("N/A");
 		else
-			ImGui.TextUnformatted(item.Value.ToString());
+			ImGui.TextUnformatted((item.Value * item.Quantity).ToString());
 	}
 
 	public void
 	Dispose()
-	{ }
+	{
+		Dispose(true);
+		GC.SuppressFinalize(this);
+	}
+
+	protected virtual void
+	Dispose(bool disposing)
+	{
+		// Cleanup
+	}
 }

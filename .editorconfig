@@ -1,6 +1,5 @@
-# EditorConfig is awesome: https://EditorConfig.org
+# See LICENSE file for copyright and license details.
 
-# top-most EditorConfig file
 root = true
 
 [*]
@@ -13,7 +12,12 @@ insert_final_newline = false
 indent_style = tab
 indent_size = 8
 max_line_length = 79
-csharp_new_line_before_open_brace = all
+csharp_new_line_before_open_brace = methods
+csharp_new_line_before_else = false
+csharp_new_line_before_catch = false
+csharp_new_line_before_finally = false
+csharp_indent_switch_labels = false
+csharp_indent_labels = flush_left
 csharp_preserve_single_line_statements = false
 
 [*.json]

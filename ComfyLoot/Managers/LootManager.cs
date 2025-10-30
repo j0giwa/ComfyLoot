@@ -1,6 +1,8 @@
-
+/* See LICENSE file for copyright and license details. */
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Dalamud.Game.Inventory.InventoryEventArgTypes;
 using Dalamud.Plugin.Services;
 using Lumina.Excel;
@@ -24,42 +26,41 @@ public record LootItem(
 /// </summay>
 public class LootManager : IDisposable {
 
-	private readonly IPluginLog log;
-	private readonly Dictionary<string, List<LootItem>> loot;
+	private readonly IPluginLog _log;
+	private readonly Dictionary<string, List<LootItem>> _loot;
+	private readonly Configuration _config;
 
 	/// <summary>
 	/// Droplist, contains everything the player collected
 	/// </summary>
-	public IReadOnlyDictionary<string, List<LootItem>> Loot => loot;
+	public IReadOnlyDictionary<string, List<LootItem>> Loot => _loot;
 
 	/// <summary>
 	/// LootManager:ctor
 	/// </summary>
-	/// <param name="log"></param>
-	public LootManager(IPluginLog log)
+	/// <param name="log">Logger</param>
+	public LootManager(ComfyLoot plugin, IPluginLog log)
 	{
-		this.log = log;
-		//data = dataManager;
-
-		loot = new Dictionary<string, List<LootItem>>();
+		_log = log;
+		_loot = new Dictionary<string, List<LootItem>>();
+		_config = plugin.Configuration;
 	}
 
 	/// <summary>
-	/// Gets the gil value of the given item 
+	/// Gets the gil value of the given item
 	/// </summary>
-	/// <param name="itemId"></param>
+	/// <param name="itemId">Item identyfier</param>
 	/// <returns>
-	/// <list type="bullet">
-	/// <item>Item count, if the item is gil</item>
-	/// <item>Vendor value, if the item is meant to be sold to vendors</item>
-	/// <item>Univesalis value, if the item can be sold on the marketboard</item>
-	/// <item>0, if none of the above applies</item>
-	/// </list>
+	/// Item count, if the item is gil;
+	/// Vendor value, if the item is meant to be sold to vendors;
+	/// Univesalis value, if the item can be sold on the marketboard;
+	/// 0, if none of the above applies</item>
 	/// </returns>
-	private static int
-	GetItemValue(uint itemId)
+	private async Task<int>
+	GetItemValue(uint itemId, bool hq)
 	{
 		int value;
+		string worldname;
 
 		switch (itemId) {
 		case (int)Currency.GIL:
@@ -83,12 +84,168 @@ public class LootManager : IDisposable {
 			value = 10000;
 			break;
 		default:
-			value = 1; /* TODO: Get universalis data */
-			/* TODO: return 0 when not not sellable on MB */
+			value = 0; /* fallback value */
+			if (_config.UniversalisEnabled) {
+				worldname = Util.GetHomeWorld();
+				if (!worldname.Equals("???"))
+					value = await GetUniveralisValue(itemId, worldname, hq);
+			}
 			break;
 		}
 
 		return value;
+	}
+
+	private static async Task<int>
+	GetUniveralisValue(uint itemId, string worldname, bool hq)
+	{
+		const string endpoint = "https://universalis.app";
+
+		int value;
+		string uri;
+		MarketBoardData? data;
+
+		value = 0;
+
+		if (worldname.Equals("Unknown World"))
+			return value;
+
+		uri = $"{endpoint}/api/v2/aggregated/{worldname}/{itemId}";
+		data = await HttpHelper.GetAsync<MarketBoardData>(uri);
+
+		if (data == null
+		|| data.Results == null
+		|| data.Results.Count == 0)
+			return value;
+
+		// TODO: null safe value exctract
+		if (hq)
+			value = (int)data.Results[0].HQ.
+				MinListing.World.Price;
+		else
+			value = (int)data.Results[0].NQ.
+				MinListing.World.Price;
+
+		return value;
+	}
+
+	/// <summary>
+	/// Determines if the given item ID represents a currency.
+	/// </summary>
+	private static bool
+	IsCurrency(uint itemId)
+	{
+		switch (itemId) {
+		case (int)Currency.GIL: /* FALLTHROUGH */
+		case (int)Currency.STORM_SEAL:
+		case (int)Currency.SERPENT_SEAL:
+		case (int)Currency.FLAME_SEAL:
+		case (int)Currency.ALLIED_SEALS:
+		case (int)Currency.WOLF_MARKS:
+		case (int)Currency.MGP:
+		case (int)Currency.TROPHY_CRYSTALS:
+		case (int)Currency.TOMESTONE_POETICS:
+		case (int)Currency.TOMESTONE_AESTETICS:
+		case (int)Currency.TOMESTONE_MATHEMATICS:
+		case (int)Currency.TOMESTONE_HELIOMETRY:
+		case (int)Currency.CENTURIO_SEALS:
+		case (int)Currency.SACK_OF_NUTS:
+		case (int)Currency.BICOLOR_GEMSTONES:
+		case (int)Currency.WHITE_CRAFTER_SCRIPS:
+		case (int)Currency.PURPLE_CRAFTER_SCRIPS:
+		case (int)Currency.ORANGE_CRAFTER_SCRIPS:
+		case (int)Currency.WHITE_GATHERER_SCRIPS:
+		case (int)Currency.PURPLE_GATHERER_SCRIPS:
+		case (int)Currency.ORANGE_GATHERER_SCRIPS:
+		case (int)Currency.SKYBUILDER_SCRIPS:
+			return true;
+		default:
+			return false;
+		}
+	}
+
+	/// <summary>
+	/// Add an Item to the droplist
+	/// </summary>
+	/// <param name="addedItem">The Item</param>
+	public async Task
+	AddItem(InventoryItemAddedArgs addedItem)
+	{
+		uint id;
+		int quantity;
+		string zone;
+
+		id = addedItem.Item.ItemId;
+		quantity = addedItem.Item.Quantity;
+		zone = Util.GetCurrentZoneName();
+
+		await AddItem(id, quantity, zone, addedItem.Item.IsHq);
+	}
+
+	/// <summary>
+	/// Add an Item to the droplist
+	/// </summary>
+	/// <param name="id">Item identifier</param>
+	/// <param name="quantity">Amount of items</param>
+	/// <param name="zoneName">Zone where the item was found in</param>
+	/// <param name="hq">High quality or no</param>
+	public async Task
+	AddItem(uint id, int quantity, string zoneName, bool hq)
+	{
+		int itemValue;
+		LootItem item;
+		List<LootItem>? list;
+
+		itemValue = await GetItemValue(id, hq);
+
+		item = new LootItem(
+			id,
+			quantity,
+			itemValue
+		);
+
+		if (!_loot.TryGetValue(zoneName, out list))
+			list = new List<LootItem>();
+		list.Add(item);
+
+		_log.Information(
+			"[TRACK] {Quantity}x {ItemId} in {Zone}",
+			quantity,
+			id,
+			zoneName);
+
+		_loot[zoneName] = list;
+	}
+
+	/// <summary>
+	/// Calculate the combined item value across all zones.
+	/// </summary>
+	/// <param name="zoneItems">The list of items in the zone.</param>
+	/// <returns>Total amount of gil.</returns>
+	public int
+	GetTotalItemValue()
+	{
+		int totalValue = 0;
+
+		foreach (List<LootItem> zoneList in _loot.Values)
+			totalValue += GetZoneItemValue(zoneList);
+
+		return totalValue;
+	}
+
+	/// <summary>
+	/// Counts items across all zones.
+	/// </summary>
+	/// <returns>Total number of non-currency items gathered.</returns>
+	public int
+	GetTotalItemQuantity()
+	{
+		int totalQuantity = 0;
+
+		foreach (List<LootItem> zoneList in _loot.Values)
+			totalQuantity += GetZoneItemQuantity(zoneList);
+
+		return totalQuantity;
 	}
 
 	/// <summary>
@@ -96,7 +253,7 @@ public class LootManager : IDisposable {
 	/// </summary>
 	/// <param name="zoneItems">The list of items in the zone.</param>
 	/// <returns>Total number of non-currency items in this zone.</returns>
-	private static int
+	public static int
 	GetZoneItemQuantity(IEnumerable<LootItem> zoneItems)
 	{
 		int zoneTotal = 0;
@@ -111,152 +268,19 @@ public class LootManager : IDisposable {
 	}
 
 	/// <summary>
-	/// Gets the name of the current zone.
-	/// Aka: Where is the player right now?
+	/// Calculate the combined item value within a single zone.
 	/// </summary>
-	/// <returns>Name of the current zone</returns>
-	private string
-	GetCurrentZoneName()
-	{
-		uint id;
-		string? name;
-		ExcelSheet<TerritoryType> sheet;
-		TerritoryType zoneRow;
-
-		name = null;
-		id = ComfyLoot.ClientState.TerritoryType;
-		sheet = ComfyLoot.DataManager.GetExcelSheet<TerritoryType>();
-
-		if (sheet != null
-		&& sheet.TryGetRow(id, out zoneRow))
-			name = zoneRow.PlaceName.Value.Name.ToString();
-
-		if (name == null) /* In case for (unlikely) failures */
-			name = "Unknown Zone";
-
-		return name;
-	}
-
-	/// <summary>
-	/// Determines if the given item ID represents a currency.
-	/// </summary>
-	private static bool
-	IsCurrency(uint itemId)
-	{
-		switch (itemId)
-		{
-			case (int)Currency.GIL: /* FALLTHROUGH */
-			case (int)Currency.STORM_SEAL:
-			case (int)Currency.SERPENT_SEAL:
-			case (int)Currency.FLAME_SEAL:
-			case (int)Currency.ALLIED_SEALS:
-			case (int)Currency.WOLF_MARKS:
-			case (int)Currency.MGP:
-			case (int)Currency.TROPHY_CRYSTALS:
-			case (int)Currency.TOMESTONE_POETICS:
-			case (int)Currency.TOMESTONE_AESTETICS:
-			case (int)Currency.TOMESTONE_MATHEMATICS:
-			case (int)Currency.TOMESTONE_HELIOMETRY:
-			case (int)Currency.CENTURIO_SEALS:
-			case (int)Currency.SACK_OF_NUTS:
-			case (int)Currency.BICOLOR_GEMSTONES:
-			case (int)Currency.WHITE_CRAFTER_SCRIPS:
-			case (int)Currency.PURPLE_CRAFTER_SCRIPS:
-			case (int)Currency.ORANGE_CRAFTER_SCRIPS:
-			case (int)Currency.WHITE_GATHERER_SCRIPS:
-			case (int)Currency.PURPLE_GATHERER_SCRIPS:
-			case (int)Currency.ORANGE_GATHERER_SCRIPS:
-			case (int)Currency.SKYBUILDER_SCRIPS:
-				return true;
-			default:
-				return false;
-		}
-	}
-
-	/// <summary>
-	/// Add an Item to the droplist
-	/// </summary>
-	/// <param name="addedItem"></param>
-	public void
-	AddItem(InventoryItemAddedArgs addedItem)
-	{
-		uint id;
-		int quantity;
-		string zone;
-		List<LootItem>? list;
-
-		id = addedItem.Item.ItemId;
-		quantity = addedItem.Item.Quantity;
-		zone = GetCurrentZoneName();
-
-		LootItem item = new LootItem(
-			id,
-		    	quantity,
-		    	GetItemValue(id)
-		);
-
-		if (!loot.TryGetValue(zone, out list))
-			list = new List<LootItem>();
-
-		list.Add(item);
-		log.Information(
-			"[TRACK] {Quantity}x {ItemId} in {Zone}",
-			quantity,
-			id,
-			zone);
-
-		loot[zone] = list;
-	}
-
-	/// <summary>
-	/// Returns the total quantity of a tracked item across all zones.
-	/// </summary>
-	public int
-	GetItemQuantity(uint itemId)
-	{
-		int total = 0;
-		foreach (List<LootItem> list in loot.Values)
-			foreach (LootItem tracked in list)
-				if (tracked.ItemId == itemId)
-					total += tracked.Quantity;
-		return total;
-	}
-
-	public int
+	/// <param name="zoneItems">The list of items in the zone.</param>
+	/// <returns>Total amount of gil.</returns>
+	public static int
 	GetZoneItemValue(IEnumerable<LootItem> zoneItems)
 	{
 		int zoneTotal = 0;
 
 		foreach (LootItem item in zoneItems)
-			zoneTotal += item.Value;
+			zoneTotal += item.Value * item.Quantity;
 
 		return zoneTotal;
-	}
-
-	public int
-	GetTotalItemValue()
-	{
-		int totalQuantity = 0;
-
-		foreach (List<LootItem> zoneList in loot.Values)
-			totalQuantity += GetZoneItemValue(zoneList);
-
-		return totalQuantity;
-	}
-
-	/// <summary>
-	/// Counts items across all zones.
-	/// </summary>
-	/// <returns>Total number of non-currency items gathered.</returns>
-	public int
-	GetTotalItemQuantity()
-	{
-		int totalQuantity = 0;
-
-		foreach (List<LootItem> zoneList in loot.Values)
-			totalQuantity += GetZoneItemQuantity(zoneList);
-
-		return totalQuantity;
 	}
 
 	/// <summary>
@@ -269,8 +293,8 @@ public class LootManager : IDisposable {
 		LootItem? item;
 		List<LootItem>? items;
 
-		zoneName = GetCurrentZoneName();
-		if (!loot.TryGetValue(zoneName, out items))
+		zoneName = Util.GetCurrentZoneName();
+		if (!_loot.TryGetValue(zoneName, out items))
 			items = new List<LootItem>();
 
 		item = items.Find(t => t.ItemId == itemId);
@@ -281,19 +305,26 @@ public class LootManager : IDisposable {
 				item.Quantity + addedAmount,
 				item.Value
 			));
-			log.Information(
-				"[TRACK] {ItemId} x{Quantity} in {Zone} (previous {PreviousQuantity})",
+			_log.Information(
+				"[TRACK] {ItemId} {Quantity}x  in {Zone}",
 				itemId,
-				addedAmount,
-				zoneName,
-				item.Quantity
-			);
+				item.Quantity + addedAmount,
+				zoneName);
 		}
 
-		loot[zoneName] = items;
+		_loot[zoneName] = items;
 	}
 
 	public void
 	Dispose()
-	{ }
+	{
+		Dispose(true);
+		GC.SuppressFinalize(this);
+	}
+
+	protected virtual void
+	Dispose(bool disposing)
+	{
+		// Cleanup
+	}
 }

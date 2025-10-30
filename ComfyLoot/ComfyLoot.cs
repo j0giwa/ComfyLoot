@@ -1,4 +1,5 @@
-
+/* See LICENSE file for copyright and license details. */
+using Dalamud.Configuration;
 using Dalamud.Game.Command;
 using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
@@ -6,7 +7,6 @@ using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 
 using ComfyLoot.Managers;
-using ComfyLoot.Servive;
 using ComfyLoot.Windows;
 
 namespace ComfyLoot;
@@ -34,29 +34,28 @@ public sealed class ComfyLoot : IDalamudPlugin
 	[PluginService]
 	internal static IGameInventory GameInventory { get; private set; } = null!;
 
-	public Configuration Configuration { get; init; }
-	public LootManager LootManager { get; set; }
-	public InventoryWatcher Watcher;
 	private ConfigWindow ConfigWindow { get; init; }
 	private MainWindow MainWindow { get; init; }
+	public Configuration Configuration { get; init; }
+	public LootManager LootManager { get; set; }
+	public InventoryWatcher Watcher { get; set; }
 
 	/// <summary>
 	/// ComfyLoot:ctor
 	/// </summary>
 	public ComfyLoot()
 	{
-		object? rawConfig;
+		IPluginConfiguration? rawConfig;
 		Configuration config;
 
 		rawConfig = Dalamud.GetPluginConfig();
-		if (rawConfig != null 
-		&& rawConfig is Configuration)
-			config = (Configuration)rawConfig;
+		if (rawConfig is Configuration configuration)
+			config = configuration;
 		else
 			config = new Configuration();
 		Configuration = config;
 
-		LootManager = new LootManager(Log);
+		LootManager = new LootManager(this, Log);
 		Watcher = new InventoryWatcher(LootManager, Log);
 
 		ConfigWindow = new ConfigWindow(this);
