@@ -77,25 +77,8 @@ public class InventoryWatcher : IDisposable
 		case GameInventoryType.Currency:
 			previousQty = args.OldItemState.Quantity;
 			addedAmount = args.Item.Quantity - previousQty;
-			
 			key = (args.Item.ItemId, args.Inventory, args.Slot);
 
-			/* 
-			 * First time seeing this item — treat as "baseline", 
-			 * not an actual change 
-			 */
-			if (!_seenItems.Contains(key)) {
-				_seenItems.Add(key);
-				if (addedAmount > 0)
-					_ = Task.Run(() => _loot.AddItem(
-						args.Item.ItemId,
-						addedAmount,
-						Util.GetCurrentZoneName(),
-						args.Item.IsHq
-					));
-				return;
-			}
-			
 			if (addedAmount > 0) {
 				_log.Information(
 					"[CHANGE] {Quantity}x {ItemId} in {Inventory} (slot {Slot})",
@@ -103,6 +86,20 @@ public class InventoryWatcher : IDisposable
 					args.Item.ItemId,
 					args.Inventory,
 					args.Slot);
+
+				/* First time seeing this item
+				 * set as "baseline", not an actual change
+				 */
+				if (!_seenItems.Contains(key)) {
+					_seenItems.Add(key);
+					_ = Task.Run(() => _loot.AddItem(
+						args.Item.ItemId,
+						addedAmount,
+						Util.GetCurrentZoneName(),
+						args.Item.IsHq
+					));
+					return;
+				}
 				_loot.UpdateItem(args.Item.ItemId, addedAmount);
 			}
 			break;

@@ -46,8 +46,6 @@ public class LootManager : IDisposable {
 		_config = plugin.Configuration;
 	}
 
-	
-
 	/// <summary>
 	/// Gets the gil value of the given item
 	/// </summary>
@@ -195,7 +193,7 @@ public class LootManager : IDisposable {
 
 		item = new LootItem(
 			id,
-		    	quantity,
+			quantity,
 			itemValue
 		);
 

@@ -16,6 +16,31 @@ namespace ComfyLoot;
 public static class Util {
 
 	/// <summary>
+	/// retrieves the name of the characters homeworld.
+	/// </summary>
+	public static unsafe string
+	GetHomeWorld()
+	{
+		uint id;
+		string? name;
+		ExcelSheet<World> sheet;
+		World worldRow;
+
+		name = null;
+		id = AgentLobby.Instance()->LobbyData.HomeWorldId;
+		sheet = ComfyLoot.DataManager.GetExcelSheet<World>();
+
+		if (sheet != null
+		&& sheet.TryGetRow(id, out worldRow))
+			name = worldRow.Name.ToString();
+
+		if (name == null) /* In case of (unlikely) failures */
+			name = "???";
+
+		return name;
+	}
+
+	/// <summary>
 	/// Gets the name of the current zone.
 	/// aka: Where is the player right now?
 	/// </summary>
@@ -41,31 +66,4 @@ public static class Util {
 
 		return name;
 	}
-
-
-	/// <summary>
-	/// retrieves the name of the characters homeworld.
-	/// </summary>
-	public static unsafe string
-	GetHomeWorld()
-	{
-		uint id;
-		string? name;
-		ExcelSheet<World> sheet;
-		World worldRow;
-
-		name = null;
-		id = AgentLobby.Instance()->LobbyData.HomeWorldId;
-		sheet = ComfyLoot.DataManager.GetExcelSheet<World>();
-
-		if (sheet != null
-		&& sheet.TryGetRow(id, out worldRow))
-			name = worldRow.Name.ToString();
-
-		if (name == null) /* In case of (unlikely) failures */
-			name = "???";
-
-		return name;
-	}
-
 }
