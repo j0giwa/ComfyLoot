@@ -172,6 +172,6 @@ public class MainWindow : Window, IDisposable {
 	protected virtual void
 	Dispose(bool disposing)
 	{
-		// Cleanup
+		/* Cleanup */
 	}
 }

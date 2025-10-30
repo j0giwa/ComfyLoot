@@ -2,11 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Dalamud.Game.Inventory.InventoryEventArgTypes;
 using Dalamud.Plugin.Services;
-using Lumina.Excel;
-using Lumina.Excel.Sheets;
 
 using ComfyLoot.Data;
 
@@ -26,14 +23,14 @@ public record LootItem(
 /// </summay>
 public class LootManager : IDisposable {
 
-	private readonly IPluginLog _log;
-	private readonly Dictionary<string, List<LootItem>> _loot;
-	private readonly Configuration _config;
+	private readonly IPluginLog log;
+	private readonly Dictionary<string, List<LootItem>> loot;
+	private readonly Configuration config;
 
 	/// <summary>
 	/// Droplist, contains everything the player collected
 	/// </summary>
-	public IReadOnlyDictionary<string, List<LootItem>> Loot => _loot;
+	public IReadOnlyDictionary<string, List<LootItem>> Loot => loot;
 
 	/// <summary>
 	/// LootManager:ctor
@@ -41,9 +38,9 @@ public class LootManager : IDisposable {
 	/// <param name="log">Logger</param>
 	public LootManager(ComfyLoot plugin, IPluginLog log)
 	{
-		_log = log;
-		_loot = new Dictionary<string, List<LootItem>>();
-		_config = plugin.Configuration;
+		this.log = log;
+		loot = new Dictionary<string, List<LootItem>>();
+		config = plugin.Configuration;
 	}
 
 	/// <summary>
@@ -85,7 +82,7 @@ public class LootManager : IDisposable {
 			break;
 		default:
 			value = 0; /* fallback value */
-			if (_config.UniversalisEnabled) {
+			if (config.UniversalisEnabled) {
 				worldname = Util.GetHomeWorld();
 				if (!worldname.Equals("???"))
 					value = await GetUniveralisValue(itemId, worldname, hq);
@@ -96,6 +93,13 @@ public class LootManager : IDisposable {
 		return value;
 	}
 
+	/// <summary>
+	/// Fetches itmes marketboard value form universalis
+	/// </summary>
+	/// <param name="itemId">Item identifier</param>
+	/// <param name="worldname">World to fecht mb data from</param>
+	/// <param name="hq">high quality or no</param>
+	/// <returns>The itmes value in gil</returns>
 	private static async Task<int>
 	GetUniveralisValue(uint itemId, string worldname, bool hq)
 	{
@@ -118,7 +122,7 @@ public class LootManager : IDisposable {
 		|| data.Results.Count == 0)
 			return value;
 
-		// TODO: null safe value exctract
+		/* TODO: null safe value exctract */
 		if (hq)
 			value = (int)data.Results[0].HQ.
 				MinListing.World.Price;
@@ -187,7 +191,7 @@ public class LootManager : IDisposable {
 	/// </summary>
 	/// <param name="id">Item identifier</param>
 	/// <param name="quantity">Amount of items</param>
-	/// <param name="zoneName">Zone where the item was found in</param>
+	/// <param name="zoneName">Zone where the item was gathered</param>
 	/// <param name="hq">High quality or no</param>
 	public async Task
 	AddItem(uint id, int quantity, string zoneName, bool hq)
@@ -204,17 +208,17 @@ public class LootManager : IDisposable {
 			itemValue
 		);
 
-		if (!_loot.TryGetValue(zoneName, out list))
+		if (!loot.TryGetValue(zoneName, out list))
 			list = new List<LootItem>();
 		list.Add(item);
 
-		_log.Information(
+		log.Information(
 			"[TRACK] {Quantity}x {ItemId} in {Zone}",
 			quantity,
 			id,
 			zoneName);
 
-		_loot[zoneName] = list;
+		loot[zoneName] = list;
 	}
 
 	/// <summary>
@@ -227,7 +231,7 @@ public class LootManager : IDisposable {
 	{
 		int totalValue = 0;
 
-		foreach (List<LootItem> zoneList in _loot.Values)
+		foreach (List<LootItem> zoneList in loot.Values)
 			totalValue += GetZoneItemValue(zoneList);
 
 		return totalValue;
@@ -236,13 +240,13 @@ public class LootManager : IDisposable {
 	/// <summary>
 	/// Counts items across all zones.
 	/// </summary>
-	/// <returns>Total number of non-currency items gathered.</returns>
+	/// <returns>Total number of non-currency items gathered</returns>
 	public int
 	GetTotalItemQuantity()
 	{
 		int totalQuantity = 0;
 
-		foreach (List<LootItem> zoneList in _loot.Values)
+		foreach (List<LootItem> zoneList in loot.Values)
 			totalQuantity += GetZoneItemQuantity(zoneList);
 
 		return totalQuantity;
@@ -251,8 +255,8 @@ public class LootManager : IDisposable {
 	/// <summary>
 	/// Counts the total quantity of valid (non-currency) items within a single zone.
 	/// </summary>
-	/// <param name="zoneItems">The list of items in the zone.</param>
-	/// <returns>Total number of non-currency items in this zone.</returns>
+	/// <param name="zoneItems">The list of items in the zone</param>
+	/// <returns>Total number of non-currency items in this zone</returns>
 	public static int
 	GetZoneItemQuantity(IEnumerable<LootItem> zoneItems)
 	{
@@ -294,7 +298,7 @@ public class LootManager : IDisposable {
 		List<LootItem>? items;
 
 		zoneName = Util.GetCurrentZoneName();
-		if (!_loot.TryGetValue(zoneName, out items))
+		if (!loot.TryGetValue(zoneName, out items))
 			items = new List<LootItem>();
 
 		item = items.Find(t => t.ItemId == itemId);
@@ -305,14 +309,14 @@ public class LootManager : IDisposable {
 				item.Quantity + addedAmount,
 				item.Value
 			));
-			_log.Information(
+			log.Information(
 				"[TRACK] {ItemId} {Quantity}x  in {Zone}",
 				itemId,
 				item.Quantity + addedAmount,
 				zoneName);
 		}
 
-		_loot[zoneName] = items;
+		loot[zoneName] = items;
 	}
 
 	public void
@@ -325,6 +329,6 @@ public class LootManager : IDisposable {
 	protected virtual void
 	Dispose(bool disposing)
 	{
-		// Cleanup
+		/* Cleanup */
 	}
 }

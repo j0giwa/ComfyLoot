@@ -11,12 +11,11 @@ namespace ComfyLoot.Managers;
 /// <summary>
 /// Monitors player inventory
 /// </summary>
-public class InventoryWatcher : IDisposable
-{
+public class InventoryWatcher : IDisposable {
 
-	private readonly IPluginLog _log;
-	private readonly LootManager _loot;
-	private readonly HashSet<(uint itemId, GameInventoryType inventory, uint slot)> _seenItems;
+	private readonly IPluginLog log;
+	private readonly LootManager loot;
+	private readonly HashSet<(uint itemId, GameInventoryType inventory, uint slot)> seenItems;
 
 	/// <summary>
 	/// InventoryWatcher:ctor
@@ -25,9 +24,9 @@ public class InventoryWatcher : IDisposable
 		LootManager loot,
 		IPluginLog log)
 	{
-		_log = log;
-		_loot = loot;
-		_seenItems = new HashSet<(uint itemId, GameInventoryType inventory, uint slot)>();
+		this.log = log;
+		this.loot = loot;
+		seenItems = new HashSet<(uint itemId, GameInventoryType inventory, uint slot)>();
 
 		ComfyLoot.GameInventory.InventoryChanged += OnInventoryChanged;
 	}
@@ -45,13 +44,13 @@ public class InventoryWatcher : IDisposable
 		case GameInventoryType.Inventory4:
 		case GameInventoryType.Crystals:
 		case GameInventoryType.Currency:
-			_log.Information(
+			log.Information(
 				"[ADD] {Quantity}x {ItemId} in {Inventory} (slot {Slot})",
 				args.Item.Quantity,
 				args.Item.ItemId,
 				args.Inventory,
 				args.Slot);
-			_ = Task.Run(() => _loot.AddItem(args));
+			_ = Task.Run(() => loot.AddItem(args));
 			break;
 		default:
 			break;
@@ -80,7 +79,7 @@ public class InventoryWatcher : IDisposable
 			key = (args.Item.ItemId, args.Inventory, args.Slot);
 
 			if (addedAmount > 0) {
-				_log.Information(
+				log.Information(
 					"[CHANGE] {Quantity}x {ItemId} in {Inventory} (slot {Slot})",
 					addedAmount,
 					args.Item.ItemId,
@@ -89,9 +88,9 @@ public class InventoryWatcher : IDisposable
 
 				/* First time seeing this item
 				 * set as "baseline", not an actual change */
-				if (!_seenItems.Contains(key)) {
-					_seenItems.Add(key);
-					_ = Task.Run(() => _loot.AddItem(
+				if (!seenItems.Contains(key)) {
+					seenItems.Add(key);
+					_ = Task.Run(() => loot.AddItem(
 						args.Item.ItemId,
 						addedAmount,
 						Util.GetCurrentZoneName(),
@@ -99,7 +98,7 @@ public class InventoryWatcher : IDisposable
 					));
 					return;
 				}
-				_loot.UpdateItem(args.Item.ItemId, addedAmount);
+				loot.UpdateItem(args.Item.ItemId, addedAmount);
 			}
 			break;
 		default:
@@ -136,6 +135,6 @@ public class InventoryWatcher : IDisposable
 	protected virtual void
 	Dispose(bool disposing)
 	{
-		// Cleanup
+		/* Cleanup */
 	}
 }

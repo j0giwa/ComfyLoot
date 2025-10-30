@@ -10,9 +10,9 @@ public class ConfigWindow : Window, IDisposable
 {
 	private readonly Configuration Configuration;
 
-	// We give this window a constant ID using ###.
-	// This allows for labels to be dynamic, like "{FPS Counter}fps###XYZ counter window",
-	// and he window ID will always be "###XYZ counter window" for ImGui
+	/* We give this window a constant ID using ###.
+	 * This allows for labels to be dynamic, like "{FPS Counter}fps###XYZ counter window",
+	 * and he window ID will always be "###XYZ counter window" for ImGui */
 	public ConfigWindow(ComfyLoot plugin) 
 		: base("ComfyLoot config###With a constant ID")
 	{
@@ -38,7 +38,7 @@ public class ConfigWindow : Window, IDisposable
 	public override void
 	Draw()
 	{
-		// Can't ref a property, so use a local copy
+		/* Can't ref a property, so use a local copy */
 		var configValue = Configuration.UniversalisEnabled;
 
 		ImGui.TextUnformatted("Read this!!!");
@@ -62,6 +62,6 @@ public class ConfigWindow : Window, IDisposable
 	protected virtual void
 	Dispose(bool disposing)
 	{
-		// Cleanup
+		/* Cleanup */
 	}
 }   

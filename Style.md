@@ -1,8 +1,8 @@
 # Coding Style Guide
 
-These are guidelines. 
-The most important aspect of style is **consistency**. 
-Match the existing project style. 
+These are guidelines.
+The most important aspect of style is **consistency**.
+Match the existing project style.
 Project maintainers have discretion to interpret these rules as appropriate.
 
 > "Code is more often read than written. Write it like you're writing for someone who knows nothing but has to understand everything." – Adapted from suckless & Bell Labs traditions.
@@ -12,8 +12,8 @@ Project maintainers have discretion to interpret these rules as appropriate.
 The following contain good information, some of which is repeated below, some of which is contradicted below.
 These references come from C, but the spirit applies to minimalist and maintainable C# code
 
-- https://man.openbsd.org/style  
-- http://doc.cat-v.org/bell_labs/pikestyle  
+- https://man.openbsd.org/style
+- http://doc.cat-v.org/bell_labs/pikestyle
 - https://www.kernel.org/doc/Documentation/process/coding-style.rst
 - https://suckless.org/coding_style/
 
@@ -36,13 +36,13 @@ These references come from C, but the spirit applies to minimalist and maintaina
 9. Main (if any)
 ```
 
-- **Avoid multiple classes per file unless trivial or strongly related.**
+- Avoid multiple classes per file unless **trivial** or **strongly related.**
 
 ---
 
 ## C# Features
 
-- Use **standard C# without dependencies on platform-specific extensions or experimental features**.
+- Use **standard C# without dependencies** on platform-specific extensions or experimental features.
 - Avoid LINQ or reflection unless it simplifies the code significantly.
 - Avoid unnessesary syntactic suggar
 - Avoid async/await unless concurrency is essential.
@@ -54,15 +54,15 @@ These references come from C, but the spirit applies to minimalist and maintaina
 
 - Use Doc comments `///` to summarize functions
 - Prefer `/* block comments */` over `//`.
-- Only comment what isn’t obvious from the code itself.
-  - Functions should be written as trivial as possible 
 - Document intent, not mechanics.
+- Only comment what isn’t obvious from the code itself.
+  - Functions should be written as trivial as possible
 
 ---
 
 ## Blocks and Bracing
 
-- **All variable declarations should be at the top of the block.**
+- All variable declarations should be at the top of the block.
 - Opening `{` goes **on the same line**, except for method declarations.
 - Closing `}` is always on its **own line**, unless continuing a compound statement.
 - Avoid unnecessary braces when a single statement is sufficient and clear.
@@ -74,7 +74,7 @@ else
 	baz();
 ```
 
-- **Use blocks** when either:
+- Use blocks when either:
   - One branch requires it.
   - It improves clarity or consistency.
 
@@ -82,11 +82,11 @@ else
 
 ## Indentation and Whitespace
 
-- **Use tabs for indentation**, spaces for alignment.
+- Use tabs for indentation, spaces for alignment.
   - Never mix tabs/spaces for indentation.
   - Do not indent `#region`, `#define`, etc., with tabs—use spaces if alignment is needed.
-- **No trailing whitespace**.
-- **No space between method name and `(`**, but a space after keywords:
+- No trailing whitespace.
+- No space between method name and `(`, but a space after keywords:
 
 ```csharp
 if (condition) {
@@ -94,7 +94,7 @@ if (condition) {
 }
 ```
 
-- **No space inside parentheses**:
+- No space inside parentheses:
 
 ```csharp
 Bar(x, y);
@@ -116,8 +116,8 @@ ComputeSum(int a, int b)
 }
 ```
 
-- **Declare private methods as `static` where applicable**.
-- **Order method definitions logically**, matching declaration order.
+- Declare private methods as `static` where applicable.
+- Order method definitions logically, matching declaration order.
 - Functions should be **short and focused**. Prefer functions that:
   - Fit within one or two screens (80x24).
   - Do one thing, and do it well.
@@ -257,21 +257,5 @@ private const int MagicNumber = 0xDEADBEEF;
 - Avoid unnecessary object orientation. Prefer **plain classes with methods** over complex hierarchies.
 - Use records/structs **only when immutability or performance demands it**.
 - Avoid auto-generated code and designer files when possible.
+    - This also aplies to AI-generated code
 - **Do not optimize prematurely**.
-
----
-
-## Summary
-
-| Rule | Summary |
-|------|---------|
-| Consistency | Match the project style. |
-| Simplicity | Avoid complexity unless justified. |
-| Explicitness | Be clear. Be intentional. |
-| Minimalism | Use the least code for the task. |
-| Tab/Space | Tabs for indentation, spaces for alignment. |
-| Clean Layout | Logical file and function ordering. |
-| Safe Braces | Avoid unnecessary braces, but prefer clarity. |
-| Lean Functions | Functions should be short, focused, and do one thing. |
-
----
