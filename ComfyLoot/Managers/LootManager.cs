@@ -46,32 +46,7 @@ public class LootManager : IDisposable {
 		_config = plugin.Configuration;
 	}
 
-	/// <summary>
-	/// Gets the name of the current zone.
-	/// aka: Where is the player right now?
-	/// </summary>
-	/// <returns>Name of the current zone</returns>
-	private static string
-	GetCurrentZoneName()
-	{
-		uint id;
-		string? name;
-		ExcelSheet<TerritoryType> sheet;
-		TerritoryType zoneRow;
-
-		name = null;
-		id = ComfyLoot.ClientState.TerritoryType;
-		sheet = ComfyLoot.DataManager.GetExcelSheet<TerritoryType>();
-
-		if (sheet != null
-		&& sheet.TryGetRow(id, out zoneRow))
-			name = zoneRow.PlaceName.Value.Name.ToString();
-
-		if (name == null) /* In case for (unlikely) failures */
-			name = "Unknown Zone";
-
-		return name;
-	}
+	
 
 	/// <summary>
 	/// Gets the gil value of the given item
@@ -113,35 +88,14 @@ public class LootManager : IDisposable {
 		default:
 			value = 0; /* fallback value */
 			if (_config.UniversalisEnabled) {
-				worldname = GetHomeWorld();
-				value = await GetUniveralisValue(itemId, worldname, hq);
+				worldname = Util.GetHomeWorld();
+				if (!worldname.Equals("???"))
+					value = await GetUniveralisValue(itemId, worldname, hq);
 			}
 			break;
 		}
 
 		return value;
-	}
-
-	private static unsafe string
-	GetHomeWorld()
-	{
-		uint id;
-		string? name;
-		ExcelSheet<World> sheet;
-		World worldRow;
-
-		name = null;
-		id = AgentLobby.Instance()->LobbyData.HomeWorldId;
-		sheet = ComfyLoot.DataManager.GetExcelSheet<World>();
-
-		if (sheet != null
-		&& sheet.TryGetRow(id, out worldRow))
-			name = worldRow.Name.ToString();
-
-		if (name == null) /* In case of (unlikely) failures */
-			name = "Unknown Homeworld";
-
-		return name;
 	}
 
 	private static async Task<int>
@@ -221,16 +175,23 @@ public class LootManager : IDisposable {
 	{
 		uint id;
 		int quantity;
-		int itemValue;
 		string zone;
-		LootItem item;
-		List<LootItem>? list;
 
 		id = addedItem.Item.ItemId;
 		quantity = addedItem.Item.Quantity;
-		zone = GetCurrentZoneName();
+		zone = Util.GetCurrentZoneName();
 
-		itemValue = await GetItemValue(id, addedItem.Item.IsHq);
+		await AddItem(id, quantity, zone, addedItem.Item.IsHq);
+	}
+
+	public async Task
+	AddItem(uint id, int quantity, string zoneName, bool hq)
+	{
+		int itemValue;
+		LootItem item;
+		List<LootItem>? list;
+
+		itemValue = await GetItemValue(id, hq);
 
 		item = new LootItem(
 			id,
@@ -238,7 +199,7 @@ public class LootManager : IDisposable {
 			itemValue
 		);
 
-		if (!_loot.TryGetValue(zone, out list))
+		if (!_loot.TryGetValue(zoneName, out list))
 			list = new List<LootItem>();
 		list.Add(item);
 
@@ -246,9 +207,9 @@ public class LootManager : IDisposable {
 			"[TRACK] {Quantity}x {ItemId} in {Zone}",
 			quantity,
 			id,
-			zone);
+			zoneName);
 
-		_loot[zone] = list;
+		_loot[zoneName] = list;
 	}
 
 	/// <summary>
@@ -327,7 +288,7 @@ public class LootManager : IDisposable {
 		LootItem? item;
 		List<LootItem>? items;
 
-		zoneName = GetCurrentZoneName();
+		zoneName = Util.GetCurrentZoneName();
 		if (!_loot.TryGetValue(zoneName, out items))
 			items = new List<LootItem>();
 
@@ -340,16 +301,16 @@ public class LootManager : IDisposable {
 				item.Value
 			));
 			_log.Information(
-			"[TRACK] {ItemId} {Quantity}x  in {Zone}",
-			itemId,
-			item.Quantity + addedAmount,
-			zoneName);
+				"[TRACK] {ItemId} {Quantity}x  in {Zone}",
+				itemId,
+				item.Quantity + addedAmount,
+				zoneName);
 		}
 
 		_loot[zoneName] = items;
 	}
 
-	public void 
+	public void
 	Dispose()
 	{
 		Dispose(true);

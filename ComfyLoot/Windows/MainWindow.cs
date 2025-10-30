@@ -1,4 +1,4 @@
-﻿/* See LICENSE file for copyright and license details. */
+/* See LICENSE file for copyright and license details. */
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -31,7 +31,7 @@ public class MainWindow : Window, IDisposable {
 
 		_plugin = plugin;
 
-		/* WARN: 
+		/* WARN:
 		 * This snippet likely originated from an Epsteinsync
 		 * cba to trace it's origins, assume yes
 		 */
@@ -43,14 +43,14 @@ public class MainWindow : Window, IDisposable {
 				},
 				IconOffset = new(2,1),
 				ShowTooltip = () => {
-		    			ImGui.BeginTooltip();
-		    			ImGui.Text("Open Settings");
-		    			ImGui.EndTooltip();
+					ImGui.BeginTooltip();
+					ImGui.Text("Open Settings");
+					ImGui.EndTooltip();
 				}
-	    		}
+			}
 		};
 	}
-	
+
 	public override void
 	Draw()
 	{
@@ -58,7 +58,7 @@ public class MainWindow : Window, IDisposable {
 		string zoneName;
 		ImGuiTableFlags tableFlags;
 		List<LootItem> items;
-		
+
 		totalValue = _plugin.LootManager.GetTotalItemValue();
 
 		ImGui.TextUnformatted($"Total count: {_plugin.LootManager.GetTotalItemQuantity()}");
@@ -77,7 +77,7 @@ public class MainWindow : Window, IDisposable {
 			ImGuiTableFlags.BordersInnerH |
 			ImGuiTableFlags.SizingStretchProp |
 			ImGuiTableFlags.ScrollY;
-			
+
 		if (ImGui.BeginTable("LootTable", 4, tableFlags)) {
 
 			ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 35.0f);
@@ -162,7 +162,7 @@ public class MainWindow : Window, IDisposable {
 			ImGui.TextUnformatted((item.Value * item.Quantity).ToString());
 	}
 
-	public void 
+	public void
 	Dispose()
 	{
 		Dispose(true);

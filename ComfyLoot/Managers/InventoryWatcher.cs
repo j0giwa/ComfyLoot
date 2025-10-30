@@ -76,14 +76,27 @@ public class InventoryWatcher : IDisposable
 		case GameInventoryType.Crystals:
 		case GameInventoryType.Currency:
 			previousQty = args.OldItemState.Quantity;
+			addedAmount = args.Item.Quantity - previousQty;
+			
 			key = (args.Item.ItemId, args.Inventory, args.Slot);
-			/* First time seeing this item — treat as "baseline", not an actual change */
+
+			/* 
+			 * First time seeing this item — treat as "baseline", 
+			 * not an actual change 
+			 */
 			if (!_seenItems.Contains(key)) {
 				_seenItems.Add(key);
-				return; /* Ignore first update */
+				if (addedAmount > 0)
+					_ = Task.Run(() => _loot.AddItem(
+						args.Item.ItemId,
+						addedAmount,
+						Util.GetCurrentZoneName(),
+						args.Item.IsHq
+					));
+				return;
 			}
-			addedAmount = args.Item.Quantity - previousQty;
-			if (args.Item.Quantity > 0) {
+			
+			if (addedAmount > 0) {
 				_log.Information(
 					"[CHANGE] {Quantity}x {ItemId} in {Inventory} (slot {Slot})",
 					addedAmount,
@@ -124,7 +137,7 @@ public class InventoryWatcher : IDisposable
 		GC.SuppressFinalize(this);
 	}
 
-	protected virtual void 
+	protected virtual void
 	Dispose(bool disposing)
 	{
 		// Cleanup
