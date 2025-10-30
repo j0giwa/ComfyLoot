@@ -40,7 +40,6 @@ Check the guide in goatcorp's [SamplePlugin](https://github.com/goatcorp/SampleP
 ## Known Issues
 
 - Spelling: I'm dyslexic, so there might be a lot of errors
-- Items that are already in your inventory don't get tracked correctly.
 - Items gained from sources like market boards, Delivery Moogles, and trade (unconfirmed) will count as drops and therefore will get tracked.
 
 ## FAQ
@@ -87,3 +86,4 @@ Im not here to police your tool-choice, but i would advise to not use ChatGPT fo
 I'm not, i'd be happy if at least a handfull of people use it.
 
 However there is a fair share of drama in the plogon community, and i prefer to play with open cards.
+
