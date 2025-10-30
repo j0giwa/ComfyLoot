@@ -182,6 +182,13 @@ public class LootManager : IDisposable {
 		await AddItem(id, quantity, zone, addedItem.Item.IsHq);
 	}
 
+	/// <summary>
+	/// Add an Item to the droplist
+	/// </summary>
+	/// <param name="id">Item identifier</param>
+	/// <param name="quantity">Amount of items</param>
+	/// <param name="zoneName">Zone where the item was found in</param>
+	/// <param name="hq">High quality or no</param>
 	public async Task
 	AddItem(uint id, int quantity, string zoneName, bool hq)
 	{

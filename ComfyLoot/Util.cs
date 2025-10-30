@@ -1,13 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
-using Dalamud.Game.Inventory.InventoryEventArgTypes;
-using Dalamud.Plugin.Services;
 using Lumina.Excel;
 using Lumina.Excel.Sheets;
 
-using ComfyLoot.Data;
 namespace ComfyLoot;
 
 /// <summary>

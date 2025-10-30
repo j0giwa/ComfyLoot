@@ -88,8 +88,7 @@ public class InventoryWatcher : IDisposable
 					args.Slot);
 
 				/* First time seeing this item
-				 * set as "baseline", not an actual change
-				 */
+				 * set as "baseline", not an actual change */
 				if (!_seenItems.Contains(key)) {
 					_seenItems.Add(key);
 					_ = Task.Run(() => _loot.AddItem(
