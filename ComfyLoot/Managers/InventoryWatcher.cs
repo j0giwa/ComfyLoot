@@ -13,18 +13,14 @@ namespace ComfyLoot.Managers;
 /// </summary>
 public class InventoryWatcher : IDisposable {
 
-	private readonly IPluginLog log;
 	private readonly LootManager loot;
 	private readonly HashSet<(uint itemId, GameInventoryType inventory, uint slot)> seenItems;
 
 	/// <summary>
 	/// InventoryWatcher:ctor
 	/// </summary>
-	public InventoryWatcher(
-		LootManager loot,
-		IPluginLog log)
+	public InventoryWatcher(LootManager loot)
 	{
-		this.log = log;
 		this.loot = loot;
 		seenItems = new HashSet<(uint itemId, GameInventoryType inventory, uint slot)>();
 
@@ -44,7 +40,7 @@ public class InventoryWatcher : IDisposable {
 		case GameInventoryType.Inventory4:
 		case GameInventoryType.Crystals:
 		case GameInventoryType.Currency:
-			log.Information(
+			ComfyLoot.Log.Debug(
 				"[ADD] {Quantity}x {ItemId} in {Inventory} (slot {Slot})",
 				args.Item.Quantity,
 				args.Item.ItemId,
@@ -79,7 +75,7 @@ public class InventoryWatcher : IDisposable {
 			key = (args.Item.ItemId, args.Inventory, args.Slot);
 
 			if (addedAmount > 0) {
-				log.Information(
+				ComfyLoot.Log.Debug(
 					"[CHANGE] {Quantity}x {ItemId} in {Inventory} (slot {Slot})",
 					addedAmount,
 					args.Item.ItemId,
@@ -112,7 +108,7 @@ public class InventoryWatcher : IDisposable {
 	private void
 	OnInventoryChanged(IReadOnlyCollection<InventoryEventArgs> events)
 	{
-		foreach (var evt in events)
+		foreach (InventoryEventArgs evt in events)
 			switch (evt) {
 			case InventoryItemAddedArgs added:
 				HandleAddItem(added);

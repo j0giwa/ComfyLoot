@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Dalamud.Game.Inventory.InventoryEventArgTypes;
-using Dalamud.Plugin.Services;
 
 using ComfyLoot.Data;
 
@@ -23,7 +22,7 @@ public record LootItem(
 /// </summay>
 public class LootManager : IDisposable {
 
-	private readonly IPluginLog log;
+	private readonly ComfyLoot plugin;
 	private readonly Dictionary<string, List<LootItem>> loot;
 	private readonly Configuration config;
 
@@ -35,12 +34,11 @@ public class LootManager : IDisposable {
 	/// <summary>
 	/// LootManager:ctor
 	/// </summary>
-	/// <param name="log">Logger</param>
-	public LootManager(ComfyLoot plugin, IPluginLog log)
+	public LootManager(ComfyLoot plugin)
 	{
-		this.log = log;
-		loot = new Dictionary<string, List<LootItem>>();
+		this.plugin = plugin;
 		config = plugin.Configuration;
+		loot = new Dictionary<string, List<LootItem>>();
 	}
 
 	/// <summary>
@@ -122,15 +120,41 @@ public class LootManager : IDisposable {
 		|| data.Results.Count == 0)
 			return value;
 
-		/* TODO: null safe value exctract */
-		if (hq)
-			value = (int)data.Results[0].HQ.
-				MinListing.World.Price;
-		else
-			value = (int)data.Results[0].NQ.
-				MinListing.World.Price;
+		value = GetMarketValue(data, hq);
 
 		return value;
+	}
+
+	private static int
+	GetMarketValue(MarketBoardData data, bool hq)
+	{
+		AggregatedResult? result;
+		QualityData? qualityData;
+		double price = 0;
+
+		if (data == null
+		|| data.Results == null
+		|| data.Results.Count == 0)
+			return 0;
+
+		result = data.Results[0];
+		if (result == null)
+			return 0;
+
+		if (hq)
+			qualityData = result.HQ;
+		else
+			qualityData = result.NQ;
+
+		if (qualityData == null)
+			return 0;
+
+
+		if (qualityData.MinListing != null
+		&& qualityData.MinListing.World != null)
+			price = qualityData.MinListing.World.Price;
+
+		return (int)price;
 	}
 
 	/// <summary>
@@ -139,6 +163,7 @@ public class LootManager : IDisposable {
 	private static bool
 	IsCurrency(uint itemId)
 	{
+		/* TODO: Lumina lookup instead of hardcoding*/
 		switch (itemId) {
 		case (int)Currency.GIL: /* FALLTHROUGH */
 		case (int)Currency.STORM_SEAL:
@@ -212,13 +237,15 @@ public class LootManager : IDisposable {
 			list = new List<LootItem>();
 		list.Add(item);
 
-		log.Information(
+		ComfyLoot.Log.Information(
 			"[TRACK] {Quantity}x {ItemId} in {Zone}",
 			quantity,
 			id,
 			zoneName);
 
 		loot[zoneName] = list;
+
+		plugin.UpdateDtrBar();
 	}
 
 	/// <summary>
@@ -309,14 +336,15 @@ public class LootManager : IDisposable {
 				item.Quantity + addedAmount,
 				item.Value
 			));
-			log.Information(
-				"[TRACK] {ItemId} {Quantity}x  in {Zone}",
+			ComfyLoot.Log.Information(
+				"[TRACK] {ItemId} {Quantity}x in {Zone}",
 				itemId,
 				item.Quantity + addedAmount,
 				zoneName);
 		}
 
 		loot[zoneName] = items;
+		plugin.UpdateDtrBar();
 	}
 
 	public void

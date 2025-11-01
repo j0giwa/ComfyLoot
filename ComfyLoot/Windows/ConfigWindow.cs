@@ -8,13 +8,15 @@ namespace ComfyLoot.Windows;
 
 public class ConfigWindow : Window, IDisposable
 {
+	private readonly ComfyLoot plugin;
 	private readonly Configuration Configuration;
 
-	/* We give this window a constant ID using ###.
-	 * This allows for labels to be dynamic, like "{FPS Counter}fps###XYZ counter window",
-	 * and he window ID will always be "###XYZ counter window" for ImGui */
+	/// <summary>
+	/// ConfigWindow:ctor
+	/// </summary>
+	/// <param name="plugin">ComfyLoot plugin instance</param>
 	public ConfigWindow(ComfyLoot plugin) 
-		: base("ComfyLoot config###With a constant ID")
+		: base("ComfyLoot config###comfyloot_config_ui")
 	{
 		SizeConstraints = new WindowSizeConstraints {
 			MinimumSize = new Vector2(600, 400),
@@ -23,6 +25,8 @@ public class ConfigWindow : Window, IDisposable
 
 		SizeCondition = ImGuiCond.Always;
 		Configuration = plugin.Configuration;
+
+		this.plugin = plugin;
 	}
 
 	public override void
@@ -39,17 +43,25 @@ public class ConfigWindow : Window, IDisposable
 	Draw()
 	{
 		/* Can't ref a property, so use a local copy */
-		var configValue = Configuration.UniversalisEnabled;
+		bool universalis = Configuration.UniversalisEnabled;
+		bool serverinfo = Configuration.ShowDtrBar;
 
 		ImGui.TextUnformatted("Read this!!!");
 		ImGui.TextWrapped("Ugh, another conscent thingy. We hate them too, but apparently it's the law. If you enable this, your ip, homeworld, and items you picked up will be sent to Universalis. We don't know what they will do with this data.");
 		ImGui.TextWrapped("Click 'Enable' so we can all pretend this mattered.");
 
-		if (ImGui.Checkbox("Enable Universalis", ref configValue)) {
-			Configuration.UniversalisEnabled = configValue;
+		if (ImGui.Checkbox("Enable Universalis", ref universalis)) {
+			Configuration.UniversalisEnabled = universalis;
 			Configuration.Save();
 		}
+
 		ImGui.Separator();
+
+		if (ImGui.Checkbox("Enable Server Info bar entry", ref serverinfo)) {
+			Configuration.ShowDtrBar = serverinfo;
+			plugin.UpdateDtrBar();
+			Configuration.Save();
+		}
 	}
 
 	public void 

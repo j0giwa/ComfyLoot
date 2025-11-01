@@ -15,21 +15,21 @@ namespace ComfyLoot.Windows;
 
 public class MainWindow : Window, IDisposable {
 
-	private readonly ComfyLoot _plugin;
+	private readonly ComfyLoot plugin;
 
 	/// <summary>
 	/// MainWindow:ctor
 	/// </summary>
-	/// <param name="plugin"></param>
+	/// <param name="plugin">ComfyLoot plugin instance</param>
 	public MainWindow(ComfyLoot plugin)
-		: base("ComfyLoot", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
+		: base("ComfyLoot###comfyloot_ui", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
 	{
 		SizeConstraints = new WindowSizeConstraints {
 			MinimumSize = new Vector2(375, 330),
 			MaximumSize = new Vector2(float.MaxValue, float.MaxValue)
 		};
 
-		_plugin = plugin;
+		this.plugin = plugin;
 
 		/* WARN:
 		 * This snippet likely originated from an Epsteinsync
@@ -39,7 +39,7 @@ public class MainWindow : Window, IDisposable {
 			new TitleBarButton() {
 				Icon = FontAwesomeIcon.Cog,
 				Click = (msg) => {
-					_plugin.ToggleConfigUI();
+					this.plugin.ToggleConfigUI();
 				},
 				IconOffset = new(2,1),
 				ShowTooltip = () => {
@@ -59,16 +59,16 @@ public class MainWindow : Window, IDisposable {
 		ImGuiTableFlags tableFlags;
 		List<LootItem> items;
 
-		totalValue = _plugin.LootManager.GetTotalItemValue();
+		totalValue = plugin.LootManager.GetTotalItemValue();
 
-		ImGui.TextUnformatted($"Total count: {_plugin.LootManager.GetTotalItemQuantity()}");
+		ImGui.TextUnformatted($"Total count: {plugin.LootManager.GetTotalItemQuantity()}");
 		if (totalValue == 0)
 			ImGui.TextUnformatted($"Total Value: N/A");
 		else
 			ImGui.TextUnformatted($"Total Value: {totalValue}");
 		ImGui.Spacing();
 
-		using var child = ImRaii.Child("LootChild", Vector2.Zero, true);
+		using var child = ImRaii.Child("LootChild###", Vector2.Zero, true);
 		if (!child.Success)
 			return;
 
@@ -86,7 +86,7 @@ public class MainWindow : Window, IDisposable {
 			ImGui.TableSetupColumn("Value", ImGuiTableColumnFlags.WidthFixed, 80.0f);
 
 			ImGui.TableHeadersRow();
-			foreach (KeyValuePair<string, List<LootItem>> kvp in _plugin.LootManager.Loot) {
+			foreach (KeyValuePair<string, List<LootItem>> kvp in plugin.LootManager.Loot) {
 				zoneName = kvp.Key ?? "<Unknown Zone>";
 				items = kvp.Value ?? new List<LootItem>();
 
@@ -120,11 +120,11 @@ public class MainWindow : Window, IDisposable {
 			ImGuiTreeNodeFlags.SpanAvailWidth);
 
 		ImGui.PopID();
-		ImGui.TableSetColumnIndex(1);
+		ImGui.TableNextColumn();
 		ImGui.TextUnformatted(zoneName);
-		ImGui.TableSetColumnIndex(2);
+		ImGui.TableNextColumn();
 		ImGui.TextUnformatted(LootManager.GetZoneItemQuantity(items).ToString());
-		ImGui.TableSetColumnIndex(3);
+		ImGui.TableNextColumn();
 		ImGui.TextUnformatted(LootManager.GetZoneItemValue(items).ToString());
 
 		if (!zoneOpen)
@@ -148,14 +148,14 @@ public class MainWindow : Window, IDisposable {
 		ImGui.TableSetColumnIndex(0);
 		ImGui.TextUnformatted(""); /* indentation placeholder */
 
-		ImGui.TableSetColumnIndex(1);
+		ImGui.TableNextColumn();
 		itemName = ItemUtil.GetItemName(item.ItemId, true);
 		ImGui.TextUnformatted(itemName.ToString());
 
-		ImGui.TableSetColumnIndex(2);
+		ImGui.TableNextColumn();
 		ImGui.TextUnformatted(item.Quantity.ToString());
 
-		ImGui.TableSetColumnIndex(3);
+		ImGui.TableNextColumn();
 		if (item.Value == 0)
 			ImGui.TextUnformatted("N/A");
 		else

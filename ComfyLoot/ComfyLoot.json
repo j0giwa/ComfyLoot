@@ -14,9 +14,7 @@
     "utility",
     "other"
   ],
-  "DalamudApiLevel": 13,
   "LoadPriority": 0,
   "IconUrl": "https://github.com/j0giwa/ComfyLoot/blob/master/Data/icon.png",
-  "ImageUrls": [],
-  "DownloadCount": 0
+  "ImageUrls": []
 }
