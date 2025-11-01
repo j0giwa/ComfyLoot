@@ -91,8 +91,6 @@ public sealed class ComfyLoot : IDalamudPlugin
 			dtrEntry.OnClick = OnDtrBarClick;
 			UpdateDtrBar();
 			dtrEntry.Shown = Configuration.ShowDtrBar;
-
-			Log.Info("DTR bar entry initialized");
 		}
 	}
 
@@ -140,4 +138,5 @@ public sealed class ComfyLoot : IDalamudPlugin
 
 		Commands.RemoveHandler(CommandName);
 	}
+
 }
