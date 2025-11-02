@@ -12,7 +12,7 @@ Inspired by [RuneLite](https://github.com/runelite/runelite/wiki/Loot-Tracker).
 
 - Keep track of drops
 - Estimate marketvalue
-  - For legal reasons, this is an opt-in feature (see: [Privacy](Privacy.md)) and is therefore disabled by default.
+  - For legal reasons, this is an opt-in feature (see: [Privacy](PRIVACY.md)) and is therefore disabled by default.
 
 ## Usage
 
@@ -51,7 +51,7 @@ If you feel the need to ask this question, you have already answered it yourself
 
 This is, at this point not endoresed by `Dalamud`, Square Enix (durr) or anyone else, if you heard something else, they were lying.
 The code contains snippets from sources, that are at best, questionable.
-The Plugin accesses API's that did not disclose their practices of handling user data. And no amount of me yappin could prove my intents. (see: [Privacy](Privacy.md))
+The Plugin accesses API's that did not disclose their practices of handling user data. And no amount of me yappin could prove my intents. (see: [Privacy](PRIVACY.md))
 
 What i can offer is this: You are on GitHub, you have the code in front of you, see for yourself.
   (If you don't understand code, ask someone you trust (not ChatGPT), or assume it's malicious)

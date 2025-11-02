@@ -11,25 +11,30 @@ namespace ComfyLoot.Managers;
 /// <summary>
 /// Monitors player inventory
 /// </summary>
-public class InventoryWatcher : IDisposable
-{
+public class InventoryWatcher : IDisposable {
 
-	private readonly IPluginLog _log;
-	private readonly LootManager _loot;
-	private readonly HashSet<(uint itemId, GameInventoryType inventory, uint slot)> _seenItems;
+	private readonly LootManager loot;
+	private readonly HashSet<(uint itemId, GameInventoryType inventory, uint slot)> seenItems;
 
 	/// <summary>
 	/// InventoryWatcher:ctor
 	/// </summary>
-	public InventoryWatcher(
-		LootManager loot,
-		IPluginLog log)
+	public InventoryWatcher(LootManager loot)
 	{
-		_log = log;
-		_loot = loot;
-		_seenItems = new HashSet<(uint itemId, GameInventoryType inventory, uint slot)>();
+		this.loot = loot;
+		seenItems = new HashSet<(uint itemId, GameInventoryType inventory, uint slot)>();
+		_ = DelayedSubscribe();
+	}
 
-		ComfyLoot.GameInventory.InventoryChanged += OnInventoryChanged;
+	private async Task 
+	DelayedSubscribe()
+	{
+		const long delay = 5;
+
+		await Task.Delay(TimeSpan.FromSeconds(delay));
+
+		if (ComfyLoot.ClientState.IsLoggedIn)
+			ComfyLoot.GameInventory.InventoryChanged += OnInventoryChanged;
 	}
 
 	/// <summary>
@@ -38,20 +43,20 @@ public class InventoryWatcher : IDisposable
 	private void
 	HandleAddItem(InventoryItemAddedArgs args)
 	{
-		switch (args.Inventory){
+		switch (args.Inventory) {
 		case GameInventoryType.Inventory1: /* FALLTHROUGH */
 		case GameInventoryType.Inventory2:
 		case GameInventoryType.Inventory3:
 		case GameInventoryType.Inventory4:
 		case GameInventoryType.Crystals:
 		case GameInventoryType.Currency:
-			_log.Information(
+			ComfyLoot.Log.Debug(
 				"[ADD] {Quantity}x {ItemId} in {Inventory} (slot {Slot})",
 				args.Item.Quantity,
 				args.Item.ItemId,
 				args.Inventory,
 				args.Slot);
-			_ = Task.Run(() => _loot.AddItem(args));
+			_ = Task.Run(() => loot.AddItem(args));
 			break;
 		default:
 			break;
@@ -80,7 +85,7 @@ public class InventoryWatcher : IDisposable
 			key = (args.Item.ItemId, args.Inventory, args.Slot);
 
 			if (addedAmount > 0) {
-				_log.Information(
+				ComfyLoot.Log.Debug(
 					"[CHANGE] {Quantity}x {ItemId} in {Inventory} (slot {Slot})",
 					addedAmount,
 					args.Item.ItemId,
@@ -89,9 +94,9 @@ public class InventoryWatcher : IDisposable
 
 				/* First time seeing this item
 				 * set as "baseline", not an actual change */
-				if (!_seenItems.Contains(key)) {
-					_seenItems.Add(key);
-					_ = Task.Run(() => _loot.AddItem(
+				if (!seenItems.Contains(key)) {
+					seenItems.Add(key);
+					_ = Task.Run(() => loot.AddItem(
 						args.Item.ItemId,
 						addedAmount,
 						Util.GetCurrentZoneName(),
@@ -99,7 +104,7 @@ public class InventoryWatcher : IDisposable
 					));
 					return;
 				}
-				_loot.UpdateItem(args.Item.ItemId, addedAmount);
+				loot.UpdateItem(args.Item.ItemId, addedAmount);
 			}
 			break;
 		default:
@@ -113,7 +118,7 @@ public class InventoryWatcher : IDisposable
 	private void
 	OnInventoryChanged(IReadOnlyCollection<InventoryEventArgs> events)
 	{
-		foreach (var evt in events)
+		foreach (InventoryEventArgs evt in events)
 			switch (evt) {
 			case InventoryItemAddedArgs added:
 				HandleAddItem(added);
@@ -136,6 +141,6 @@ public class InventoryWatcher : IDisposable
 	protected virtual void
 	Dispose(bool disposing)
 	{
-		// Cleanup
+		/* Cleanup */
 	}
 }

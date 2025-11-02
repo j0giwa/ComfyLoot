@@ -2,13 +2,10 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Dalamud.Game.Inventory.InventoryEventArgTypes;
-using Dalamud.Plugin.Services;
-using Lumina.Excel;
-using Lumina.Excel.Sheets;
 
 using ComfyLoot.Data;
+using FFXIVClientStructs.FFXIV.Client.Game.UI;
 
 namespace ComfyLoot.Managers;
 
@@ -26,24 +23,23 @@ public record LootItem(
 /// </summay>
 public class LootManager : IDisposable {
 
-	private readonly IPluginLog _log;
-	private readonly Dictionary<string, List<LootItem>> _loot;
-	private readonly Configuration _config;
+	private readonly ComfyLoot plugin;
+	private readonly Dictionary<string, List<LootItem>> loot;
+	private readonly Configuration config;
 
 	/// <summary>
 	/// Droplist, contains everything the player collected
 	/// </summary>
-	public IReadOnlyDictionary<string, List<LootItem>> Loot => _loot;
+	public IReadOnlyDictionary<string, List<LootItem>> Loot => loot;
 
 	/// <summary>
 	/// LootManager:ctor
 	/// </summary>
-	/// <param name="log">Logger</param>
-	public LootManager(ComfyLoot plugin, IPluginLog log)
+	public LootManager(ComfyLoot plugin)
 	{
-		_log = log;
-		_loot = new Dictionary<string, List<LootItem>>();
-		_config = plugin.Configuration;
+		this.plugin = plugin;
+		config = plugin.Configuration;
+		loot = new Dictionary<string, List<LootItem>>();
 	}
 
 	/// <summary>
@@ -85,7 +81,7 @@ public class LootManager : IDisposable {
 			break;
 		default:
 			value = 0; /* fallback value */
-			if (_config.UniversalisEnabled) {
+			if (config.UniversalisEnabled) {
 				worldname = Util.GetHomeWorld();
 				if (!worldname.Equals("???"))
 					value = await GetUniveralisValue(itemId, worldname, hq);
@@ -96,6 +92,13 @@ public class LootManager : IDisposable {
 		return value;
 	}
 
+	/// <summary>
+	/// Fetches itmes marketboard value form universalis
+	/// </summary>
+	/// <param name="itemId">Item identifier</param>
+	/// <param name="worldname">World to fecht mb data from</param>
+	/// <param name="hq">high quality or no</param>
+	/// <returns>The itmes value in gil</returns>
 	private static async Task<int>
 	GetUniveralisValue(uint itemId, string worldname, bool hq)
 	{
@@ -118,15 +121,41 @@ public class LootManager : IDisposable {
 		|| data.Results.Count == 0)
 			return value;
 
-		// TODO: null safe value exctract
-		if (hq)
-			value = (int)data.Results[0].HQ.
-				MinListing.World.Price;
-		else
-			value = (int)data.Results[0].NQ.
-				MinListing.World.Price;
+		value = GetMarketValue(data, hq);
 
 		return value;
+	}
+
+	private static int
+	GetMarketValue(MarketBoardData data, bool hq)
+	{
+		AggregatedResult? result;
+		QualityData? qualityData;
+		double price = 0;
+
+		if (data == null
+		|| data.Results == null
+		|| data.Results.Count == 0)
+			return 0;
+
+		result = data.Results[0];
+		if (result == null)
+			return 0;
+
+		if (hq)
+			qualityData = result.HQ;
+		else
+			qualityData = result.NQ;
+
+		if (qualityData == null)
+			return 0;
+
+
+		if (qualityData.MinListing != null
+		&& qualityData.MinListing.World != null)
+			price = qualityData.MinListing.World.Price;
+
+		return (int)price;
 	}
 
 	/// <summary>
@@ -135,6 +164,7 @@ public class LootManager : IDisposable {
 	private static bool
 	IsCurrency(uint itemId)
 	{
+		/* TODO: Lumina lookup instead of hardcoding*/
 		switch (itemId) {
 		case (int)Currency.GIL: /* FALLTHROUGH */
 		case (int)Currency.STORM_SEAL:
@@ -187,7 +217,7 @@ public class LootManager : IDisposable {
 	/// </summary>
 	/// <param name="id">Item identifier</param>
 	/// <param name="quantity">Amount of items</param>
-	/// <param name="zoneName">Zone where the item was found in</param>
+	/// <param name="zoneName">Zone where the item was gathered</param>
 	/// <param name="hq">High quality or no</param>
 	public async Task
 	AddItem(uint id, int quantity, string zoneName, bool hq)
@@ -204,17 +234,19 @@ public class LootManager : IDisposable {
 			itemValue
 		);
 
-		if (!_loot.TryGetValue(zoneName, out list))
+		if (!loot.TryGetValue(zoneName, out list))
 			list = new List<LootItem>();
 		list.Add(item);
 
-		_log.Information(
+		ComfyLoot.Log.Information(
 			"[TRACK] {Quantity}x {ItemId} in {Zone}",
 			quantity,
 			id,
 			zoneName);
 
-		_loot[zoneName] = list;
+		loot[zoneName] = list;
+
+		plugin.UpdateDtrBar();
 	}
 
 	/// <summary>
@@ -227,7 +259,7 @@ public class LootManager : IDisposable {
 	{
 		int totalValue = 0;
 
-		foreach (List<LootItem> zoneList in _loot.Values)
+		foreach (List<LootItem> zoneList in loot.Values)
 			totalValue += GetZoneItemValue(zoneList);
 
 		return totalValue;
@@ -236,13 +268,13 @@ public class LootManager : IDisposable {
 	/// <summary>
 	/// Counts items across all zones.
 	/// </summary>
-	/// <returns>Total number of non-currency items gathered.</returns>
+	/// <returns>Total number of non-currency items gathered</returns>
 	public int
 	GetTotalItemQuantity()
 	{
 		int totalQuantity = 0;
 
-		foreach (List<LootItem> zoneList in _loot.Values)
+		foreach (List<LootItem> zoneList in loot.Values)
 			totalQuantity += GetZoneItemQuantity(zoneList);
 
 		return totalQuantity;
@@ -251,8 +283,8 @@ public class LootManager : IDisposable {
 	/// <summary>
 	/// Counts the total quantity of valid (non-currency) items within a single zone.
 	/// </summary>
-	/// <param name="zoneItems">The list of items in the zone.</param>
-	/// <returns>Total number of non-currency items in this zone.</returns>
+	/// <param name="zoneItems">The list of items in the zone</param>
+	/// <returns>Total number of non-currency items in this zone</returns>
 	public static int
 	GetZoneItemQuantity(IEnumerable<LootItem> zoneItems)
 	{
@@ -265,6 +297,25 @@ public class LootManager : IDisposable {
 		}
 
 		return zoneTotal;
+	}
+
+	public static int GetZoneItemQuantity(LootManager loot, string zone)
+	{
+		List<LootItem>? zoneItems;
+
+		if (loot == null
+		|| string.IsNullOrEmpty(zone))
+			return 0;
+
+		if (loot.Loot == null)
+			return 0;
+
+		loot.Loot.TryGetValue(zone, out zoneItems);
+
+		if (zoneItems == null)
+			return 0;
+
+		return GetZoneItemQuantity(zoneItems);
 	}
 
 	/// <summary>
@@ -283,6 +334,26 @@ public class LootManager : IDisposable {
 		return zoneTotal;
 	}
 
+	public static int
+	GetZoneItemValue(LootManager loot, string zone)
+	{
+		List<LootItem>? zoneItems;
+
+		if (loot == null
+		|| string.IsNullOrEmpty(zone))
+			return 0;
+
+		if (loot.Loot == null)
+			return 0;
+
+		loot.Loot.TryGetValue(zone, out zoneItems);
+
+		if (zoneItems == null)
+			return 0;
+
+		return GetZoneItemValue(zoneItems);
+	}
+
 	/// <summary>
 	/// Updates an item's quantity.
 	/// </summary>
@@ -294,7 +365,7 @@ public class LootManager : IDisposable {
 		List<LootItem>? items;
 
 		zoneName = Util.GetCurrentZoneName();
-		if (!_loot.TryGetValue(zoneName, out items))
+		if (!loot.TryGetValue(zoneName, out items))
 			items = new List<LootItem>();
 
 		item = items.Find(t => t.ItemId == itemId);
@@ -305,14 +376,15 @@ public class LootManager : IDisposable {
 				item.Quantity + addedAmount,
 				item.Value
 			));
-			_log.Information(
-				"[TRACK] {ItemId} {Quantity}x  in {Zone}",
+			ComfyLoot.Log.Information(
+				"[TRACK] {ItemId} {Quantity}x in {Zone}",
 				itemId,
 				item.Quantity + addedAmount,
 				zoneName);
 		}
 
-		_loot[zoneName] = items;
+		loot[zoneName] = items;
+		plugin.UpdateDtrBar();
 	}
 
 	public void
@@ -325,6 +397,6 @@ public class LootManager : IDisposable {
 	protected virtual void
 	Dispose(bool disposing)
 	{
-		// Cleanup
+		/* Cleanup */
 	}
 }
