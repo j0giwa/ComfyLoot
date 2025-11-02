@@ -131,7 +131,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 				dtrEntry.Text = $"{zoneName}: N/A";
 			break;
 		default:
-			dtrEntry.Text = "Loot: Error";
+			dtrEntry.Text = "Loot: N/A";
 			break;
 		}
 	}

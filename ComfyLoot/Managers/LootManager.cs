@@ -299,7 +299,14 @@ public class LootManager : IDisposable {
 		return zoneTotal;
 	}
 
-	public static int GetZoneItemQuantity(LootManager loot, string zone)
+	/// <summary>
+	/// Counts the total quantity of valid (non-currency) items within a single zone.
+	/// </summary>
+	/// <param name="Loot">Lootmanager Instance</param>
+	/// <param name="zone">zonename</param>
+	/// <returns>Total number of non-currency items in this zone</returns>
+	public static int
+	GetZoneItemQuantity(LootManager loot, string zone)
 	{
 		List<LootItem>? zoneItems;
 
@@ -334,6 +341,12 @@ public class LootManager : IDisposable {
 		return zoneTotal;
 	}
 
+	/// <summary>
+	/// Calculate the combined item value within a single zone.
+	/// </summary>
+	/// <param name="Loot">Lootmanager Instance</param>
+	/// <param name="zone">zonename</param>
+	/// <returns>Total amount of gil.</returns>
 	public static int
 	GetZoneItemValue(LootManager loot, string zone)
 	{

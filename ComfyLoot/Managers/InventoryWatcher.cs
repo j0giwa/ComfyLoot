@@ -23,10 +23,13 @@ public class InventoryWatcher : IDisposable {
 	{
 		this.loot = loot;
 		seenItems = new HashSet<(uint itemId, GameInventoryType inventory, uint slot)>();
-		_ = DelayedSubscribe();
+		_ = DelayedSubscribe(); /* HACK: delay prevents issues with serverhoppin/logon */
 	}
 
-	private async Task 
+	/// <summary>
+	/// Delays subcription to events
+	/// </summary>
+	private async Task
 	DelayedSubscribe()
 	{
 		const long delay = 5;
