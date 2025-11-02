@@ -11,7 +11,9 @@ public class Configuration : IPluginConfiguration
 
 	public bool IsConfigWindowMovable { get; set; } = true;
 	public bool UniversalisEnabled { get; set; } = false; /* disabled for legal reasons */
-	public bool ShowDtrBar { get; set; } = false; /* TODO: give customisable Dtr entries */
+
+	public bool ShowDtrBar { get; set; } = false;
+	public int DtrBarOption { get; set; } = 0;
 
 	/// <summary>
 	/// Saves plugin config

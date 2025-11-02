@@ -23,8 +23,18 @@ public class InventoryWatcher : IDisposable {
 	{
 		this.loot = loot;
 		seenItems = new HashSet<(uint itemId, GameInventoryType inventory, uint slot)>();
+		_ = DelayedSubscribe();
+	}
 
-		ComfyLoot.GameInventory.InventoryChanged += OnInventoryChanged;
+	private async Task 
+	DelayedSubscribe()
+	{
+		const long delay = 5;
+
+		await Task.Delay(TimeSpan.FromSeconds(delay));
+
+		if (ComfyLoot.ClientState.IsLoggedIn)
+			ComfyLoot.GameInventory.InventoryChanged += OnInventoryChanged;
 	}
 
 	/// <summary>
@@ -33,7 +43,7 @@ public class InventoryWatcher : IDisposable {
 	private void
 	HandleAddItem(InventoryItemAddedArgs args)
 	{
-		switch (args.Inventory){
+		switch (args.Inventory) {
 		case GameInventoryType.Inventory1: /* FALLTHROUGH */
 		case GameInventoryType.Inventory2:
 		case GameInventoryType.Inventory3:

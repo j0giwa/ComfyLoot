@@ -97,11 +97,43 @@ public sealed class ComfyLoot : IDalamudPlugin
 	public void
 	UpdateDtrBar()
 	{
+		int number;
+		string zoneName;
+
 		if (dtrEntry == null)
 			return;
 		dtrEntry.Shown = Configuration.ShowDtrBar;
-		dtrEntry.Text = $"Loot: {LootManager.GetTotalItemQuantity()} items";
 		dtrEntry.Tooltip = "Click to toggle overlay";
+
+		zoneName = Util.GetCurrentZoneName();
+
+		switch (Configuration.DtrBarOption) {
+		case 0:
+			number = LootManager.GetTotalItemQuantity();
+			dtrEntry.Text = $"Items: {number} items";
+			break;
+		case 1:
+			number = LootManager.GetZoneItemQuantity(LootManager, zoneName);
+			dtrEntry.Text = $"{zoneName}: {number} items";
+			break;
+		case 2:
+			number = LootManager.GetTotalItemValue();
+			if (number > 0)
+				dtrEntry.Text = $"Total value: {number}";
+			else
+				dtrEntry.Text = $"Total value: N/A";
+			break;
+		case 3:
+			number = LootManager.GetZoneItemValue(LootManager, zoneName);
+			if (number > 0)
+				dtrEntry.Text = $"{zoneName}: {number}";
+			else
+				dtrEntry.Text = $"{zoneName}: N/A";
+			break;
+		default:
+			dtrEntry.Text = "Loot: Error";
+			break;
+		}
 	}
 
 	private void

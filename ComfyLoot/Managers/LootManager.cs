@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Dalamud.Game.Inventory.InventoryEventArgTypes;
 
 using ComfyLoot.Data;
+using FFXIVClientStructs.FFXIV.Client.Game.UI;
 
 namespace ComfyLoot.Managers;
 
@@ -298,6 +299,25 @@ public class LootManager : IDisposable {
 		return zoneTotal;
 	}
 
+	public static int GetZoneItemQuantity(LootManager loot, string zone)
+	{
+		List<LootItem>? zoneItems;
+
+		if (loot == null
+		|| string.IsNullOrEmpty(zone))
+			return 0;
+
+		if (loot.Loot == null)
+			return 0;
+
+		loot.Loot.TryGetValue(zone, out zoneItems);
+
+		if (zoneItems == null)
+			return 0;
+
+		return GetZoneItemQuantity(zoneItems);
+	}
+
 	/// <summary>
 	/// Calculate the combined item value within a single zone.
 	/// </summary>
@@ -312,6 +332,26 @@ public class LootManager : IDisposable {
 			zoneTotal += item.Value * item.Quantity;
 
 		return zoneTotal;
+	}
+
+	public static int
+	GetZoneItemValue(LootManager loot, string zone)
+	{
+		List<LootItem>? zoneItems;
+
+		if (loot == null
+		|| string.IsNullOrEmpty(zone))
+			return 0;
+
+		if (loot.Loot == null)
+			return 0;
+
+		loot.Loot.TryGetValue(zone, out zoneItems);
+
+		if (zoneItems == null)
+			return 0;
+
+		return GetZoneItemValue(zoneItems);
 	}
 
 	/// <summary>

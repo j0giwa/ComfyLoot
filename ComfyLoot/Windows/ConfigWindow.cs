@@ -42,9 +42,15 @@ public class ConfigWindow : Window, IDisposable
 	public override void
 	Draw()
 	{
+		bool universalis;
+		bool serverinfo;
+		bool serverinfoDisplayChanged;
+		int serverinfoDisplayOption;
+
 		/* Can't ref a property, so use a local copy */
-		bool universalis = Configuration.UniversalisEnabled;
-		bool serverinfo = Configuration.ShowDtrBar;
+		universalis = Configuration.UniversalisEnabled;
+		serverinfo = Configuration.ShowDtrBar;
+		serverinfoDisplayOption = Configuration.DtrBarOption;
 
 		ImGui.TextUnformatted("Read this!!!");
 		ImGui.TextWrapped("Ugh, another conscent thingy. We hate them too, but apparently it's the law. If you enable this, your ip, homeworld, and items you picked up will be sent to Universalis. We don't know what they will do with this data.");
@@ -53,6 +59,7 @@ public class ConfigWindow : Window, IDisposable
 		if (ImGui.Checkbox("Enable Universalis", ref universalis)) {
 			Configuration.UniversalisEnabled = universalis;
 			Configuration.Save();
+			ComfyLoot.Log.Debug("[CONFIG) Univeralis enabled {univeralis}", universalis);
 		}
 
 		ImGui.Separator();
@@ -61,7 +68,32 @@ public class ConfigWindow : Window, IDisposable
 			Configuration.ShowDtrBar = serverinfo;
 			plugin.UpdateDtrBar();
 			Configuration.Save();
+			ComfyLoot.Log.Debug("[CONFIG) DTR enabled {serverinfo}", serverinfo);
 		}
+
+		if (!serverinfo)
+			ImGui.BeginDisabled();
+
+		serverinfoDisplayChanged = false;
+
+		if (ImGui.RadioButton("Total items", ref serverinfoDisplayOption, 0))
+			serverinfoDisplayChanged = true;
+		if (ImGui.RadioButton("Items per current zone", ref serverinfoDisplayOption, 1))
+			serverinfoDisplayChanged = true;
+		if (ImGui.RadioButton("Total value", ref serverinfoDisplayOption, 2))
+			serverinfoDisplayChanged = true;
+		if (ImGui.RadioButton("Value per current zone", ref serverinfoDisplayOption, 3))
+			serverinfoDisplayChanged = true;
+
+		if (serverinfoDisplayChanged) {
+			Configuration.DtrBarOption = serverinfoDisplayOption;
+			plugin.UpdateDtrBar();
+			Configuration.Save();
+			ComfyLoot.Log.Debug("[CONFIG) DTR setting {serverinfoDisplayOption}", serverinfoDisplayOption);
+		}
+
+		if (!serverinfo)
+			ImGui.EndDisabled();
 	}
 
 	public void 
