@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Dalamud.NET.Sdk/13.0.0">
   <PropertyGroup>
-    <Version>0.9.5.0</Version>
+    <Version>0.9.5.5</Version>
     <Description>Cozy loot Tracker</Description>
     <PackageProjectUrl>https://github.com/j0giwa/Comfyloot</PackageProjectUrl>
     <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
@@ -15,3 +15,4 @@
     </Content>
   </ItemGroup>
 </Project>
+
