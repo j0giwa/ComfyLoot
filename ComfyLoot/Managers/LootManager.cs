@@ -57,6 +57,10 @@ public class LootManager : IDisposable {
 		int value;
 		string worldname;
 
+		/* currencys (except gil) don't have a "value", skipping */
+		if (IsCurrency(itemId) && itemId != 1)
+			return 0; 
+
 		switch (itemId) {
 		case (int)Currency.GIL:
 			value = 1;
@@ -166,7 +170,6 @@ public class LootManager : IDisposable {
 	IsCurrency(uint itemId)
 	{
 		/* TODO: Lumina lookup instead of hardcoding*/
-		
 		switch (itemId) {
 		case (int)Currency.GIL: 
 		case (int)Currency.STORM_SEAL:

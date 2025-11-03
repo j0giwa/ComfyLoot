@@ -133,6 +133,7 @@ public class InventoryWatcher : IDisposable {
 			debounceCts = new CancellationTokenSource();
 			_ = DebouncedProcessEventsAsync(debounceCts.Token);
 		}
+		debounceCts.Dispose();
 	}
 
 	private async Task
