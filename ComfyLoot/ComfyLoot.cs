@@ -73,13 +73,14 @@ public sealed class ComfyLoot : IDalamudPlugin
 				HelpMessage = "Toggle ComfyLoot window\n/loot config → Open settings"
 			});
 
-		InitializeDtrBar();
-
 		Dalamud.UiBuilder.Draw += DrawUI;
 		Dalamud.UiBuilder.OpenMainUi += ToggleMainUI;
 		Dalamud.UiBuilder.OpenConfigUi += ToggleConfigUI;
-	}
 
+		ClientState.TerritoryChanged += OnTerritoryChanged;
+
+		InitializeDtrBar();
+	}
 
 	private void
 	InitializeDtrBar()
@@ -155,6 +156,12 @@ public sealed class ComfyLoot : IDalamudPlugin
 		ToggleMainUI();
 	}
 
+	private void 
+	OnTerritoryChanged(ushort obj)
+	{
+		UpdateDtrBar();
+	}
+
 	private void DrawUI() => WindowSystem.Draw();
 
 	public void ToggleConfigUI() => ConfigWindow.Toggle();
@@ -170,5 +177,4 @@ public sealed class ComfyLoot : IDalamudPlugin
 
 		Commands.RemoveHandler(CommandName);
 	}
-
 }

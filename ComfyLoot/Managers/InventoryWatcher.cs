@@ -1,10 +1,10 @@
 /* See LICENSE file for copyright and license details. */
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Dalamud.Game.Inventory;
 using Dalamud.Game.Inventory.InventoryEventArgTypes;
-using Dalamud.Plugin.Services;
 
 namespace ComfyLoot.Managers;
 
@@ -13,8 +13,11 @@ namespace ComfyLoot.Managers;
 /// </summary>
 public class InventoryWatcher : IDisposable {
 
+	private readonly Lock debounceLock;
 	private readonly LootManager loot;
+	private readonly List<InventoryEventArgs> eventBuffer;
 	private readonly HashSet<(uint itemId, GameInventoryType inventory, uint slot)> seenItems;
+	private CancellationTokenSource debounceCts;
 
 	/// <summary>
 	/// InventoryWatcher:ctor
@@ -23,6 +26,9 @@ public class InventoryWatcher : IDisposable {
 	{
 		this.loot = loot;
 		seenItems = new HashSet<(uint itemId, GameInventoryType inventory, uint slot)>();
+		debounceLock = new Lock();
+		eventBuffer = new List<InventoryEventArgs>();
+		debounceCts = null;
 		_ = DelayedSubscribe(); /* HACK: delay prevents issues with serverhoppin/logon */
 	}
 
@@ -121,7 +127,38 @@ public class InventoryWatcher : IDisposable {
 	private void
 	OnInventoryChanged(IReadOnlyCollection<InventoryEventArgs> events)
 	{
-		foreach (InventoryEventArgs evt in events)
+		lock (debounceLock) {
+			eventBuffer.AddRange(events);
+			debounceCts?.Cancel();
+			debounceCts = new CancellationTokenSource();
+			_ = DebouncedProcessEventsAsync(debounceCts.Token);
+		}
+	}
+
+	private async Task
+	DebouncedProcessEventsAsync(CancellationToken token)
+	{
+		const int delay = 100;
+		List<InventoryEventArgs> toProcess;
+
+		try {
+			await Task.Delay(delay, token);
+		} catch (TaskCanceledException) {
+			return;
+		}
+		
+		lock (debounceLock) {
+			toProcess = new List<InventoryEventArgs>(eventBuffer);
+			eventBuffer.Clear();
+		}
+
+		ProcessBufferedEvents(toProcess);
+	}
+
+	private void 
+	ProcessBufferedEvents(List<InventoryEventArgs> events)
+	{
+		foreach (var evt in events)
 			switch (evt) {
 			case InventoryItemAddedArgs added:
 				HandleAddItem(added);

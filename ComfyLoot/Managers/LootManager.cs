@@ -4,8 +4,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Dalamud.Game.Inventory.InventoryEventArgTypes;
 
-using ComfyLoot.Data;
-using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using ComfyLoot.Models;
 
 namespace ComfyLoot.Managers;
 
@@ -165,8 +164,9 @@ public class LootManager : IDisposable {
 	IsCurrency(uint itemId)
 	{
 		/* TODO: Lumina lookup instead of hardcoding*/
+		
 		switch (itemId) {
-		case (int)Currency.GIL: /* FALLTHROUGH */
+		case (int)Currency.GIL: 
 		case (int)Currency.STORM_SEAL:
 		case (int)Currency.SERPENT_SEAL:
 		case (int)Currency.FLAME_SEAL:
@@ -226,6 +226,12 @@ public class LootManager : IDisposable {
 		LootItem item;
 		List<LootItem>? list;
 
+		/* HACK: prevent duplicates in the same zone */
+		if (CheckDuplicate(zoneName, id)) {
+			UpdateItem(id, quantity);
+			return;
+		}
+
 		itemValue = await GetItemValue(id, hq);
 
 		item = new LootItem(
@@ -247,6 +253,33 @@ public class LootManager : IDisposable {
 		loot[zoneName] = list;
 
 		plugin.UpdateDtrBar();
+	}
+
+	/// <summary>
+	/// Check if an Item already exists in a given zone
+	/// </summary>
+	/// <param name="zone">Zone to check</param>
+	/// <param name="id">item id</param>
+	/// <returns>true, if the item</returns>
+	public bool
+	CheckDuplicate(string zone, uint id)
+	{
+		List<LootItem>? zoneItems;
+
+		if (string.IsNullOrEmpty(zone)
+		|| loot == null)
+			return false;
+
+		loot.TryGetValue(zone, out zoneItems);
+
+		if (zoneItems == null)
+			return false;
+
+		foreach (LootItem item in zoneItems)
+			if (item.ItemId == id)
+				return true;
+
+		return false;
 	}
 
 	/// <summary>
@@ -377,7 +410,9 @@ public class LootManager : IDisposable {
 		LootItem? item;
 		List<LootItem>? items;
 
-		zoneName = Util.GetCurrentZoneName();
+		/* TODO: this line gets repeapted a lot, could be passed as param instead */
+		zoneName = Util.GetCurrentZoneName(); 
+
 		if (!loot.TryGetValue(zoneName, out items))
 			items = new List<LootItem>();
 
