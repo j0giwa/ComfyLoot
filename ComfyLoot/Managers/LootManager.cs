@@ -107,18 +107,20 @@ public class LootManager : IDisposable {
 		string uri;
 		MarketBoardData? data;
 
-		value = 0;
-
-		if (worldname.Equals("Unknown World"))
-			return value;
+		if (worldname.Equals("???")){
+			ComfyLoot.Log.Error("[Universalis] Failed to retrieve data: Unknown world");
+			return 0;
+		}
 
 		uri = $"{endpoint}/api/v2/aggregated/{worldname}/{itemId}";
 		data = await HttpHelper.GetAsync<MarketBoardData>(uri);
 
 		if (data == null
 		|| data.Results == null
-		|| data.Results.Count == 0)
-			return value;
+		|| data.Results.Count == 0) {
+			ComfyLoot.Log.Error("[Universalis] Failed to retrieve data: Invalid response");
+			return 0;
+		}
 
 		value = GetMarketValue(data, hq);
 
@@ -266,11 +268,12 @@ public class LootManager : IDisposable {
 	{
 		List<LootItem>? zoneItems;
 
-		if (string.IsNullOrEmpty(zone)
+		if (string.IsNullOrEmpty(zone) 
 		|| loot == null)
 			return false;
 
-		loot.TryGetValue(zone, out zoneItems);
+		if (loot.TryGetValue(zone, out zoneItems))
+			return false;
 
 		if (zoneItems == null)
 			return false;
