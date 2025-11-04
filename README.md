@@ -65,4 +65,3 @@ However, it's possible whatever you may want to implement is out of scope for th
 > — Edsger W. Dijkstra
 
 Check the guide in goatcorp's [SamplePlugin](https://github.com/goatcorp/SamplePlugin) to get started.
-
