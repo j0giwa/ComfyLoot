@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace ComfyLoot.Data;
+namespace ComfyLoot.Models;
 
 public class MarketBoardData {
 

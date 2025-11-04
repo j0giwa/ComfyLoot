@@ -1,10 +1,10 @@
 /* See LICENSE file for copyright and license details. */
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Dalamud.Game.Inventory;
 using Dalamud.Game.Inventory.InventoryEventArgTypes;
-using Dalamud.Plugin.Services;
 
 namespace ComfyLoot.Managers;
 
@@ -13,8 +13,11 @@ namespace ComfyLoot.Managers;
 /// </summary>
 public class InventoryWatcher : IDisposable {
 
+	private readonly Lock debounceLock;
 	private readonly LootManager loot;
+	private readonly List<InventoryEventArgs> eventBuffer;
 	private readonly HashSet<(uint itemId, GameInventoryType inventory, uint slot)> seenItems;
+	private CancellationTokenSource debounceCts;
 
 	/// <summary>
 	/// InventoryWatcher:ctor
@@ -23,10 +26,16 @@ public class InventoryWatcher : IDisposable {
 	{
 		this.loot = loot;
 		seenItems = new HashSet<(uint itemId, GameInventoryType inventory, uint slot)>();
-		_ = DelayedSubscribe();
+		debounceLock = new Lock();
+		eventBuffer = new List<InventoryEventArgs>();
+		debounceCts = null;
+		_ = DelayedSubscribe(); /* HACK: delay prevents issues with serverhoppin/logon */
 	}
 
-	private async Task 
+	/// <summary>
+	/// Delays subcription to events
+	/// </summary>
+	private async Task
 	DelayedSubscribe()
 	{
 		const long delay = 5;
@@ -41,7 +50,7 @@ public class InventoryWatcher : IDisposable {
 	/// Hande add item event
 	/// </summary>
 	private void
-	HandleAddItem(InventoryItemAddedArgs args)
+	HandleAddItem(InventoryItemAddedArgs args, string zone)
 	{
 		switch (args.Inventory) {
 		case GameInventoryType.Inventory1: /* FALLTHROUGH */
@@ -56,7 +65,12 @@ public class InventoryWatcher : IDisposable {
 				args.Item.ItemId,
 				args.Inventory,
 				args.Slot);
-			_ = Task.Run(() => loot.AddItem(args));
+			_ = Task.Run(() => loot.AddItem(
+				args.Item.ItemId,
+				args.Item.Quantity,
+				zone,
+				args.Item.IsHq
+			));
 			break;
 		default:
 			break;
@@ -67,7 +81,7 @@ public class InventoryWatcher : IDisposable {
 	/// Hande change item event
 	/// </summary>
 	private void
-	HandleChangeItem(InventoryItemChangedArgs args)
+	HandleChangeItem(InventoryItemChangedArgs args, string zone)
 	{
 		int previousQty;
 		int addedAmount;
@@ -92,19 +106,24 @@ public class InventoryWatcher : IDisposable {
 					args.Inventory,
 					args.Slot);
 
-				/* First time seeing this item
-				 * set as "baseline", not an actual change */
+				/* HACK: force add if the item is in the inventory, 
+				   but not in the lootlist */
 				if (!seenItems.Contains(key)) {
 					seenItems.Add(key);
 					_ = Task.Run(() => loot.AddItem(
 						args.Item.ItemId,
 						addedAmount,
-						Util.GetCurrentZoneName(),
+						zone,
 						args.Item.IsHq
 					));
 					return;
 				}
-				loot.UpdateItem(args.Item.ItemId, addedAmount);
+
+				loot.UpdateItem(
+					args.Item.ItemId,
+					addedAmount,
+					zone
+				);
 			}
 			break;
 		default:
@@ -118,13 +137,48 @@ public class InventoryWatcher : IDisposable {
 	private void
 	OnInventoryChanged(IReadOnlyCollection<InventoryEventArgs> events)
 	{
-		foreach (InventoryEventArgs evt in events)
+		lock (debounceLock) {
+			eventBuffer.AddRange(events);
+			debounceCts?.Cancel();
+			debounceCts = new CancellationTokenSource();
+			_ = DebouncedProcessEventsAsync(debounceCts.Token);
+		}
+	}
+
+	private async Task
+	DebouncedProcessEventsAsync(CancellationToken token)
+	{
+		const int delay = 100;
+		List<InventoryEventArgs> toProcess;
+
+		try {
+			await Task.Delay(delay, token);
+		} catch (TaskCanceledException) {
+			return;
+		}
+		
+		lock (debounceLock) {
+			toProcess = new List<InventoryEventArgs>(eventBuffer);
+			eventBuffer.Clear();
+		}
+
+		ProcessBufferedEvents(toProcess);
+	}
+
+	private void 
+	ProcessBufferedEvents(List<InventoryEventArgs> events)
+	{
+		string zone;
+
+		zone = Util.GetCurrentZoneName();
+
+		foreach (var evt in events)
 			switch (evt) {
 			case InventoryItemAddedArgs added:
-				HandleAddItem(added);
+				HandleAddItem(added, zone);
 				break;
 			case InventoryItemChangedArgs changed:
-				HandleChangeItem(changed);
+				HandleChangeItem(changed, zone);
 				break;
 			default:
 				break;
@@ -134,6 +188,7 @@ public class InventoryWatcher : IDisposable {
 	public void
 	Dispose()
 	{
+		debounceCts.Dispose();
 		Dispose(true);
 		GC.SuppressFinalize(this);
 	}

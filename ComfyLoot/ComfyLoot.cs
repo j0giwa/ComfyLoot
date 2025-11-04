@@ -44,6 +44,8 @@ public sealed class ComfyLoot : IDalamudPlugin
 	public LootManager LootManager { get; set; }
 	public InventoryWatcher Watcher { get; set; }
 
+	public string HomeworldName { get; private set; }
+
 	/// <summary>
 	/// ComfyLoot:ctor
 	/// </summary>
@@ -73,13 +75,16 @@ public sealed class ComfyLoot : IDalamudPlugin
 				HelpMessage = "Toggle ComfyLoot window\n/loot config → Open settings"
 			});
 
-		InitializeDtrBar();
-
 		Dalamud.UiBuilder.Draw += DrawUI;
 		Dalamud.UiBuilder.OpenMainUi += ToggleMainUI;
 		Dalamud.UiBuilder.OpenConfigUi += ToggleConfigUI;
-	}
 
+		ClientState.TerritoryChanged += OnTerritoryChanged;
+
+		InitializeDtrBar();
+
+		HomeworldName = Util.GetHomeWorld();
+	}
 
 	private void
 	InitializeDtrBar()
@@ -131,7 +136,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 				dtrEntry.Text = $"{zoneName}: N/A";
 			break;
 		default:
-			dtrEntry.Text = "Loot: Error";
+			dtrEntry.Text = "Loot: N/A";
 			break;
 		}
 	}
@@ -155,6 +160,12 @@ public sealed class ComfyLoot : IDalamudPlugin
 		ToggleMainUI();
 	}
 
+	private void 
+	OnTerritoryChanged(ushort obj)
+	{
+		UpdateDtrBar();
+	}
+
 	private void DrawUI() => WindowSystem.Draw();
 
 	public void ToggleConfigUI() => ConfigWindow.Toggle();
@@ -170,5 +181,4 @@ public sealed class ComfyLoot : IDalamudPlugin
 
 		Commands.RemoveHandler(CommandName);
 	}
-
 }

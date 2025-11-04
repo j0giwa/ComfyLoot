@@ -7,9 +7,9 @@ using Dalamud.Interface;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using Dalamud.Utility;
+using Lumina.Text.ReadOnly;
 
 using ComfyLoot.Managers;
-using Lumina.Text.ReadOnly;
 
 namespace ComfyLoot.Windows;
 

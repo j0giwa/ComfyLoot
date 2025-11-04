@@ -2,7 +2,7 @@
  *
  * Contains ItemId's that may require special care.
  */
-namespace ComfyLoot.Data;
+namespace ComfyLoot.Models;
 
 /// <summary>
 /// Items that show up in the Currency window
