@@ -44,6 +44,8 @@ public sealed class ComfyLoot : IDalamudPlugin
 	public LootManager LootManager { get; set; }
 	public InventoryWatcher Watcher { get; set; }
 
+	public string HomeworldName { get; private set; }
+
 	/// <summary>
 	/// ComfyLoot:ctor
 	/// </summary>
@@ -80,6 +82,8 @@ public sealed class ComfyLoot : IDalamudPlugin
 		ClientState.TerritoryChanged += OnTerritoryChanged;
 
 		InitializeDtrBar();
+
+		HomeworldName = Util.GetHomeWorld();
 	}
 
 	private void

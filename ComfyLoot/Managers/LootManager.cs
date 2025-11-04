@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Dalamud.Game.Inventory.InventoryEventArgTypes;
 
 using ComfyLoot.Models;
 
@@ -42,6 +41,34 @@ public class LootManager : IDisposable {
 	}
 
 	/// <summary>
+	/// Check if an Item already exists in a given zone
+	/// </summary>
+	/// <param name="zone">Zone to check</param>
+	/// <param name="id">item id</param>
+	/// <returns>true, if the item</returns>
+	private bool
+	CheckDuplicate(string zone, uint id)
+	{
+		List<LootItem>? zoneItems;
+
+		if (string.IsNullOrEmpty(zone)
+		|| loot == null)
+			return false;
+
+		if (loot.TryGetValue(zone, out zoneItems))
+			return false;
+
+		if (zoneItems == null)
+			return false;
+
+		foreach (LootItem item in zoneItems)
+			if (item.ItemId == id)
+				return true;
+
+		return false;
+	}
+
+	/// <summary>
 	/// Gets the gil value of the given item
 	/// </summary>
 	/// <param name="itemId">Item identyfier</param>
@@ -58,8 +85,8 @@ public class LootManager : IDisposable {
 		string worldname;
 
 		/* currencys (except gil) don't have a "value", skipping */
-		if (IsCurrency(itemId) && itemId != 1)
-			return 0; 
+		if (Util.IsCurrency(itemId) && itemId != 1)
+			return 0;
 
 		switch (itemId) {
 		case (int)Currency.GIL:
@@ -85,8 +112,9 @@ public class LootManager : IDisposable {
 		default:
 			value = 0; /* fallback value */
 			if (config.UniversalisEnabled) {
-				worldname = Util.GetHomeWorld();
+				worldname = plugin.HomeworldName;
 				if (!worldname.Equals("???"))
+					/* TODO: filter untrabales */
 					value = await GetUniveralisValue(itemId, worldname, hq);
 			}
 			break;
@@ -105,9 +133,8 @@ public class LootManager : IDisposable {
 	private static async Task<int>
 	GetUniveralisValue(uint itemId, string worldname, bool hq)
 	{
-		const string endpoint = "https://universalis.app";
+		const string endpoint = "https://universalis.app/api/v2";
 
-		int value;
 		string uri;
 		MarketBoardData? data;
 
@@ -116,8 +143,13 @@ public class LootManager : IDisposable {
 			return 0;
 		}
 
-		uri = $"{endpoint}/api/v2/aggregated/{worldname}/{itemId}";
-		data = await HttpHelper.GetAsync<MarketBoardData>(uri);
+		data = null;
+		uri = $"{endpoint}/aggregated/{worldname}/{itemId}";
+		try {
+			data = await HttpHelper.GetAsync<MarketBoardData>(uri);
+		} catch (Exception) {
+			return 0;
+		}
 
 		if (data == null
 		|| data.Results == null
@@ -125,10 +157,8 @@ public class LootManager : IDisposable {
 			ComfyLoot.Log.Error("[Universalis] Failed to retrieve data: Invalid response");
 			return 0;
 		}
-
-		value = GetMarketValue(data, hq);
-
-		return value;
+		
+		return GetMarketValue(data, hq);
 	}
 
 	private static int
@@ -164,60 +194,6 @@ public class LootManager : IDisposable {
 	}
 
 	/// <summary>
-	/// Determines if the given item ID represents a currency.
-	/// </summary>
-	private static bool
-	IsCurrency(uint itemId)
-	{
-		/* TODO: Lumina lookup instead of hardcoding*/
-		switch (itemId) {
-		case (int)Currency.GIL: 
-		case (int)Currency.STORM_SEAL:
-		case (int)Currency.SERPENT_SEAL:
-		case (int)Currency.FLAME_SEAL:
-		case (int)Currency.ALLIED_SEALS:
-		case (int)Currency.WOLF_MARKS:
-		case (int)Currency.MGP:
-		case (int)Currency.TROPHY_CRYSTALS:
-		case (int)Currency.TOMESTONE_POETICS:
-		case (int)Currency.TOMESTONE_AESTETICS:
-		case (int)Currency.TOMESTONE_MATHEMATICS:
-		case (int)Currency.TOMESTONE_HELIOMETRY:
-		case (int)Currency.CENTURIO_SEALS:
-		case (int)Currency.SACK_OF_NUTS:
-		case (int)Currency.BICOLOR_GEMSTONES:
-		case (int)Currency.WHITE_CRAFTER_SCRIPS:
-		case (int)Currency.PURPLE_CRAFTER_SCRIPS:
-		case (int)Currency.ORANGE_CRAFTER_SCRIPS:
-		case (int)Currency.WHITE_GATHERER_SCRIPS:
-		case (int)Currency.PURPLE_GATHERER_SCRIPS:
-		case (int)Currency.ORANGE_GATHERER_SCRIPS:
-		case (int)Currency.SKYBUILDER_SCRIPS:
-			return true;
-		default:
-			return false;
-		}
-	}
-
-	/// <summary>
-	/// Add an Item to the droplist
-	/// </summary>
-	/// <param name="addedItem">The Item</param>
-	public async Task
-	AddItem(InventoryItemAddedArgs addedItem)
-	{
-		uint id;
-		int quantity;
-		string zone;
-
-		id = addedItem.Item.ItemId;
-		quantity = addedItem.Item.Quantity;
-		zone = Util.GetCurrentZoneName();
-
-		await AddItem(id, quantity, zone, addedItem.Item.IsHq);
-	}
-
-	/// <summary>
 	/// Add an Item to the droplist
 	/// </summary>
 	/// <param name="id">Item identifier</param>
@@ -233,7 +209,7 @@ public class LootManager : IDisposable {
 
 		/* HACK: prevent duplicates in the same zone */
 		if (CheckDuplicate(zoneName, id)) {
-			UpdateItem(id, quantity);
+			UpdateItem(id, quantity, zoneName);
 			return;
 		}
 
@@ -258,34 +234,6 @@ public class LootManager : IDisposable {
 		loot[zoneName] = list;
 
 		plugin.UpdateDtrBar();
-	}
-
-	/// <summary>
-	/// Check if an Item already exists in a given zone
-	/// </summary>
-	/// <param name="zone">Zone to check</param>
-	/// <param name="id">item id</param>
-	/// <returns>true, if the item</returns>
-	public bool
-	CheckDuplicate(string zone, uint id)
-	{
-		List<LootItem>? zoneItems;
-
-		if (string.IsNullOrEmpty(zone) 
-		|| loot == null)
-			return false;
-
-		if (loot.TryGetValue(zone, out zoneItems))
-			return false;
-
-		if (zoneItems == null)
-			return false;
-
-		foreach (LootItem item in zoneItems)
-			if (item.ItemId == id)
-				return true;
-
-		return false;
 	}
 
 	/// <summary>
@@ -330,7 +278,7 @@ public class LootManager : IDisposable {
 		int zoneTotal = 0;
 
 		foreach (var tracked in zoneItems) {
-			if (IsCurrency(tracked.ItemId))
+			if (Util.IsCurrency(tracked.ItemId))
 				continue;
 			zoneTotal += tracked.Quantity;
 		}
@@ -410,14 +358,10 @@ public class LootManager : IDisposable {
 	/// Updates an item's quantity.
 	/// </summary>
 	public void
-	UpdateItem(uint itemId, int addedAmount)
+	UpdateItem(uint itemId, int addedAmount, string zoneName)
 	{
-		string zoneName;
 		LootItem? item;
 		List<LootItem>? items;
-
-		/* TODO: this line gets repeapted a lot, could be passed as param instead */
-		zoneName = Util.GetCurrentZoneName(); 
 
 		if (!loot.TryGetValue(zoneName, out items))
 			items = new List<LootItem>();

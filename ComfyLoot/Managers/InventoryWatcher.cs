@@ -50,7 +50,7 @@ public class InventoryWatcher : IDisposable {
 	/// Hande add item event
 	/// </summary>
 	private void
-	HandleAddItem(InventoryItemAddedArgs args)
+	HandleAddItem(InventoryItemAddedArgs args, string zone)
 	{
 		switch (args.Inventory) {
 		case GameInventoryType.Inventory1: /* FALLTHROUGH */
@@ -65,7 +65,12 @@ public class InventoryWatcher : IDisposable {
 				args.Item.ItemId,
 				args.Inventory,
 				args.Slot);
-			_ = Task.Run(() => loot.AddItem(args));
+			_ = Task.Run(() => loot.AddItem(
+				args.Item.ItemId,
+				args.Item.Quantity,
+				zone,
+				args.Item.IsHq
+			));
 			break;
 		default:
 			break;
@@ -76,7 +81,7 @@ public class InventoryWatcher : IDisposable {
 	/// Hande change item event
 	/// </summary>
 	private void
-	HandleChangeItem(InventoryItemChangedArgs args)
+	HandleChangeItem(InventoryItemChangedArgs args, string zone)
 	{
 		int previousQty;
 		int addedAmount;
@@ -101,19 +106,24 @@ public class InventoryWatcher : IDisposable {
 					args.Inventory,
 					args.Slot);
 
-				/* First time seeing this item
-				 * set as "baseline", not an actual change */
+				/* HACK: force add if the item is in the inventory, 
+				   but not in the lootlist */
 				if (!seenItems.Contains(key)) {
 					seenItems.Add(key);
 					_ = Task.Run(() => loot.AddItem(
 						args.Item.ItemId,
 						addedAmount,
-						Util.GetCurrentZoneName(),
+						zone,
 						args.Item.IsHq
 					));
 					return;
 				}
-				loot.UpdateItem(args.Item.ItemId, addedAmount);
+
+				loot.UpdateItem(
+					args.Item.ItemId,
+					addedAmount,
+					zone
+				);
 			}
 			break;
 		default:
@@ -133,7 +143,6 @@ public class InventoryWatcher : IDisposable {
 			debounceCts = new CancellationTokenSource();
 			_ = DebouncedProcessEventsAsync(debounceCts.Token);
 		}
-		debounceCts.Dispose();
 	}
 
 	private async Task
@@ -159,13 +168,17 @@ public class InventoryWatcher : IDisposable {
 	private void 
 	ProcessBufferedEvents(List<InventoryEventArgs> events)
 	{
+		string zone;
+
+		zone = Util.GetCurrentZoneName();
+
 		foreach (var evt in events)
 			switch (evt) {
 			case InventoryItemAddedArgs added:
-				HandleAddItem(added);
+				HandleAddItem(added, zone);
 				break;
 			case InventoryItemChangedArgs changed:
-				HandleChangeItem(changed);
+				HandleChangeItem(changed, zone);
 				break;
 			default:
 				break;
@@ -175,6 +188,7 @@ public class InventoryWatcher : IDisposable {
 	public void
 	Dispose()
 	{
+		debounceCts.Dispose();
 		Dispose(true);
 		GC.SuppressFinalize(this);
 	}
