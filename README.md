@@ -21,7 +21,7 @@ Inspired by [RuneLite](https://github.com/runelite/runelite/wiki/Loot-Tracker).
 1. Install via Dalamud / XIVLauncher
 2. Enable the plugin in-game.
 3. (Optional) Enable market price fetching under Settings → Enable Universalis.
-4. (Optional) Enable market price fetching under Settings → Enable Server Info bar entry.
+4. (Optional) Enable quick access in severinfo bar under Settings → Enable Server Info bar entry.
 
 ComfyLoot will automatically begin tracking drops once active.
 
@@ -65,3 +65,4 @@ However, it's possible whatever you may want to implement is out of scope for th
 > — Edsger W. Dijkstra
 
 Check the guide in goatcorp's [SamplePlugin](https://github.com/goatcorp/SamplePlugin) to get started.
+
