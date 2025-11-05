@@ -89,7 +89,7 @@ public class LootManager : IDisposable {
 			return 0;
 
 		switch (itemId) {
-		case (int)Currency.GIL:
+		case (int)SpecialItems.GIL:
 			value = 1;
 			break;
 		case (int)SpecialItems.ALLAGAN_TIN_PIECE:
@@ -138,12 +138,11 @@ public class LootManager : IDisposable {
 		string uri;
 		MarketBoardData? data;
 
-		if (worldname.Equals("???")){
+		if (worldname.Equals("???")) {
 			ComfyLoot.Log.Error("[Universalis] Failed to retrieve data: Unknown world");
 			return 0;
 		}
-
-		data = null;
+		
 		uri = $"{endpoint}/aggregated/{worldname}/{itemId}";
 		try {
 			data = await HttpHelper.GetAsync<MarketBoardData>(uri);
@@ -161,13 +160,19 @@ public class LootManager : IDisposable {
 		return GetMarketValue(data, hq);
 	}
 
+	/// <summary>
+	/// Extracts Itemvalue from Unveralis response
+	/// </summary>
+	/// <param name="data">Universalis response</param>
+	/// <param name="hq">HQ item or not</param>
+	/// <returns>Itemvalue in gil</returns>
 	private static int
 	GetMarketValue(MarketBoardData data, bool hq)
 	{
+		double price = 0;
 		AggregatedResult? result;
 		QualityData? qualityData;
-		double price = 0;
-
+		
 		if (data == null
 		|| data.Results == null
 		|| data.Results.Count == 0)
@@ -184,7 +189,6 @@ public class LootManager : IDisposable {
 
 		if (qualityData == null)
 			return 0;
-
 
 		if (qualityData.MinListing != null
 		&& qualityData.MinListing.World != null)
@@ -245,9 +249,11 @@ public class LootManager : IDisposable {
 	GetTotalItemValue()
 	{
 		int totalValue = 0;
+		List<string> zones;
 
-		foreach (List<LootItem> zoneList in loot.Values)
-			totalValue += GetZoneItemValue(zoneList);
+		zones = new List<string>(loot.Keys);
+		foreach (string zone in zones)
+			totalValue += GetZoneItemValue(zone);
 
 		return totalValue;
 	}
@@ -260,9 +266,11 @@ public class LootManager : IDisposable {
 	GetTotalItemQuantity()
 	{
 		int totalQuantity = 0;
+		List<string> zones;
 
-		foreach (List<LootItem> zoneList in loot.Values)
-			totalQuantity += GetZoneItemQuantity(zoneList);
+		zones = new List<string>(loot.Keys);
+		foreach (string zone in zones)
+			totalQuantity += GetZoneItemQuantity(zone);
 
 		return totalQuantity;
 	}
@@ -272,15 +280,26 @@ public class LootManager : IDisposable {
 	/// </summary>
 	/// <param name="zoneItems">The list of items in the zone</param>
 	/// <returns>Total number of non-currency items in this zone</returns>
-	public static int
-	GetZoneItemQuantity(IEnumerable<LootItem> zoneItems)
+	public int
+	GetZoneItemQuantity(string zone)
 	{
 		int zoneTotal = 0;
+		List<LootItem>? items;
 
-		foreach (var tracked in zoneItems) {
-			if (Util.IsCurrency(tracked.ItemId))
+		if (loot == null
+		|| string.IsNullOrEmpty(zone))
+			return 0;
+
+		if (!loot.TryGetValue(zone, out items))
+			return 0;
+
+		if (items == null)
+			return 0;
+
+		foreach (LootItem item in items) {
+			if (Util.IsCurrency(item.ItemId))
 				continue;
-			zoneTotal += tracked.Quantity;
+			zoneTotal += item.Quantity;
 		}
 
 		return zoneTotal;
@@ -292,66 +311,26 @@ public class LootManager : IDisposable {
 	/// <param name="Loot">Lootmanager Instance</param>
 	/// <param name="zone">zonename</param>
 	/// <returns>Total number of non-currency items in this zone</returns>
-	public static int
-	GetZoneItemQuantity(LootManager loot, string zone)
+	public int
+	GetZoneItemValue(string zone)
 	{
-		List<LootItem>? zoneItems;
+		int zoneTotal = 0;
+		List<LootItem>? items;
 
 		if (loot == null
 		|| string.IsNullOrEmpty(zone))
 			return 0;
 
-		if (loot.Loot == null)
+		if (!loot.TryGetValue(zone, out items))
 			return 0;
 
-		loot.Loot.TryGetValue(zone, out zoneItems);
-
-		if (zoneItems == null)
+		if (items == null)
 			return 0;
 
-		return GetZoneItemQuantity(zoneItems);
-	}
-
-	/// <summary>
-	/// Calculate the combined item value within a single zone.
-	/// </summary>
-	/// <param name="zoneItems">The list of items in the zone.</param>
-	/// <returns>Total amount of gil.</returns>
-	public static int
-	GetZoneItemValue(IEnumerable<LootItem> zoneItems)
-	{
-		int zoneTotal = 0;
-
-		foreach (LootItem item in zoneItems)
+		foreach (LootItem item in items)
 			zoneTotal += item.Value * item.Quantity;
 
 		return zoneTotal;
-	}
-
-	/// <summary>
-	/// Calculate the combined item value within a single zone.
-	/// </summary>
-	/// <param name="Loot">Lootmanager Instance</param>
-	/// <param name="zone">zonename</param>
-	/// <returns>Total amount of gil.</returns>
-	public static int
-	GetZoneItemValue(LootManager loot, string zone)
-	{
-		List<LootItem>? zoneItems;
-
-		if (loot == null
-		|| string.IsNullOrEmpty(zone))
-			return 0;
-
-		if (loot.Loot == null)
-			return 0;
-
-		loot.Loot.TryGetValue(zone, out zoneItems);
-
-		if (zoneItems == null)
-			return 0;
-
-		return GetZoneItemValue(zoneItems);
 	}
 
 	/// <summary>
@@ -383,6 +362,12 @@ public class LootManager : IDisposable {
 
 		loot[zoneName] = items;
 		plugin.UpdateDtrBar();
+	}
+
+	public void
+	Clear()
+	{
+		loot.Clear();
 	}
 
 	public void

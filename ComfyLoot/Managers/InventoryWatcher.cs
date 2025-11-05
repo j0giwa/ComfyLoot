@@ -16,6 +16,7 @@ public class InventoryWatcher : IDisposable {
 	private readonly Lock debounceLock;
 	private readonly LootManager loot;
 	private readonly List<InventoryEventArgs> eventBuffer;
+	/* rather cumbersome, but i helps prevent multiple anomalys */
 	private readonly HashSet<(uint itemId, GameInventoryType inventory, uint slot)> seenItems;
 	private CancellationTokenSource debounceCts;
 
@@ -30,6 +31,7 @@ public class InventoryWatcher : IDisposable {
 		eventBuffer = new List<InventoryEventArgs>();
 		debounceCts = null;
 		_ = DelayedSubscribe(); /* HACK: delay prevents issues with serverhoppin/logon */
+		loot.Clear(); /* HACK: forcefully reset after login*/
 	}
 
 	/// <summary>
@@ -38,12 +40,14 @@ public class InventoryWatcher : IDisposable {
 	private async Task
 	DelayedSubscribe()
 	{
-		const long delay = 5;
+		const int delay = 1;
 
 		await Task.Delay(TimeSpan.FromSeconds(delay));
 
 		if (ComfyLoot.ClientState.IsLoggedIn)
 			ComfyLoot.GameInventory.InventoryChanged += OnInventoryChanged;
+
+		ComfyLoot.Log.Debug("[Inventory] event registered");
 	}
 
 	/// <summary>
@@ -137,36 +141,42 @@ public class InventoryWatcher : IDisposable {
 	private void
 	OnInventoryChanged(IReadOnlyCollection<InventoryEventArgs> events)
 	{
+		ComfyLoot.Log.Debug("[Inventory] event triggered");
 		lock (debounceLock) {
 			eventBuffer.AddRange(events);
 			debounceCts?.Cancel();
 			debounceCts = new CancellationTokenSource();
-			_ = DebouncedProcessEventsAsync(debounceCts.Token);
+			_ = QueueEvents(debounceCts.Token);
 		}
 	}
 
+	/// <summary>
+	/// Queues the eventbuffer
+	/// </summary>
+	/// <param name="token"></param>
+	/// <returns></returns>
 	private async Task
-	DebouncedProcessEventsAsync(CancellationToken token)
+	QueueEvents(CancellationToken token)
 	{
 		const int delay = 100;
-		List<InventoryEventArgs> toProcess;
+		List<InventoryEventArgs> events;
 
 		try {
 			await Task.Delay(delay, token);
 		} catch (TaskCanceledException) {
 			return;
 		}
-		
+
 		lock (debounceLock) {
-			toProcess = new List<InventoryEventArgs>(eventBuffer);
+			events = new List<InventoryEventArgs>(eventBuffer);
 			eventBuffer.Clear();
 		}
 
-		ProcessBufferedEvents(toProcess);
+		ProcessQueuedEvents(events);
 	}
 
 	private void 
-	ProcessBufferedEvents(List<InventoryEventArgs> events)
+	ProcessQueuedEvents(List<InventoryEventArgs> events)
 	{
 		string zone;
 

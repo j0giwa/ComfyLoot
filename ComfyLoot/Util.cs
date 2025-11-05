@@ -1,4 +1,3 @@
-using ComfyLoot.Models;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Lumina.Excel;
 using Lumina.Excel.Sheets;
@@ -62,39 +61,49 @@ public static class Util {
 		return name;
 	}
 
+	public static byte
+	GetRarity(uint itemId)
+	{
+		ExcelSheet<Item>? items;
+		Item? item;
+
+		items = ComfyLoot.DataManager.GetExcelSheet<Item>();
+		item = items.GetRow(itemId);
+
+		if (item == null) {
+			return 1;
+		}
+
+		return item.Value.Rarity;
+	}
+
 	/// <summary>
 	/// Determines if the given item ID represents a currency.
 	/// </summary>
 	public static bool
 	IsCurrency(uint itemId)
 	{
-		/* TODO: Lumina lookup instead of hardcoding*/
-		switch (itemId) {
-		case (int)Currency.GIL:
-		case (int)Currency.STORM_SEAL:
-		case (int)Currency.SERPENT_SEAL:
-		case (int)Currency.FLAME_SEAL:
-		case (int)Currency.ALLIED_SEALS:
-		case (int)Currency.WOLF_MARKS:
-		case (int)Currency.MGP:
-		case (int)Currency.TROPHY_CRYSTALS:
-		case (int)Currency.TOMESTONE_POETICS:
-		case (int)Currency.TOMESTONE_AESTETICS:
-		case (int)Currency.TOMESTONE_MATHEMATICS:
-		case (int)Currency.TOMESTONE_HELIOMETRY:
-		case (int)Currency.CENTURIO_SEALS:
-		case (int)Currency.SACK_OF_NUTS:
-		case (int)Currency.BICOLOR_GEMSTONES:
-		case (int)Currency.WHITE_CRAFTER_SCRIPS:
-		case (int)Currency.PURPLE_CRAFTER_SCRIPS:
-		case (int)Currency.ORANGE_CRAFTER_SCRIPS:
-		case (int)Currency.WHITE_GATHERER_SCRIPS:
-		case (int)Currency.PURPLE_GATHERER_SCRIPS:
-		case (int)Currency.ORANGE_GATHERER_SCRIPS:
-		case (int)Currency.SKYBUILDER_SCRIPS:
+		ExcelSheet<Item>? items;
+		Item? item;
+
+		items = ComfyLoot.DataManager.GetExcelSheet<Item>();
+		item = items.GetRow(itemId);
+
+		if (item == null) {
+			return false;
+		}
+
+		/* FIXME: There might be some missing here */
+		switch (item.Value.FilterGroup){
+		case 16: /* FALLTHOUGH */
+		case 29:
+		case 47:
+		case 54:
+		case 56:
+		case 57:
 			return true;
 		default:
 			return false;
-		}
+		}	
 	}
 }

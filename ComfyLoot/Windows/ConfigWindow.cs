@@ -2,7 +2,9 @@
 using System;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.Colors;
 using Dalamud.Interface.Windowing;
+using Lumina.Excel.Sheets;
 
 namespace ComfyLoot.Windows;
 
@@ -52,9 +54,9 @@ public class ConfigWindow : Window, IDisposable
 		serverinfo = Configuration.ShowDtrBar;
 		serverinfoDisplayOption = Configuration.DtrBarOption;
 
-		ImGui.TextUnformatted("Read this!!!");
-		ImGui.TextWrapped("Ugh, another conscent thingy. We hate them too, but apparently it's the law. If you enable this, your ip, homeworld, and items you picked up will be sent to Universalis. We don't know what they will do with this data.");
-		ImGui.TextWrapped("Click 'Enable' so we can all pretend this mattered.");
+		ImGui.TextColored(ImGuiColors.DalamudRed, "Read this!!!");
+		ImGui.TextColoredWrapped(ImGuiColors.DalamudYellow, "Ugh, another conscent thingy. We hate them too, but apparently it's the law. If you enable this, your ip, homeworld, and items you picked up will be sent to Universalis. We don't know what they will do with this data.");
+		ImGui.TextColored(ImGuiColors.DalamudYellow, "Click 'Enable' so we can all pretend this mattered.");
 
 		if (ImGui.Checkbox("Enable Universalis", ref universalis)) {
 			Configuration.UniversalisEnabled = universalis;
