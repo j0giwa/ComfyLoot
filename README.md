@@ -33,8 +33,8 @@ See [FAQ](#FAQ) for
 
 ## Roadmap
 
+- Removal of unessesary code (continous)
 - Improve loot source classification accuracy
-- Removal of unessesary code
 - Cleaning up the UI
 
 ## Known Issues
@@ -62,7 +62,9 @@ There are two types of patches: the ones that fit your personal taste and the on
 For patches that fit your personal taste and you want to share with the community, feel free to fork.
 
 For patches that should be included in main, feel free to submit a pull request.
-However, it's possible whatever you may want to implement is out of scope for this project, as it's by design intended to be as barebones as possible.
+Most of the time this will be patches that increase reliabilty, improve the codebase.
+New features are very likely to be out of scope for this project, 
+as it's by design intended to be as barebones as possible.
 > Simplicity is prerequisite for reliability.
 > — Edsger W. Dijkstra
 

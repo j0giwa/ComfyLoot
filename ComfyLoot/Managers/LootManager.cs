@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 
 using ComfyLoot.Models;
-using Lumina.Excel.Sheets;
 
 namespace ComfyLoot.Managers;
 
@@ -90,7 +89,7 @@ public class LootManager : IDisposable {
 			return 0;
 
 		switch (itemId) {
-		case (int)Currency.GIL:
+		case (int)SpecialItems.GIL:
 			value = 1;
 			break;
 		case (int)SpecialItems.ALLAGAN_TIN_PIECE:
@@ -139,12 +138,11 @@ public class LootManager : IDisposable {
 		string uri;
 		MarketBoardData? data;
 
-		if (worldname.Equals("???")){
+		if (worldname.Equals("???")) {
 			ComfyLoot.Log.Error("[Universalis] Failed to retrieve data: Unknown world");
 			return 0;
 		}
-
-		data = null;
+		
 		uri = $"{endpoint}/aggregated/{worldname}/{itemId}";
 		try {
 			data = await HttpHelper.GetAsync<MarketBoardData>(uri);

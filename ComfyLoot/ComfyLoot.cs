@@ -53,7 +53,6 @@ public sealed class ComfyLoot : IDalamudPlugin
 	/// </summary>
 	public ComfyLoot()
 	{
-		Log.Debug("[Plugin] Starting Plugin");
 		IPluginConfiguration? rawConfig;
 		Configuration config;
 
@@ -88,8 +87,6 @@ public sealed class ComfyLoot : IDalamudPlugin
 		Dalamud.UiBuilder.OpenConfigUi += ToggleConfigUI;
 
 		InitializeDtrBar();
-
-		Log.Debug("[Plugin] Plugin started");
 	}
 
 	private void
