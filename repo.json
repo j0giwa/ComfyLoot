@@ -16,7 +16,6 @@
   "DalamudApiLevel": 13,
   "LoadPriority": 0,
   "IconUrl": "https://raw.githubusercontent.com/j0giwa/ComfyLoot/refs/heads/master/Data/icon.png",
-  "Punchline": "Let others see you as you see yourself.",
   "IsHide": "False",
   "IsTestingExclusive": "False",
   "DownloadLinkInstall": "https://github.com/j0giwa/ComfyLoot/releases/latest/download/ComfyLoot.zip",
