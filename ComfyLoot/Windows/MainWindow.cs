@@ -10,6 +10,10 @@ using Dalamud.Utility;
 using Lumina.Text.ReadOnly;
 
 using ComfyLoot.Managers;
+using Dalamud.Interface.Textures;
+using Dalamud.Interface.Textures.TextureWraps;
+using Lumina.Excel.Sheets;
+using Lumina.Extensions;
 
 namespace ComfyLoot.Windows;
 
@@ -82,7 +86,7 @@ public class MainWindow : Window, IDisposable {
 
 		if (ImGui.BeginTable("LootTable", 4, tableFlags)) {
 
-			ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 35.0f);
+			ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 20.0f);
 			ImGui.TableSetupColumn("Item", ImGuiTableColumnFlags.WidthStretch);
 			ImGui.TableSetupColumn("Amount", ImGuiTableColumnFlags.WidthFixed, 80.0f);
 			ImGui.TableSetupColumn("Value", ImGuiTableColumnFlags.WidthFixed, 80.0f);
@@ -117,7 +121,6 @@ public class MainWindow : Window, IDisposable {
 		ImGui.TableSetColumnIndex(0);
 		ImGui.PushID(zone);
 		zoneOpen = ImGui.TreeNodeEx("##zone",
-			ImGuiTreeNodeFlags.FramePadding |
 			ImGuiTreeNodeFlags.DefaultOpen |
 			ImGuiTreeNodeFlags.SpanAvailWidth);
 
@@ -144,12 +147,34 @@ public class MainWindow : Window, IDisposable {
 	private static void
 	DrawItemRow(LootItem item)
 	{
+		Vector2 iconSize = new Vector2(20, 20);
+		GameIconLookup lookup;
 		ReadOnlySeString itemName;
+		ISharedImmediateTexture? sharedTexture;
 
 		ImGui.TableNextRow();
 		ImGui.TableSetColumnIndex(0);
-		ImGui.TextUnformatted(""); /* indentation placeholder */
+		var sheet = ComfyLoot.DataManager.GetExcelSheet<Item>();
+		var row = sheet?.GetRow((uint)item.ItemId);
+		if (row != null) {
 
+			var luminaitem = row.Value;
+			lookup = new GameIconLookup(luminaitem.Icon);
+			if (ComfyLoot.Textures.TryGetFromGameIcon(in lookup, out sharedTexture) && sharedTexture != null) {
+				using IDalamudTextureWrap? wrap = sharedTexture.GetWrapOrEmpty();
+				if (wrap != null) {
+					ImGui.SetCursorPosX(ImGui.GetCursorPosX() - 20f);
+					ImGui.Image(wrap.Handle, iconSize);
+				} else {
+					ImGui.TextUnformatted("");
+				}
+			} else {
+				ImGui.TextUnformatted("");
+			}
+		} else {
+			ImGui.TextUnformatted("");
+		}
+		
 		ImGui.TableNextColumn();
 		itemName = ItemUtil.GetItemName(item.ItemId, true);
 		ImGui.TextUnformatted(itemName.ToString());
@@ -176,4 +201,7 @@ public class MainWindow : Window, IDisposable {
 	{
 		/* Cleanup */
 	}
+}
+
+internal class SharedImmediateTexture {
 }

@@ -66,6 +66,8 @@ public sealed class ComfyLoot : IDalamudPlugin
 
 		HomeworldName = Util.GetHomeWorld();
 		LootManager = new LootManager(this);
+		if (ClientState.IsLoggedIn)
+			Watcher = new InventoryWatcher(LootManager);
 
 		ConfigWindow = new ConfigWindow(this);
 		MainWindow = new MainWindow(this, LootManager);
