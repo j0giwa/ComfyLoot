@@ -9,6 +9,7 @@ And drops from some other activities such as dungeons, raids, gathering, and map
 Inspired by [RuneLite](https://github.com/runelite/runelite/wiki/Loot-Tracker).
 
 ## Features
+![ComfyLoot UI](https://raw.githubusercontent.com/j0giwa/ComfyLoot/refs/heads/master/Data/image1.png)
 
 * Tracks items dropped from enemies and other loot sources
 * Displays total loot value (based on market prices, optionally)
@@ -69,3 +70,4 @@ as it's by design intended to be as barebones as possible.
 > — Edsger W. Dijkstra
 
 Check the guide in goatcorp's [SamplePlugin](https://github.com/goatcorp/SamplePlugin) to get started.
+
