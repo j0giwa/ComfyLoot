@@ -16,12 +16,13 @@ namespace ComfyLoot.Windows;
 public class MainWindow : Window, IDisposable {
 
 	private readonly ComfyLoot plugin;
+	private readonly LootManager loot;
 
 	/// <summary>
 	/// MainWindow:ctor
 	/// </summary>
 	/// <param name="plugin">ComfyLoot plugin instance</param>
-	public MainWindow(ComfyLoot plugin)
+	public MainWindow(ComfyLoot plugin, LootManager loot)
 		: base("ComfyLoot###comfyloot_ui", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
 	{
 		SizeConstraints = new WindowSizeConstraints {
@@ -30,6 +31,7 @@ public class MainWindow : Window, IDisposable {
 		};
 
 		this.plugin = plugin;
+		this.loot = loot;
 
 		/* WARN:
 		 * This snippet likely originated from an Epsteinsync
@@ -100,8 +102,8 @@ public class MainWindow : Window, IDisposable {
 	/// <summary>
 	/// Draws a zone header row and its item list as subtables.
 	/// </summary>
-	private static void
-	DrawZoneSection(string zoneName,List<LootItem> items)
+	private void
+	DrawZoneSection(string zone, List<LootItem> items)
 	{
 		bool zoneOpen;
 		uint headerBg;
@@ -113,7 +115,7 @@ public class MainWindow : Window, IDisposable {
 			ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, headerBg, ImGui.TableGetRowIndex());
 
 		ImGui.TableSetColumnIndex(0);
-		ImGui.PushID(zoneName);
+		ImGui.PushID(zone);
 		zoneOpen = ImGui.TreeNodeEx("##zone",
 			ImGuiTreeNodeFlags.FramePadding |
 			ImGuiTreeNodeFlags.DefaultOpen |
@@ -121,11 +123,11 @@ public class MainWindow : Window, IDisposable {
 
 		ImGui.PopID();
 		ImGui.TableNextColumn();
-		ImGui.TextUnformatted(zoneName);
+		ImGui.TextUnformatted(zone);
 		ImGui.TableNextColumn();
-		ImGui.TextUnformatted(LootManager.GetZoneItemQuantity(items).ToString());
+		ImGui.TextUnformatted(loot.GetZoneItemQuantity(zone).ToString());
 		ImGui.TableNextColumn();
-		ImGui.TextUnformatted(LootManager.GetZoneItemValue(items).ToString());
+		ImGui.TextUnformatted(loot.GetZoneItemValue(zone).ToString());
 
 		if (!zoneOpen)
 			return;

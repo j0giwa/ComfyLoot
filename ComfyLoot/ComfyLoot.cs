@@ -9,6 +9,8 @@ using Dalamud.Plugin.Services;
 using ComfyLoot.Managers;
 using ComfyLoot.Windows;
 using Dalamud.Game.Gui.Dtr;
+using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using System;
 
 namespace ComfyLoot;
 
@@ -51,6 +53,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 	/// </summary>
 	public ComfyLoot()
 	{
+		Log.Debug("[Plugin] Starting Plugin");
 		IPluginConfiguration? rawConfig;
 		Configuration config;
 
@@ -61,11 +64,11 @@ public sealed class ComfyLoot : IDalamudPlugin
 			config = new Configuration();
 		Configuration = config;
 
+		HomeworldName = Util.GetHomeWorld();
 		LootManager = new LootManager(this);
-		Watcher = new InventoryWatcher(LootManager);
 
 		ConfigWindow = new ConfigWindow(this);
-		MainWindow = new MainWindow(this);
+		MainWindow = new MainWindow(this, LootManager);
 
 		WindowSystem.AddWindow(ConfigWindow);
 		WindowSystem.AddWindow(MainWindow);
@@ -75,15 +78,16 @@ public sealed class ComfyLoot : IDalamudPlugin
 				HelpMessage = "Toggle ComfyLoot window\n/loot config → Open settings"
 			});
 
+		ClientState.Login += OnLogin;
+		ClientState.Logout += OnLogout;
+		ClientState.TerritoryChanged += OnTerritoryChanged;
 		Dalamud.UiBuilder.Draw += DrawUI;
 		Dalamud.UiBuilder.OpenMainUi += ToggleMainUI;
 		Dalamud.UiBuilder.OpenConfigUi += ToggleConfigUI;
 
-		ClientState.TerritoryChanged += OnTerritoryChanged;
-
 		InitializeDtrBar();
 
-		HomeworldName = Util.GetHomeWorld();
+		Log.Debug("[Plugin] Plugin started");
 	}
 
 	private void
@@ -91,8 +95,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 	{
 		dtrEntry = DtrBar.Get("ComfyLoot");
 
-		if (dtrEntry != null) {
-			
+		if (dtrEntry != null) {			
 			dtrEntry.OnClick = OnDtrBarClick;
 			UpdateDtrBar();
 			dtrEntry.Shown = Configuration.ShowDtrBar;
@@ -107,8 +110,14 @@ public sealed class ComfyLoot : IDalamudPlugin
 
 		if (dtrEntry == null)
 			return;
+
 		dtrEntry.Shown = Configuration.ShowDtrBar;
 		dtrEntry.Tooltip = "Click to toggle overlay";
+
+		if (LootManager == null) {
+			dtrEntry.Text = $"Loading...";
+			return;
+		}
 
 		zoneName = Util.GetCurrentZoneName();
 
@@ -118,7 +127,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 			dtrEntry.Text = $"Items: {number} items";
 			break;
 		case 1:
-			number = LootManager.GetZoneItemQuantity(LootManager, zoneName);
+			number = LootManager.GetZoneItemQuantity(zoneName);
 			dtrEntry.Text = $"{zoneName}: {number} items";
 			break;
 		case 2:
@@ -129,7 +138,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 				dtrEntry.Text = $"Total value: N/A";
 			break;
 		case 3:
-			number = LootManager.GetZoneItemValue(LootManager, zoneName);
+			number = LootManager.GetZoneItemValue(zoneName);
 			if (number > 0)
 				dtrEntry.Text = $"{zoneName}: {number}";
 			else
@@ -154,13 +163,28 @@ public sealed class ComfyLoot : IDalamudPlugin
 		}
 	}
 
-	private void 
+	private void
 	OnDtrBarClick(DtrInteractionEvent _)
 	{
 		ToggleMainUI();
 	}
 
-	private void 
+	private void
+	OnLogin()
+	{
+		/* HACK: Wait for login before initializing prevents issues */
+		Watcher = new InventoryWatcher(LootManager);
+		UpdateDtrBar();
+	}
+
+	private void
+	OnLogout(int type, int code)
+	{
+		/* Cleanling up after logout to prevent issues witch character switches */
+		LootManager.Clear();
+	}
+
+	private void
 	OnTerritoryChanged(ushort obj)
 	{
 		UpdateDtrBar();
