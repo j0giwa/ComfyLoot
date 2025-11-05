@@ -19,6 +19,12 @@ Inspired by [RuneLite](https://github.com/runelite/runelite/wiki/Loot-Tracker).
 
 ## Setup
 
+> DISCLAIMER: <br>
+> There is a custom repo for this plugin, primarily
+> intended for some friends to help me test potentialy instable pre-release versions.
+> concider it a very instable alpha-channel. <br>
+> https://raw.githubusercontent.com/j0giwa/ComfyLoot/refs/heads/master/repo.json
+
 1. Install via Dalamud / XIVLauncher
 2. Enable the plugin in-game.
 3. (Optional) Enable market price fetching under Settings → Enable Universalis.
@@ -70,4 +76,5 @@ as it's by design intended to be as barebones as possible.
 > — Edsger W. Dijkstra
 
 Check the guide in goatcorp's [SamplePlugin](https://github.com/goatcorp/SamplePlugin) to get started.
+
 
