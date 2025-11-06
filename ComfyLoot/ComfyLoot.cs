@@ -10,7 +10,6 @@ using Dalamud.Plugin.Services;
 using ComfyLoot.Managers;
 using ComfyLoot.Windows;
 
-
 namespace ComfyLoot;
 
 /// <summary>

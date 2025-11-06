@@ -13,11 +13,14 @@ namespace ComfyLoot.Managers;
 /// </summary>
 public class InventoryWatcher : IDisposable {
 
-	private readonly Lock debounceLock;
+	private readonly object debounceLock;
+	private readonly object seenLock;
 	private readonly LootManager loot;
+
 	private readonly List<InventoryEventArgs> eventBuffer;
 	/* rather cumbersome, but i helps prevent multiple anomalys */
 	private readonly HashSet<(uint itemId, GameInventoryType inventory, uint slot)> seenItems;
+
 	private CancellationTokenSource debounceCts;
 
 	/// <summary>
@@ -25,11 +28,14 @@ public class InventoryWatcher : IDisposable {
 	/// </summary>
 	public InventoryWatcher(LootManager loot)
 	{
+		debounceLock = new();
+		seenLock = new();
 		this.loot = loot;
-		seenItems = new HashSet<(uint itemId, GameInventoryType inventory, uint slot)>();
-		debounceLock = new Lock();
+
 		eventBuffer = new List<InventoryEventArgs>();
+		seenItems = new HashSet<(uint itemId, GameInventoryType inventory, uint slot)>();
 		debounceCts = null;
+		
 		_ = DelayedSubscribe(); /* HACK: delay prevents issues with serverhoppin/logon */
 		loot.Clear(); /* HACK: forcefully reset after login*/
 	}
@@ -110,17 +116,19 @@ public class InventoryWatcher : IDisposable {
 					args.Inventory,
 					args.Slot);
 
-				/* HACK: force add if the item is in the inventory, 
+				/* HACK: force add if the item is in the inventory,
 				   but not in the lootlist */
-				if (!seenItems.Contains(key)) {
-					seenItems.Add(key);
-					_ = Task.Run(() => loot.AddItem(
-						args.Item.ItemId,
-						addedAmount,
-						zone,
-						args.Item.IsHq
-					));
-					return;
+				lock (seenLock) {
+					if (!seenItems.Contains(key)) {
+						seenItems.Add(key);
+						_ = Task.Run(() => loot.AddItem(
+							args.Item.ItemId,
+							addedAmount,
+							zone,
+							args.Item.IsHq
+						));
+						return;
+					}
 				}
 
 				loot.UpdateItem(
@@ -146,7 +154,7 @@ public class InventoryWatcher : IDisposable {
 			eventBuffer.AddRange(events);
 			debounceCts?.Cancel();
 			debounceCts = new CancellationTokenSource();
-			_ = QueueEvents(debounceCts.Token);
+			_ = Task.Run(() => QueueEvents(debounceCts.Token));
 		}
 	}
 
@@ -175,14 +183,14 @@ public class InventoryWatcher : IDisposable {
 		ProcessQueuedEvents(events);
 	}
 
-	private void 
+	private void
 	ProcessQueuedEvents(List<InventoryEventArgs> events)
 	{
 		string zone;
 
 		zone = Util.GetCurrentZoneName();
 
-		foreach (var evt in events)
+		foreach (InventoryEventArgs evt in events)
 			switch (evt) {
 			case InventoryItemAddedArgs added:
 				HandleAddItem(added, zone);

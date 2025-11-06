@@ -23,12 +23,24 @@ public class LootManager : IDisposable {
 
 	private readonly ComfyLoot plugin;
 	private readonly Dictionary<string, List<LootItem>> loot;
+	private readonly object lootLock;
 	private readonly Configuration config;
 
 	/// <summary>
 	/// Droplist, contains everything the player collected
 	/// </summary>
-	public IReadOnlyDictionary<string, List<LootItem>> Loot => loot;
+	public IReadOnlyDictionary<string, List<LootItem>> Loot {
+		get {
+			Dictionary<string, List<LootItem>> snapshot;
+
+			lock (lootLock) {
+				snapshot = new Dictionary<string, List<LootItem>>();
+				foreach (KeyValuePair<string, List<LootItem>> kvp in loot)
+					snapshot[kvp.Key] = new List<LootItem>(kvp.Value);
+				return snapshot;
+			}
+		}
+	}
 
 	/// <summary>
 	/// LootManager:ctor
@@ -38,6 +50,7 @@ public class LootManager : IDisposable {
 		this.plugin = plugin;
 		config = plugin.Configuration;
 		loot = new Dictionary<string, List<LootItem>>();
+		lootLock = new();
 	}
 
 	/// <summary>
@@ -51,21 +64,23 @@ public class LootManager : IDisposable {
 	{
 		List<LootItem>? zoneItems;
 
-		if (string.IsNullOrEmpty(zone)
-		|| loot == null)
+		lock (lootLock) {
+			if (string.IsNullOrEmpty(zone)
+			|| loot == null)
+				return false;
+
+			if (loot.TryGetValue(zone, out zoneItems))
+				return false;
+
+			if (zoneItems == null)
+				return false;
+
+			foreach (LootItem item in zoneItems)
+				if (item.ItemId == id)
+					return true;
+
 			return false;
-
-		if (loot.TryGetValue(zone, out zoneItems))
-			return false;
-
-		if (zoneItems == null)
-			return false;
-
-		foreach (LootItem item in zoneItems)
-			if (item.ItemId == id)
-				return true;
-
-		return false;
+		}
 	}
 
 	/// <summary>
@@ -211,27 +226,28 @@ public class LootManager : IDisposable {
 		LootItem item;
 		List<LootItem>? list;
 
-		/* HACK: prevent duplicates in the same zone */
-		if (CheckDuplicate(zoneName, id)) {
-			UpdateItem(id, quantity, zoneName);
-			return;
-		}
-
 		itemValue = await GetItemValue(id, hq);
-
 		item = new LootItem(
 			id,
 			quantity,
 			itemValue
 		);
 
-		if (!loot.TryGetValue(zoneName, out list))
-			list = new List<LootItem>();
+		lock (lootLock) {
+			/* HACK: prevent duplicates in the same zone */
+			if (CheckDuplicate(zoneName, id)) {
+				UpdateItem(id, quantity, zoneName);
+				return;
+			}
 
-		list.Add(item);
-		loot[zoneName] = list;
+			if (!loot.TryGetValue(zoneName, out list))
+				list = new List<LootItem>();
+
+			list.Add(item);
+			loot[zoneName] = list;
+		}
+		
 		plugin.UpdateDtrBar();
-
 		ComfyLoot.Log.Information(
 			"[TRACK] {Quantity}x {ItemId} in {Zone}",
 			quantity,
@@ -250,11 +266,13 @@ public class LootManager : IDisposable {
 		int totalValue = 0;
 		List<string> zones;
 
-		zones = new List<string>(loot.Keys);
-		foreach (string zone in zones)
-			totalValue += GetZoneItemValue(zone);
+		lock (lootLock) {
+			zones = new List<string>(loot.Keys);
+			foreach (string zone in zones)
+				totalValue += GetZoneItemValue(zone);
 
-		return totalValue;
+			return totalValue;
+		}
 	}
 
 	/// <summary>
@@ -267,11 +285,13 @@ public class LootManager : IDisposable {
 		int totalQuantity = 0;
 		List<string> zones;
 
-		zones = new List<string>(loot.Keys);
-		foreach (string zone in zones)
-			totalQuantity += GetZoneItemQuantity(zone);
+		lock (lootLock) {
+			zones = new List<string>(loot.Keys);
+			foreach (string zone in zones)
+				totalQuantity += GetZoneItemQuantity(zone);
 
-		return totalQuantity;
+			return totalQuantity;
+		}
 	}
 
 	/// <summary>
@@ -285,23 +305,25 @@ public class LootManager : IDisposable {
 		int zoneTotal = 0;
 		List<LootItem>? items;
 
-		if (loot == null
-		|| string.IsNullOrEmpty(zone))
-			return 0;
+		lock (lootLock) {
+			if (loot == null
+			|| string.IsNullOrEmpty(zone))
+				return 0;
 
-		if (!loot.TryGetValue(zone, out items))
-			return 0;
+			if (!loot.TryGetValue(zone, out items))
+				return 0;
 
-		if (items == null)
-			return 0;
+			if (items == null)
+				return 0;
 
-		foreach (LootItem item in items) {
-			if (Util.IsCurrency(item.ItemId))
-				continue;
-			zoneTotal += item.Quantity;
+			foreach (LootItem item in items) {
+				if (Util.IsCurrency(item.ItemId))
+					continue;
+				zoneTotal += item.Quantity;
+			}
+
+			return zoneTotal;
 		}
-
-		return zoneTotal;
 	}
 
 	/// <summary>
@@ -316,20 +338,22 @@ public class LootManager : IDisposable {
 		int zoneTotal = 0;
 		List<LootItem>? items;
 
-		if (loot == null
-		|| string.IsNullOrEmpty(zone))
-			return 0;
+		lock (lootLock) {
+			if (loot == null
+			|| string.IsNullOrEmpty(zone))
+				return 0;
 
-		if (!loot.TryGetValue(zone, out items))
-			return 0;
+			if (!loot.TryGetValue(zone, out items))
+				return 0;
 
-		if (items == null)
-			return 0;
+			if (items == null)
+				return 0;
 
-		foreach (LootItem item in items)
-			zoneTotal += item.Value * item.Quantity;
+			foreach (LootItem item in items)
+				zoneTotal += item.Value * item.Quantity;
 
-		return zoneTotal;
+			return zoneTotal;
+		}
 	}
 
 	/// <summary>
@@ -341,30 +365,32 @@ public class LootManager : IDisposable {
 		LootItem? item;
 		List<LootItem>? items;
 
-		if (!loot.TryGetValue(zoneName, out items))
-			items = new List<LootItem>();
+		lock (lootLock) {
+			if (!loot.TryGetValue(zoneName, out items))
+				items = new List<LootItem>();
 
-		item = null;
-		foreach (LootItem entry in items) {
-			if (entry.ItemId == itemId) {
-				item = entry;
-				break;
+			item = null;
+			foreach (LootItem entry in items) {
+				if (entry.ItemId == itemId) {
+					item = entry;
+					break;
+				}
 			}
+
+			if (item == null)
+				return;
+
+			items.Remove(item);
+			items.Add(new LootItem(
+				itemId,
+				item.Quantity + addedAmount,
+				item.Value
+			));
+
+			loot[zoneName] = items;
 		}
 
-		if (item == null)
-			return;
-
-		items.Remove(item);
-		items.Add(new LootItem(
-			itemId,
-			item.Quantity + addedAmount,
-			item.Value
-		));
-
-		loot[zoneName] = items;
 		plugin.UpdateDtrBar();
-
 		ComfyLoot.Log.Information(
 			"[TRACK] {ItemId} {Quantity}x in {Zone}",
 			itemId,
@@ -375,7 +401,9 @@ public class LootManager : IDisposable {
 	public void
 	Clear()
 	{
-		loot.Clear();
+		lock (lootLock) {
+			loot.Clear();
+		}
 	}
 
 	public void
