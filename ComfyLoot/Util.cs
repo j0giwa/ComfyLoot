@@ -35,6 +35,24 @@ public static class Util {
 	}
 
 	/// <summary>
+	/// Formats a number to a gil value.
+	/// </summary>
+	/// <param name="number">Gil value</param>
+	/// <returns>Formated string</returns>
+	public static string
+	FormatGilSting(int number)
+	{
+		const char gil = (char)Dalamud.Game.Text.SeIconChar.Gil;
+
+		string result;
+
+		result = number.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
+		result = result.Replace(",", ".");
+
+		return $"{result}{gil}";
+	}
+
+	/// <summary>
 	/// Gets the name of the current zone.
 	/// aka: Where is the player right now?
 	/// </summary>
@@ -77,6 +95,24 @@ public static class Util {
 		return item.Value.Rarity;
 	}
 
+	public static bool
+	IsUntradable(uint itemId)
+	{
+		ExcelSheet<Item>? items;
+		Item? item;
+
+		items = ComfyLoot.DataManager.GetExcelSheet<Item>();
+		item = items.GetRow(itemId);
+
+		if (item == null) {
+			return true;
+		}
+
+		return item.Value.IsUntradable;
+	}
+
+
+
 	/// <summary>
 	/// Determines if the given item ID represents a currency.
 	/// </summary>
@@ -104,6 +140,6 @@ public static class Util {
 			return true;
 		default:
 			return false;
-		}	
+		}
 	}
 }

@@ -81,7 +81,6 @@ public class LootManager : IDisposable {
 	private async Task<int>
 	GetItemValue(uint itemId, bool hq)
 	{
-		int value;
 		string worldname;
 
 		/* currencys (except gil) don't have a "value", skipping */
@@ -90,37 +89,38 @@ public class LootManager : IDisposable {
 
 		switch (itemId) {
 		case (int)SpecialItems.GIL:
-			value = 1;
-			break;
+			return 1;
 		case (int)SpecialItems.ALLAGAN_TIN_PIECE:
-			value = 25;
-			break;
+			return 25;
 		case (int)SpecialItems.ALLAGAN_BRONZE_PIECE:
 		case (int)SpecialItems.NIGHTWORLD_BRONZE_PIECE:
-			value = 100;
-			break;
+			return 100;
 		case (int)SpecialItems.ALLAGAN_SILVER_PIECE:
 		case (int)SpecialItems.NIGHTWORLD_SILVER_PIECE:
-			value = 500;
-			break;
+			return 500;
 		case (int)SpecialItems.ALLAGAN_GOLD_PIECE:
-			value = 2500;
-			break;
+			return 2500;
 		case (int)SpecialItems.ALLAGAN_PLATINUM_PIECE:
-			value = 10000;
-			break;
-		default:
-			value = 0; /* fallback value */
-			if (config.UniversalisEnabled) {
-				worldname = plugin.HomeworldName;
-				if (!worldname.Equals("???"))
-					/* TODO: filter untrabales */
-					value = await GetUniveralisValue(itemId, worldname, hq);
-			}
-			break;
-		}
+			return 10000;
+		default: /* marketboard value (if eligible) */
+			if (!config.UniversalisEnabled)
+				return 0;
 
-		return value;
+			worldname = plugin.HomeworldName;
+
+			/* prevent unnessary api calls that will fail anyway */
+			if (worldname.Equals("???")) {
+				ComfyLoot.Log.Error("Unknown world");
+				return 0;
+			}
+
+			if ( Util.IsUntradable(itemId)) {
+				ComfyLoot.Log.Warning("[Universalis] Item Untradable");
+				return 0;
+			}
+
+			return await GetUniveralisValue(itemId, worldname, hq);
+		}
 	}
 
 	/// <summary>
@@ -142,7 +142,7 @@ public class LootManager : IDisposable {
 			ComfyLoot.Log.Error("[Universalis] Failed to retrieve data: Unknown world");
 			return 0;
 		}
-		
+
 		uri = $"{endpoint}/aggregated/{worldname}/{itemId}";
 		try {
 			data = await HttpHelper.GetAsync<MarketBoardData>(uri);
@@ -156,7 +156,7 @@ public class LootManager : IDisposable {
 			ComfyLoot.Log.Error("[Universalis] Failed to retrieve data: Invalid response");
 			return 0;
 		}
-		
+
 		return GetMarketValue(data, hq);
 	}
 
@@ -172,7 +172,7 @@ public class LootManager : IDisposable {
 		double price = 0;
 		AggregatedResult? result;
 		QualityData? qualityData;
-		
+
 		if (data == null
 		|| data.Results == null
 		|| data.Results.Count == 0)
@@ -227,17 +227,16 @@ public class LootManager : IDisposable {
 
 		if (!loot.TryGetValue(zoneName, out list))
 			list = new List<LootItem>();
+
 		list.Add(item);
+		loot[zoneName] = list;
+		plugin.UpdateDtrBar();
 
 		ComfyLoot.Log.Information(
 			"[TRACK] {Quantity}x {ItemId} in {Zone}",
 			quantity,
 			id,
 			zoneName);
-
-		loot[zoneName] = list;
-
-		plugin.UpdateDtrBar();
 	}
 
 	/// <summary>
@@ -345,23 +344,32 @@ public class LootManager : IDisposable {
 		if (!loot.TryGetValue(zoneName, out items))
 			items = new List<LootItem>();
 
-		item = items.Find(t => t.ItemId == itemId);
-		if (item != null) {
-			items.Remove(item);
-			items.Add(new LootItem(
-				itemId,
-				item.Quantity + addedAmount,
-				item.Value
-			));
-			ComfyLoot.Log.Information(
-				"[TRACK] {ItemId} {Quantity}x in {Zone}",
-				itemId,
-				item.Quantity + addedAmount,
-				zoneName);
+		item = null;
+		foreach (LootItem entry in items) {
+			if (entry.ItemId == itemId) {
+				item = entry;
+				break;
+			}
 		}
+
+		if (item == null)
+			return;
+
+		items.Remove(item);
+		items.Add(new LootItem(
+			itemId,
+			item.Quantity + addedAmount,
+			item.Value
+		));
 
 		loot[zoneName] = items;
 		plugin.UpdateDtrBar();
+
+		ComfyLoot.Log.Information(
+			"[TRACK] {ItemId} {Quantity}x in {Zone}",
+			itemId,
+			item.Quantity + addedAmount,
+			zoneName);
 	}
 
 	public void

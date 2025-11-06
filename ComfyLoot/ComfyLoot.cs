@@ -1,6 +1,7 @@
 /* See LICENSE file for copyright and license details. */
 using Dalamud.Configuration;
 using Dalamud.Game.Command;
+using Dalamud.Game.Gui.Dtr;
 using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
@@ -8,9 +9,7 @@ using Dalamud.Plugin.Services;
 
 using ComfyLoot.Managers;
 using ComfyLoot.Windows;
-using Dalamud.Game.Gui.Dtr;
-using FFXIVClientStructs.FFXIV.Client.Game.UI;
-using System;
+
 
 namespace ComfyLoot;
 
@@ -21,7 +20,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 {
 	private const string CommandName = "/loot";
 	public readonly WindowSystem WindowSystem = new("ComfyLoot");
-	
+
 	[PluginService]
 	internal static IDalamudPluginInterface Dalamud { get; private set; } = null!;
 	[PluginService]
@@ -36,7 +35,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 	internal static IPluginLog Log { get; private set; } = null!;
 	[PluginService]
 	internal static IGameInventory GameInventory { get; private set; } = null!;
-	[PluginService] 
+	[PluginService]
 	internal static IDtrBar DtrBar { get; private set; } = null!;
 
 	private IDtrBarEntry? dtrEntry;
@@ -94,7 +93,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 	{
 		dtrEntry = DtrBar.Get("ComfyLoot");
 
-		if (dtrEntry != null) {			
+		if (dtrEntry != null) {
 			dtrEntry.OnClick = OnDtrBarClick;
 			UpdateDtrBar();
 			dtrEntry.Shown = Configuration.ShowDtrBar;
@@ -123,23 +122,23 @@ public sealed class ComfyLoot : IDalamudPlugin
 		switch (Configuration.DtrBarOption) {
 		case 0:
 			number = LootManager.GetTotalItemQuantity();
-			dtrEntry.Text = $"Items: {number} items";
+			dtrEntry.Text = $"Items: {number}";
 			break;
 		case 1:
 			number = LootManager.GetZoneItemQuantity(zoneName);
-			dtrEntry.Text = $"{zoneName}: {number} items";
+			dtrEntry.Text = $"{zoneName}: {number}";
 			break;
 		case 2:
 			number = LootManager.GetTotalItemValue();
 			if (number > 0)
-				dtrEntry.Text = $"Total value: {number}";
+				dtrEntry.Text = $"Total value: {Util.FormatGilSting(number)}";
 			else
 				dtrEntry.Text = $"Total value: N/A";
 			break;
 		case 3:
 			number = LootManager.GetZoneItemValue(zoneName);
 			if (number > 0)
-				dtrEntry.Text = $"{zoneName}: {number}";
+				dtrEntry.Text = $"{zoneName}: {Util.FormatGilSting(number)}";
 			else
 				dtrEntry.Text = $"{zoneName}: N/A";
 			break;

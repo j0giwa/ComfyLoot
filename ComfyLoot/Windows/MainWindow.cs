@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Game.Text;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
@@ -67,21 +68,37 @@ public class MainWindow : Window, IDisposable {
 
 		totalValue = plugin.LootManager.GetTotalItemValue();
 
+
 		ImGui.TextUnformatted($"Total count: {plugin.LootManager.GetTotalItemQuantity()}");
 		ImGui.SameLine();
-		ImGui.TextDisabled("(?)"); 
+		using (ImRaii.PushFont(UiBuilder.IconFont)) {
+			ImGui.TextDisabled($"{FontAwesomeIcon.QuestionCircle.ToIconString()}");
+		}
 		if (ImGui.IsItemHovered()) {
 			ImGui.BeginTooltip();
 			ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
-			ImGui.TextUnformatted("Only traditional items are counted. Currencys such as Gil, Scrips or Tomestones are ignored");
+			ImGui.TextUnformatted("Only traditional items are counted.");
+			ImGui.TextUnformatted("Currencys such as Gil, Scrips or Tomestones are ignored");
+			ImGui.PopTextWrapPos();
+			ImGui.EndTooltip();
+		}
+		if (totalValue == 0)
+			ImGui.TextUnformatted("Total Value: N/A");
+		else
+			ImGui.TextUnformatted($"Total Value: {Util.FormatGilSting(totalValue)}");
+		ImGui.SameLine();
+		using (ImRaii.PushFont(UiBuilder.IconFont)) {
+			ImGui.TextDisabled($"{FontAwesomeIcon.QuestionCircle.ToIconString()}");
+		}
+		if (ImGui.IsItemHovered()) {
+			ImGui.BeginTooltip();
+			ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
+			ImGui.TextUnformatted("Rough estimate");
+			ImGui.TextUnformatted("Actuall value may differ");
 			ImGui.PopTextWrapPos();
 			ImGui.EndTooltip();
 		}
 
-		if (totalValue == 0)
-			ImGui.TextUnformatted($"Total Value: N/A");
-		else
-			ImGui.TextUnformatted($"Total Value: {totalValue}");
 		ImGui.Spacing();
 
 		using var child = ImRaii.Child("LootChild###", Vector2.Zero);
@@ -95,7 +112,7 @@ public class MainWindow : Window, IDisposable {
 			ImGuiTableFlags.ScrollY;
 
 		if (ImGui.BeginTable("LootTable", 4, tableFlags)) {
-			
+
 			ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed, 20.0f);
 			ImGui.TableSetupColumn("Item", ImGuiTableColumnFlags.WidthStretch);
 			ImGui.TableSetupColumn("Amount", ImGuiTableColumnFlags.WidthFixed, 80.0f);
@@ -142,7 +159,7 @@ public class MainWindow : Window, IDisposable {
 		ImGui.TableNextColumn();
 		ImGui.TextUnformatted(loot.GetZoneItemQuantity(zone).ToString());
 		ImGui.TableNextColumn();
-		ImGui.TextUnformatted(loot.GetZoneItemValue(zone).ToString());
+		ImGui.TextUnformatted(Util.FormatGilSting(loot.GetZoneItemValue(zone)));
 
 		if (!zoneOpen)
 			return;
@@ -199,10 +216,10 @@ public class MainWindow : Window, IDisposable {
 		if (item.Value == 0)
 			ImGui.TextUnformatted("N/A");
 		else
-			ImGui.TextUnformatted((item.Value * item.Quantity).ToString());
+			ImGui.TextUnformatted(Util.FormatGilSting(item.Value * item.Quantity));
 	}
 
-	private static void 
+	private static void
 	DrawIcon(uint itemId)
 	{
 		Vector2 iconSize = new Vector2(20, 20);
@@ -235,7 +252,6 @@ public class MainWindow : Window, IDisposable {
 		} else {
 			ImGui.TextUnformatted("");
 		}
-
 	}
 
 	public void
