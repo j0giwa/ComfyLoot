@@ -1,3 +1,6 @@
+using System.Globalization;
+using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Lumina.Excel;
 using Lumina.Excel.Sheets;
@@ -5,34 +8,9 @@ using Lumina.Excel.Sheets;
 namespace ComfyLoot;
 
 /// <summary>
-/// Misc utility Functions
+/// Misc utility Functions.
 /// </summary>
 public static class Util {
-
-	/// <summary>
-	/// retrieves the name of the characters homeworld.
-	/// </summary>
-	public static unsafe string
-	GetHomeWorld()
-	{
-		uint id;
-		string? name;
-		ExcelSheet<World> sheet;
-		World worldRow;
-
-		name = null;
-		id = AgentLobby.Instance()->LobbyData.HomeWorldId;
-		sheet = ComfyLoot.DataManager.GetExcelSheet<World>();
-
-		if (sheet != null
-		&& sheet.TryGetRow(id, out worldRow))
-			name = worldRow.Name.ToString();
-
-		if (name == null) /* In case of (unlikely) failures */
-			name = "???";
-
-		return name;
-	}
 
 	/// <summary>
 	/// Formats a number to a gil value.
@@ -46,10 +24,43 @@ public static class Util {
 
 		string result;
 
-		result = number.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
+		result = number.ToString("N0", CultureInfo.InvariantCulture);
 		result = result.Replace(",", ".");
 
 		return $"{result}{gil}";
+	}
+
+	/// <summary>
+	/// retrieves the name of the characters homeworld.
+	/// </summary>
+	public static unsafe string
+	GetHomeWorld()
+	{
+		uint worldId;
+		string? name;
+		ExcelSheet<World> sheet;
+		World worldRow;
+		BattleChara* localPlayer;
+
+		name = "???"; /* fallback */
+
+		sheet = ComfyLoot.DataManager.GetExcelSheet<World>();
+		if (sheet == null) {
+			ComfyLoot.Log.Fatal("[Lumina] Cannot determine Homeword, world-sheet can not be resolved");
+			return name;
+		}
+
+		worldId = AgentLobby.Instance()->LobbyData.HomeWorldId;
+		if (worldId == 0) {
+			localPlayer = Control.GetLocalPlayer();
+			if (localPlayer != null)
+				worldId = localPlayer->CurrentWorld;
+		}
+
+		if (sheet.TryGetRow(worldId, out worldRow))
+			name = worldRow.Name.ToString();
+
+		return name;
 	}
 
 	/// <summary>
@@ -63,22 +74,28 @@ public static class Util {
 		uint id;
 		string? name;
 		ExcelSheet<TerritoryType> sheet;
-		TerritoryType zoneRow;
+		TerritoryType zone;
 
-		name = null;
-		id = ComfyLoot.ClientState.TerritoryType;
+		name = "???"; /* fallback */
+
 		sheet = ComfyLoot.DataManager.GetExcelSheet<TerritoryType>();
+		if (sheet == null) {
+			ComfyLoot.Log.Fatal("[Lumina] Cannot determine zone, TerritoryType-sheet can not be resolved");
+			return name;
+		}
 
-		if (sheet != null
-		&& sheet.TryGetRow(id, out zoneRow))
-			name = zoneRow.PlaceName.Value.Name.ToString();
-
-		if (name == null) /* just in case */
-			name = "???";
+		id = ComfyLoot.ClientState.TerritoryType;
+		if (sheet.TryGetRow(id, out zone))
+			name = zone.PlaceName.Value.Name.ToString();
 
 		return name;
 	}
 
+	/// <summary>
+	/// Get the items rarity
+	/// </summary>
+	/// <param name="itemId"></param>
+	/// <returns></returns>
 	public static byte
 	GetRarity(uint itemId)
 	{
@@ -86,15 +103,23 @@ public static class Util {
 		Item? item;
 
 		items = ComfyLoot.DataManager.GetExcelSheet<Item>();
-		item = items.GetRow(itemId);
-
-		if (item == null) {
+		if (items == null) {
+			ComfyLoot.Log.Fatal("[Lumina] Cannot determine rarity, Item-sheet can not be resolved");
 			return 1;
 		}
+
+		item = items.GetRowOrDefault(itemId);
+		if (item == null)
+			return 1;
 
 		return item.Value.Rarity;
 	}
 
+	/// <summary>
+	/// 
+	/// </summary>
+	/// <param name="itemId"></param>
+	/// <returns></returns>
 	public static bool
 	IsUntradable(uint itemId)
 	{
@@ -102,16 +127,17 @@ public static class Util {
 		Item? item;
 
 		items = ComfyLoot.DataManager.GetExcelSheet<Item>();
-		item = items.GetRow(itemId);
-
-		if (item == null) {
+		if (items == null) {
+			ComfyLoot.Log.Fatal("[Lumina] Cannot determine tradabiliy, Item-sheet can not be resolved");
 			return true;
 		}
 
+		item = items.GetRowOrDefault(itemId);
+		if (item == null)
+			return true;
+
 		return item.Value.IsUntradable;
 	}
-
-
 
 	/// <summary>
 	/// Determines if the given item ID represents a currency.
@@ -123,11 +149,14 @@ public static class Util {
 		Item? item;
 
 		items = ComfyLoot.DataManager.GetExcelSheet<Item>();
-		item = items.GetRow(itemId);
-
-		if (item == null) {
-			return false;
+		if (items == null) {
+			ComfyLoot.Log.Fatal("[Lumina] Cannot determine category, Item-sheet can not be resolved");
+			return true;
 		}
+
+		item = items.GetRowOrDefault(itemId);
+		if (item == null)
+			return false;
 
 		/* FIXME: There might be some missing here */
 		switch (item.Value.FilterGroup){

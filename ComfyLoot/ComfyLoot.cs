@@ -121,7 +121,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 		switch (Configuration.DtrBarOption) {
 		case 0:
 			number = LootManager.GetTotalItemQuantity();
-			dtrEntry.Text = $"Items: {number}";
+			dtrEntry.Text = $"Total: {number}";
 			break;
 		case 1:
 			number = LootManager.GetZoneItemQuantity(zoneName);
@@ -130,9 +130,9 @@ public sealed class ComfyLoot : IDalamudPlugin
 		case 2:
 			number = LootManager.GetTotalItemValue();
 			if (number > 0)
-				dtrEntry.Text = $"Total value: {Util.FormatGilSting(number)}";
+				dtrEntry.Text = $"Total: {Util.FormatGilSting(number)}";
 			else
-				dtrEntry.Text = $"Total value: N/A";
+				dtrEntry.Text = $"Total: N/A";
 			break;
 		case 3:
 			number = LootManager.GetZoneItemValue(zoneName);
@@ -142,7 +142,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 				dtrEntry.Text = $"{zoneName}: N/A";
 			break;
 		default:
-			dtrEntry.Text = "Loot: N/A";
+			dtrEntry.Text = "ComfyLoot: N/A";
 			break;
 		}
 	}

@@ -1,6 +1,7 @@
 /* See LICENSE file for copyright and license details. */
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 using ComfyLoot.Models;
@@ -23,7 +24,7 @@ public class LootManager : IDisposable {
 
 	private readonly ComfyLoot plugin;
 	private readonly Dictionary<string, List<LootItem>> loot;
-	private readonly object lootLock;
+	private readonly Lock lootLock;
 	private readonly Configuration config;
 
 	/// <summary>
@@ -50,7 +51,7 @@ public class LootManager : IDisposable {
 		this.plugin = plugin;
 		config = plugin.Configuration;
 		loot = new Dictionary<string, List<LootItem>>();
-		lootLock = new();
+		lootLock = new Lock();
 	}
 
 	/// <summary>
@@ -94,7 +95,7 @@ public class LootManager : IDisposable {
 	/// 0, if none of the above applies</item>
 	/// </returns>
 	private async Task<int>
-	GetItemValue(uint itemId, bool hq)
+	GetItemGilValue(uint itemId, bool hq)
 	{
 		string worldname;
 
@@ -125,7 +126,7 @@ public class LootManager : IDisposable {
 
 			/* prevent unnessary api calls that will fail anyway */
 			if (worldname.Equals("???")) {
-				ComfyLoot.Log.Error("Unknown world");
+				ComfyLoot.Log.Error("[Universalis] Unknown world");
 				return 0;
 			}
 
@@ -139,12 +140,12 @@ public class LootManager : IDisposable {
 	}
 
 	/// <summary>
-	/// Fetches itmes marketboard value form universalis
+	/// Fetches itmes marketboard value from universalis
 	/// </summary>
 	/// <param name="itemId">Item identifier</param>
-	/// <param name="worldname">World to fecht mb data from</param>
+	/// <param name="worldname">World to fetch marketboarddata</param>
 	/// <param name="hq">high quality or no</param>
-	/// <returns>The itmes value in gil</returns>
+	/// <returns>The items markerboardvalue, will return 0 on errors or invalid data</returns>
 	private static async Task<int>
 	GetUniveralisValue(uint itemId, string worldname, bool hq)
 	{
@@ -154,14 +155,22 @@ public class LootManager : IDisposable {
 		MarketBoardData? data;
 
 		if (worldname.Equals("???")) {
-			ComfyLoot.Log.Error("[Universalis] Failed to retrieve data: Unknown world");
+			ComfyLoot.Log.Error("[Universalis] Cannot call api because Homeworld is unknown.");
 			return 0;
 		}
 
 		uri = $"{endpoint}/aggregated/{worldname}/{itemId}";
 		try {
+			ComfyLoot.Log.Verbose(
+				"[Universalis] Attemting to get data for ItemId: {itemId} ({wordname})",
+				itemId,
+				worldname);
 			data = await HttpHelper.GetAsync<MarketBoardData>(uri);
-		} catch (Exception) {
+		} catch (Exception ex) {
+			ComfyLoot.Log.Error(
+				ex,
+				"[Universalis] Cannot recieve data for ItemId: {itemId}.",
+				itemId);
 			return 0;
 		}
 
@@ -184,7 +193,7 @@ public class LootManager : IDisposable {
 	private static int
 	GetMarketValue(MarketBoardData data, bool hq)
 	{
-		double price = 0;
+		double price;
 		AggregatedResult? result;
 		QualityData? qualityData;
 
@@ -205,9 +214,15 @@ public class LootManager : IDisposable {
 		if (qualityData == null)
 			return 0;
 
+		price = 0;
 		if (qualityData.MinListing != null
 		&& qualityData.MinListing.World != null)
 			price = qualityData.MinListing.World.Price;
+
+		ComfyLoot.Log.Debug(
+			"[Universalis] ItemId: {itemId} Value: {price}",
+			result.ItemId,
+			price);
 
 		return (int)price;
 	}
@@ -226,7 +241,7 @@ public class LootManager : IDisposable {
 		LootItem item;
 		List<LootItem>? list;
 
-		itemValue = await GetItemValue(id, hq);
+		itemValue = await GetItemGilValue(id, hq);
 		item = new LootItem(
 			id,
 			quantity,

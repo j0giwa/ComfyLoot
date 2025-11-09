@@ -5,16 +5,17 @@ using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Game.Text;
 using Dalamud.Interface;
+using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
+using Dalamud.Interface.Textures;
+using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Utility;
+using Lumina.Excel.Sheets;
+using Lumina.Excel;
 using Lumina.Text.ReadOnly;
 
 using ComfyLoot.Managers;
-using Dalamud.Interface.Textures;
-using Dalamud.Interface.Textures.TextureWraps;
-using Lumina.Excel.Sheets;
-using Lumina.Excel;
 
 namespace ComfyLoot.Windows;
 
@@ -61,44 +62,12 @@ public class MainWindow : Window, IDisposable {
 	public override void
 	Draw()
 	{
-		int totalValue;
 		string zoneName;
 		ImGuiTableFlags tableFlags;
 		List<LootItem> items;
 
-		totalValue = plugin.LootManager.GetTotalItemValue();
-
-
-		ImGui.TextUnformatted($"Total count: {plugin.LootManager.GetTotalItemQuantity()}");
-		ImGui.SameLine();
-		using (ImRaii.PushFont(UiBuilder.IconFont)) {
-			ImGui.TextDisabled($"{FontAwesomeIcon.QuestionCircle.ToIconString()}");
-		}
-		if (ImGui.IsItemHovered()) {
-			ImGui.BeginTooltip();
-			ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
-			ImGui.TextUnformatted("Only traditional items are counted.");
-			ImGui.TextUnformatted("Currencys such as Gil, Scrips or Tomestones are ignored");
-			ImGui.PopTextWrapPos();
-			ImGui.EndTooltip();
-		}
-		if (totalValue == 0)
-			ImGui.TextUnformatted("Total Value: N/A");
-		else
-			ImGui.TextUnformatted($"Total Value: {Util.FormatGilSting(totalValue)}");
-		ImGui.SameLine();
-		using (ImRaii.PushFont(UiBuilder.IconFont)) {
-			ImGui.TextDisabled($"{FontAwesomeIcon.QuestionCircle.ToIconString()}");
-		}
-		if (ImGui.IsItemHovered()) {
-			ImGui.BeginTooltip();
-			ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
-			ImGui.TextUnformatted("Rough estimate");
-			ImGui.TextUnformatted("Actuall value may differ");
-			ImGui.PopTextWrapPos();
-			ImGui.EndTooltip();
-		}
-
+		DrawItemCounter();
+		DrawValueDisplay(plugin.LootManager.GetTotalItemValue());
 		ImGui.Spacing();
 
 		using var child = ImRaii.Child("LootChild###", Vector2.Zero);
@@ -121,8 +90,15 @@ public class MainWindow : Window, IDisposable {
 			ImGui.TableHeadersRow();
 
 			foreach (KeyValuePair<string, List<LootItem>> kvp in plugin.LootManager.Loot) {
-				zoneName = kvp.Key ?? "<Unknown Zone>";
-				items = kvp.Value ?? new List<LootItem>();
+				if (kvp.Key != null)
+					zoneName = kvp.Key;
+				else
+					zoneName = "<Unknown Zone>";
+
+				if (kvp.Value != null)
+					items = kvp.Value;
+				else
+					items = new List<LootItem>();
 
 				DrawZoneSection(zoneName, items);
 			}
@@ -131,8 +107,139 @@ public class MainWindow : Window, IDisposable {
 		}
 	}
 
+	private void
+	DrawItemCounter()
+	{
+		ImGui.TextUnformatted($"Total count: {plugin.LootManager.GetTotalItemQuantity()}");
+
+		ImGui.SameLine();
+
+		using (ImRaii.PushFont(UiBuilder.IconFont)) {
+			ImGui.TextDisabled($"{FontAwesomeIcon.QuestionCircle.ToIconString()}");
+		}
+
+		if (ImGui.IsItemHovered()) {
+			ImGui.BeginTooltip();
+			ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
+			ImGui.TextUnformatted("Only traditional items are counted.");
+			ImGui.TextUnformatted("Currencys such as Gil, Scrips or Tomestones are ignored");
+			ImGui.PopTextWrapPos();
+			ImGui.EndTooltip();
+		}
+	}
+
+	private static void
+	DrawValueDisplay(int totalValue)
+	{
+		if (totalValue == 0)
+			ImGui.TextUnformatted("Total Value: N/A");
+		else
+			ImGui.TextUnformatted($"Total Value: {Util.FormatGilSting(totalValue)}");
+
+		ImGui.SameLine();
+
+		using (ImRaii.PushFont(UiBuilder.IconFont)) {
+			ImGui.TextDisabled($"{FontAwesomeIcon.QuestionCircle.ToIconString()}");
+		}
+
+		if (ImGui.IsItemHovered()) {
+			ImGui.BeginTooltip();
+			ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
+			ImGui.TextUnformatted("Rough estimate");
+			ImGui.TextUnformatted("Actuall value may differ");
+			ImGui.PopTextWrapPos();
+			ImGui.EndTooltip();
+		}
+	}
+
+	private static void
+	DrawIcon(uint itemId)
+	{
+		Vector2 iconSize = new Vector2(20, 20);
+		GameIconLookup lookup;
+		ISharedImmediateTexture? sharedTexture;
+		ExcelSheet<Item> items;
+		Item item;
+
+		items = ComfyLoot.DataManager.GetExcelSheet<Item>();
+		if (items == null) {
+			ComfyLoot.Log.Fatal("[Lumina] Cannot determine Icon, Item-sheet can not be resolved");
+			ImGui.TextUnformatted("");
+			return;
+		}
+
+		if (!items.TryGetRow(itemId, out item)) {
+			ImGui.TextUnformatted("");
+			return;
+		}
+
+		lookup = new GameIconLookup(item.Icon);
+		if (!ComfyLoot.Textures.TryGetFromGameIcon(in lookup, out sharedTexture)
+		|| sharedTexture == null) {
+			ImGui.TextUnformatted("");
+			return;
+		}
+
+		using IDalamudTextureWrap? wrap = sharedTexture.GetWrapOrEmpty();
+
+		if (wrap != null) {
+			ImGui.SetCursorPosX(ImGui.GetCursorPosX() - 20f);
+			ImGui.Image(wrap.Handle, iconSize);
+		} else {
+			ImGui.TextUnformatted("");
+		}
+	}
+
 	/// <summary>
-	/// Draws a zone header row and its item list as subtables.d
+	/// Draws a single loot item row inside a zone.
+	/// </summary>
+	private static void
+	DrawItemRow(LootItem item)
+	{
+		byte rarity;
+		ReadOnlySeString itemName;
+
+		rarity = Util.GetRarity(item.ItemId); /* Might be better to store in struct */
+
+		ImGui.TableNextRow();
+		ImGui.TableSetColumnIndex(0);
+		DrawIcon(item.ItemId);
+
+		ImGui.TableNextColumn();
+		itemName = ItemUtil.GetItemName(item.ItemId, true);
+		switch (rarity) {
+		case 1: /* Common (white) */
+			ImGui.TextColored(ImGuiColors.DalamudWhite, itemName.ToString());
+			break;
+		case 2: /* Uncommon (green, the best color) */
+			ImGui.TextColored(ImGuiColors.ParsedGreen, itemName.ToString());
+			break;
+		case 3: /* Rare (blue) */
+			ImGui.TextColored(ImGuiColors.ParsedBlue, itemName.ToString());
+			break;
+		case 4: /* Relic (purple) */
+			ImGui.TextColored(ImGuiColors.ParsedPurple, itemName.ToString());
+			break;
+		case 7: /* Aetherial (pink) */
+			ImGui.TextColored(ImGuiColors.ParsedPink, itemName.ToString());
+			break;
+		default: /* Default (gray) */
+			ImGui.TextUnformatted(itemName.ToString());
+			break;
+		}
+
+		ImGui.TableNextColumn();
+		ImGui.TextUnformatted(item.Quantity.ToString());
+
+		ImGui.TableNextColumn();
+		if (item.Value == 0)
+			ImGui.TextUnformatted("N/A");
+		else
+			ImGui.TextUnformatted(Util.FormatGilSting(item.Value * item.Quantity));
+	}
+
+	/// <summary>
+	/// Draws a zone header row and its item list as subtables.
 	/// </summary>
 	private void
 	DrawZoneSection(string zone, List<LootItem> items)
@@ -168,90 +275,6 @@ public class MainWindow : Window, IDisposable {
 			DrawItemRow(item);
 
 		ImGui.TreePop();
-	}
-
-	/// <summary>
-	/// Draws a single loot item row inside a zone.
-	/// </summary>
-	private static void
-	DrawItemRow(LootItem item)
-	{
-		byte rarity;
-		ReadOnlySeString itemName;
-
-		rarity = Util.GetRarity(item.ItemId); /* Might be better to store in struct */
-
-		ImGui.TableNextRow();
-		ImGui.TableSetColumnIndex(0);
-		DrawIcon(item.ItemId);
-
-		ImGui.TableNextColumn();
-		itemName = ItemUtil.GetItemName(item.ItemId, true);
-		/* TODO: switch to dalamud themeing */
-		switch (rarity) {
-		case 1: /* Common (white) */
-			ImGui.TextColored(new Vector4(1.0f, 1.0f, 1.0f, 1.0f), itemName.ToString());
-			break;
-		case 2: /* Uncommon (green, the best color) */
-			ImGui.TextColored(new Vector4(0.2f, 1.0f, 0.2f, 1.0f), itemName.ToString());
-			break;
-		case 3: /* Rare (blue) */
-			ImGui.TextColored(new Vector4(0.2f, 0.5f, 1.0f, 1.0f), itemName.ToString());
-			break;
-		case 4: /* Relic (purple) */
-			ImGui.TextColored(new Vector4(0.64f, 0.21f, 0.93f, 1.0f), itemName.ToString());
-			break;
-		case 7: /* Aetherial (pink) */
-			ImGui.TextColored(new Vector4(0.95f, 0.68f, 0.95f, 1.0f), itemName.ToString());
-			break;
-		default: /* Default (gray) */
-			ImGui.TextUnformatted(itemName.ToString());
-			break;
-		}
-
-		ImGui.TableNextColumn();
-		ImGui.TextUnformatted(item.Quantity.ToString());
-
-		ImGui.TableNextColumn();
-		if (item.Value == 0)
-			ImGui.TextUnformatted("N/A");
-		else
-			ImGui.TextUnformatted(Util.FormatGilSting(item.Value * item.Quantity));
-	}
-
-	private static void
-	DrawIcon(uint itemId)
-	{
-		Vector2 iconSize = new Vector2(20, 20);
-		GameIconLookup lookup;
-		ISharedImmediateTexture? sharedTexture;
-		ExcelSheet<Item> itemSheet;
-		Item? luminaitem;
-
-		itemSheet = ComfyLoot.DataManager.GetExcelSheet<Item>();
-		luminaitem = itemSheet?.GetRow(itemId);
-
-		if (luminaitem == null) {
-			ImGui.TextUnformatted("");
-			return;
-		}
-
-		lookup = new GameIconLookup(luminaitem.Value.Icon);
-
-		if (!ComfyLoot.Textures.TryGetFromGameIcon(in lookup, out sharedTexture)
-		|| sharedTexture == null) {
-			ImGui.TextUnformatted("");
-			return;
-		}
-
-		using IDalamudTextureWrap? wrap = sharedTexture.GetWrapOrEmpty();
-
-		if (wrap != null) {
-			ImGui.SetCursorPosX(ImGui.GetCursorPosX() - 20f);
-			ImGui.Image(wrap.Handle, iconSize);
-		} else {
-			ImGui.TextUnformatted("");
-		}
 	}
 
 	public void

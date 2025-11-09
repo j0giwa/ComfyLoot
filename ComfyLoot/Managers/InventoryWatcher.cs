@@ -13,13 +13,12 @@ namespace ComfyLoot.Managers;
 /// </summary>
 public class InventoryWatcher : IDisposable {
 
-	private readonly object debounceLock;
-	private readonly object seenLock;
+	private readonly Lock debounceLock;
+	private readonly Lock seenLock;
 	private readonly LootManager loot;
 
 	private readonly List<InventoryEventArgs> eventBuffer;
-	/* rather cumbersome, but i helps prevent multiple anomalys */
-	private readonly HashSet<(uint itemId, GameInventoryType inventory, uint slot)> seenItems;
+	private readonly HashSet<uint> seenItems;
 
 	private CancellationTokenSource debounceCts;
 
@@ -28,12 +27,12 @@ public class InventoryWatcher : IDisposable {
 	/// </summary>
 	public InventoryWatcher(LootManager loot)
 	{
-		debounceLock = new();
-		seenLock = new();
+		debounceLock = new Lock();
+		seenLock = new Lock();
 		this.loot = loot;
 
 		eventBuffer = new List<InventoryEventArgs>();
-		seenItems = new HashSet<(uint itemId, GameInventoryType inventory, uint slot)>();
+		seenItems = new HashSet<uint>();
 		debounceCts = null;
 		
 		_ = DelayedSubscribe(); /* HACK: delay prevents issues with serverhoppin/logon */
@@ -46,14 +45,14 @@ public class InventoryWatcher : IDisposable {
 	private async Task
 	DelayedSubscribe()
 	{
-		const int delay = 1;
+		const int delay = 500;
 
-		await Task.Delay(TimeSpan.FromSeconds(delay));
+		await Task.Delay(delay);
 
 		if (ComfyLoot.ClientState.IsLoggedIn)
 			ComfyLoot.GameInventory.InventoryChanged += OnInventoryChanged;
 
-		ComfyLoot.Log.Debug("[Inventory] event registered");
+		ComfyLoot.Log.Debug("[Inventory] InventoryChanged-event registered");
 	}
 
 	/// <summary>
@@ -95,7 +94,6 @@ public class InventoryWatcher : IDisposable {
 	{
 		int previousQty;
 		int addedAmount;
-		(uint ItemId, GameInventoryType Inventory, uint Slot) key;
 
 		switch (args.Inventory) {
 		case GameInventoryType.Inventory1:
@@ -106,7 +104,6 @@ public class InventoryWatcher : IDisposable {
 		case GameInventoryType.Currency:
 			previousQty = args.OldItemState.Quantity;
 			addedAmount = args.Item.Quantity - previousQty;
-			key = (args.Item.ItemId, args.Inventory, args.Slot);
 
 			if (addedAmount > 0) {
 				ComfyLoot.Log.Debug(
@@ -119,8 +116,8 @@ public class InventoryWatcher : IDisposable {
 				/* HACK: force add if the item is in the inventory,
 				   but not in the lootlist */
 				lock (seenLock) {
-					if (!seenItems.Contains(key)) {
-						seenItems.Add(key);
+					if (!seenItems.Contains(args.Item.ItemId)) {
+						seenItems.Add(args.Item.ItemId);
 						_ = Task.Run(() => loot.AddItem(
 							args.Item.ItemId,
 							addedAmount,
@@ -149,25 +146,23 @@ public class InventoryWatcher : IDisposable {
 	private void
 	OnInventoryChanged(IReadOnlyCollection<InventoryEventArgs> events)
 	{
-		ComfyLoot.Log.Debug("[Inventory] event triggered");
 		lock (debounceLock) {
 			eventBuffer.AddRange(events);
 			debounceCts?.Cancel();
 			debounceCts = new CancellationTokenSource();
-			_ = Task.Run(() => QueueEvents(debounceCts.Token));
+			_ = Task.Run(() => DebounceEvents(debounceCts.Token));
 		}
 	}
 
 	/// <summary>
-	/// Queues the eventbuffer
+	/// Queues the event buffer and returns a queue of events.
 	/// </summary>
 	/// <param name="token"></param>
-	/// <returns></returns>
-	private async Task
-	QueueEvents(CancellationToken token)
+	/// <returns>A queue containing the queued events.</returns>
+	private async Task DebounceEvents(CancellationToken token)
 	{
 		const int delay = 100;
-		List<InventoryEventArgs> events;
+		Queue<InventoryEventArgs> eventsToProcess;
 
 		try {
 			await Task.Delay(delay, token);
@@ -176,21 +171,38 @@ public class InventoryWatcher : IDisposable {
 		}
 
 		lock (debounceLock) {
-			events = new List<InventoryEventArgs>(eventBuffer);
+			eventsToProcess = new Queue<InventoryEventArgs>(eventBuffer);
 			eventBuffer.Clear();
 		}
 
-		ProcessQueuedEvents(events);
+		ProcessEvents(eventsToProcess);
 	}
 
-	private void
-	ProcessQueuedEvents(List<InventoryEventArgs> events)
+	private void 
+	ProcessEvents(Queue<InventoryEventArgs> events)
 	{
+		int eventnumber;
+		int totalEvents;
 		string zone;
 
+		totalEvents = events.Count;
 		zone = Util.GetCurrentZoneName();
 
-		foreach (InventoryEventArgs evt in events)
+		ComfyLoot.Log.Verbose("[Inventory] processing {count} InventoryChanged-event(s) in {zone}",
+			totalEvents,
+			zone
+		);
+
+		eventnumber = 1;
+		while (events.Count > 0) {
+			var evt = events.Dequeue();
+
+			ComfyLoot.Log.Verbose("[Inventory] processing event {number} ({type}) off {total}",
+				eventnumber,
+				evt.Type,
+				totalEvents
+			);
+
 			switch (evt) {
 			case InventoryItemAddedArgs added:
 				HandleAddItem(added, zone);
@@ -198,9 +210,9 @@ public class InventoryWatcher : IDisposable {
 			case InventoryItemChangedArgs changed:
 				HandleChangeItem(changed, zone);
 				break;
-			default:
-				break;
 			}
+			eventnumber++;
+		}
 	}
 
 	public void
