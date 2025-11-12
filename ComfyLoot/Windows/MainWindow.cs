@@ -59,52 +59,31 @@ public class MainWindow : Window, IDisposable {
 		};
 	}
 
-	public override void
-	Draw()
+	private static ISharedImmediateTexture? 
+	GetIcon(uint itemId)
 	{
-		string zoneName;
-		ImGuiTableFlags tableFlags;
-		List<LootItem> items;
+		GameIconLookup lookup;
+		ISharedImmediateTexture? sharedTexture;
+		ExcelSheet<Item> items;
+		Item item;
 
-		DrawItemCounter();
-		DrawValueDisplay(plugin.LootManager.GetTotalItemValue());
-		ImGui.Spacing();
-
-		using var child = ImRaii.Child("LootChild###", Vector2.Zero);
-		if (!child.Success)
-			return;
-
-		tableFlags = ImGuiTableFlags.RowBg |
-			ImGuiTableFlags.BordersOuter |
-			ImGuiTableFlags.BordersInnerV |
-			ImGuiTableFlags.SizingStretchProp |
-			ImGuiTableFlags.ScrollY;
-
-		if (ImGui.BeginTable("LootTable", 4, tableFlags)) {
-
-			ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed, 20.0f);
-			ImGui.TableSetupColumn("Item", ImGuiTableColumnFlags.WidthStretch);
-			ImGui.TableSetupColumn("Amount", ImGuiTableColumnFlags.WidthFixed, 80.0f);
-			ImGui.TableSetupColumn("Value", ImGuiTableColumnFlags.WidthFixed, 80.0f);
-
-			ImGui.TableHeadersRow();
-
-			foreach (KeyValuePair<string, List<LootItem>> kvp in plugin.LootManager.Loot) {
-				if (kvp.Key != null)
-					zoneName = kvp.Key;
-				else
-					zoneName = "<Unknown Zone>";
-
-				if (kvp.Value != null)
-					items = kvp.Value;
-				else
-					items = new List<LootItem>();
-
-				DrawZoneSection(zoneName, items);
-			}
-
-			ImGui.EndTable();
+		items = ComfyLoot.DataManager.GetExcelSheet<Item>();
+		if (items == null) {
+			ComfyLoot.Log.Fatal("[Lumina] Cannot determine Icon, Item-sheet can not be resolved");
+			return null;
 		}
+
+		if (!items.TryGetRow(itemId, out item)) {
+			return null;
+		}
+
+		lookup = new GameIconLookup(item.Icon);
+		if (!ComfyLoot.Textures.TryGetFromGameIcon(in lookup, out sharedTexture)
+		|| sharedTexture == null) {
+			return null;
+		}
+
+		return sharedTexture;
 	}
 
 	private void
@@ -129,53 +108,12 @@ public class MainWindow : Window, IDisposable {
 	}
 
 	private static void
-	DrawValueDisplay(int totalValue)
-	{
-		if (totalValue == 0)
-			ImGui.TextUnformatted("Total Value: N/A");
-		else
-			ImGui.TextUnformatted($"Total Value: {Util.FormatGilSting(totalValue)}");
-
-		ImGui.SameLine();
-
-		using (ImRaii.PushFont(UiBuilder.IconFont)) {
-			ImGui.TextDisabled($"{FontAwesomeIcon.QuestionCircle.ToIconString()}");
-		}
-
-		if (ImGui.IsItemHovered()) {
-			ImGui.BeginTooltip();
-			ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
-			ImGui.TextUnformatted("Rough estimate");
-			ImGui.TextUnformatted("Actuall value may differ");
-			ImGui.PopTextWrapPos();
-			ImGui.EndTooltip();
-		}
-	}
-
-	private static void
 	DrawIcon(uint itemId)
 	{
 		Vector2 iconSize = new Vector2(20, 20);
-		GameIconLookup lookup;
-		ISharedImmediateTexture? sharedTexture;
-		ExcelSheet<Item> items;
-		Item item;
+		ISharedImmediateTexture? sharedTexture = GetIcon(itemId);
 
-		items = ComfyLoot.DataManager.GetExcelSheet<Item>();
-		if (items == null) {
-			ComfyLoot.Log.Fatal("[Lumina] Cannot determine Icon, Item-sheet can not be resolved");
-			ImGui.TextUnformatted("");
-			return;
-		}
-
-		if (!items.TryGetRow(itemId, out item)) {
-			ImGui.TextUnformatted("");
-			return;
-		}
-
-		lookup = new GameIconLookup(item.Icon);
-		if (!ComfyLoot.Textures.TryGetFromGameIcon(in lookup, out sharedTexture)
-		|| sharedTexture == null) {
+		if (sharedTexture == null) {
 			ImGui.TextUnformatted("");
 			return;
 		}
@@ -229,13 +167,37 @@ public class MainWindow : Window, IDisposable {
 		}
 
 		ImGui.TableNextColumn();
-		ImGui.TextUnformatted(item.Quantity.ToString());
+		ImGui.TextUnformatted(Util.FormatNumber(item.Quantity));
 
 		ImGui.TableNextColumn();
 		if (item.Value == 0)
 			ImGui.TextUnformatted("N/A");
 		else
 			ImGui.TextUnformatted(Util.FormatGilSting(item.Value * item.Quantity));
+	}
+
+	private static void
+	DrawValueDisplay(int totalValue)
+	{
+		if (totalValue == 0)
+			ImGui.TextUnformatted("Total Value: N/A");
+		else
+			ImGui.TextUnformatted($"Total Value: {Util.FormatGilSting(totalValue)}");
+
+		ImGui.SameLine();
+
+		using (ImRaii.PushFont(UiBuilder.IconFont)) {
+			ImGui.TextDisabled($"{FontAwesomeIcon.QuestionCircle.ToIconString()}");
+		}
+
+		if (ImGui.IsItemHovered()) {
+			ImGui.BeginTooltip();
+			ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
+			ImGui.TextUnformatted("Rough estimate");
+			ImGui.TextUnformatted("Actuall value may differ");
+			ImGui.PopTextWrapPos();
+			ImGui.EndTooltip();
+		}
 	}
 
 	/// <summary>
@@ -264,7 +226,7 @@ public class MainWindow : Window, IDisposable {
 		ImGui.TableNextColumn();
 		ImGui.TextUnformatted(zone);
 		ImGui.TableNextColumn();
-		ImGui.TextUnformatted(loot.GetZoneItemQuantity(zone).ToString());
+		ImGui.TextUnformatted(Util.FormatNumber(loot.GetZoneItemQuantity(zone)));
 		ImGui.TableNextColumn();
 		ImGui.TextUnformatted(Util.FormatGilSting(loot.GetZoneItemValue(zone)));
 
@@ -275,6 +237,54 @@ public class MainWindow : Window, IDisposable {
 			DrawItemRow(item);
 
 		ImGui.TreePop();
+	}
+
+	public override void
+	Draw()
+	{
+		string zoneName;
+		ImGuiTableFlags tableFlags;
+		List<LootItem> items;
+
+		DrawItemCounter();
+		DrawValueDisplay(plugin.LootManager.GetTotalItemValue());
+		ImGui.Spacing();
+
+		using var child = ImRaii.Child("LootChild###", Vector2.Zero);
+		if (!child.Success)
+			return;
+
+		tableFlags = ImGuiTableFlags.RowBg |
+			ImGuiTableFlags.BordersOuter |
+			ImGuiTableFlags.BordersInnerV |
+			ImGuiTableFlags.SizingStretchProp |
+			ImGuiTableFlags.ScrollY;
+
+		if (ImGui.BeginTable("LootTable", 4, tableFlags)) {
+
+			ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed, 20.0f);
+			ImGui.TableSetupColumn("Item", ImGuiTableColumnFlags.WidthStretch);
+			ImGui.TableSetupColumn("Amount", ImGuiTableColumnFlags.WidthFixed, 80.0f);
+			ImGui.TableSetupColumn("Value", ImGuiTableColumnFlags.WidthFixed, 80.0f);
+
+			ImGui.TableHeadersRow();
+
+			foreach (KeyValuePair<string, List<LootItem>> kvp in plugin.LootManager.Loot) {
+				if (kvp.Key != null)
+					zoneName = kvp.Key;
+				else
+					zoneName = "<Unknown Zone>";
+
+				if (kvp.Value != null)
+					items = kvp.Value;
+				else
+					items = new List<LootItem>();
+
+				DrawZoneSection(zoneName, items);
+			}
+
+			ImGui.EndTable();
+		}
 	}
 
 	public void

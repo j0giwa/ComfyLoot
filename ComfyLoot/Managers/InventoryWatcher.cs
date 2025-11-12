@@ -45,7 +45,7 @@ public class InventoryWatcher : IDisposable {
 	private async Task
 	DelayedSubscribe()
 	{
-		const int delay = 500;
+		const int delay = 1000; /* adjust if needed, delay might depend on client */
 
 		await Task.Delay(delay);
 

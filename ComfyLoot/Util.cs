@@ -24,10 +24,25 @@ public static class Util {
 
 		string result;
 
+		result = FormatNumber(number);
+
+		return $"{result}{gil}";
+	}
+
+	/// <summary>
+	/// Formats a number.
+	/// </summary>
+	/// <param name="number">number</param>
+	/// <returns>Formated string</returns>
+	public static string
+	FormatNumber(int number)
+	{
+		string result;
+
 		result = number.ToString("N0", CultureInfo.InvariantCulture);
 		result = result.Replace(",", ".");
 
-		return $"{result}{gil}";
+		return $"{result}";
 	}
 
 	/// <summary>
@@ -116,7 +131,7 @@ public static class Util {
 	}
 
 	/// <summary>
-	/// 
+	///
 	/// </summary>
 	/// <param name="itemId"></param>
 	/// <returns></returns>
