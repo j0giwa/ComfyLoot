@@ -11,6 +11,7 @@ namespace ComfyLoot;
 /// <summary>
 /// Misc utility Functions.
 /// </summary>
+/* SMELL: Cohesion is fucked, but it didn't fit anywhere else */
 public static class Util {
 
 	/// <summary>
@@ -47,14 +48,14 @@ public static class Util {
 	}
 
 	/// <summary>
-	/// retrieves the name of the characters homeworld.
+	/// Retrieves the name of the character's homeworld.
 	/// </summary>
 	public static unsafe string
 	GetHomeWorld()
 	{
 		uint worldId;
-		string? name;
-		ExcelSheet<World> sheet;
+		string name;
+		ExcelSheet<World>? sheet;
 		World worldRow;
 		BattleChara* localPlayer;
 
@@ -62,7 +63,7 @@ public static class Util {
 
 		sheet = ComfyLoot.DataManager.GetExcelSheet<World>();
 		if (sheet == null) {
-			ComfyLoot.Log.Fatal("[Lumina] Cannot determine Homeword, world-sheet can not be resolved");
+			ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: World");
 			return name;
 		}
 
@@ -73,86 +74,99 @@ public static class Util {
 				worldId = localPlayer->CurrentWorld;
 		}
 
-		if (sheet.TryGetRow(worldId, out worldRow))
-			name = worldRow.Name.ToString();
+		if (!sheet.TryGetRow(worldId, out worldRow)
+		|| worldRow.Name.IsEmpty)
+			return name;
+
+		name = worldRow.Name.ToString();
+		if (name.IsNullOrWhitespace())
+			return "???";
 
 		return name;
 	}
 
 	/// <summary>
-	/// Gets the name of the current zone.
-	/// aka: Where is the player right now?
+	/// Gets the name of the current zone (where the player currently is).
 	/// </summary>
-	/// <returns>Name of the current zone</returns>
 	public static string
 	GetCurrentZoneName()
 	{
 		uint id;
-		string? name;
-		ExcelSheet<TerritoryType> sheet;
+		string name;
+		ExcelSheet<TerritoryType>? sheet;
 		TerritoryType zone;
 
 		name = "???"; /* fallback */
 
 		sheet = ComfyLoot.DataManager.GetExcelSheet<TerritoryType>();
 		if (sheet == null) {
-			ComfyLoot.Log.Fatal("[Lumina] Cannot determine zone, TerritoryType-sheet can not be resolved");
+			ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: TerritoryType");
 			return name;
 		}
 
 		id = ComfyLoot.ClientState.TerritoryType;
-		if (sheet.TryGetRow(id, out zone))
-			name = zone.PlaceName.Value.Name.ToString();
+		if (!sheet.TryGetRow(id, out zone))
+			return name;
+
+		if (zone.PlaceName.Value.Name.IsEmpty)
+			return name;
+
+		name = zone.PlaceName.Value.Name.ToString();
+		if (name.IsNullOrWhitespace())
+			return "???";
 
 		return name;
 	}
 
 	/// <summary>
-	/// Get the items rarity
+	/// Gets the rarity of an item.
 	/// </summary>
-	/// <param name="itemId"></param>
-	/// <returns></returns>
 	public static byte
 	GetRarity(uint itemId)
 	{
-		ExcelSheet<Item>? items;
+		ExcelSheet<Item>? sheet;
 		Item? item;
+		byte rarity;
 
-		items = ComfyLoot.DataManager.GetExcelSheet<Item>();
-		if (items == null) {
-			ComfyLoot.Log.Fatal("[Lumina] Cannot determine rarity, Item-sheet can not be resolved");
-			return 1;
+		rarity = 1; /* fallback */
+
+		sheet = ComfyLoot.DataManager.GetExcelSheet<Item>();
+		if (sheet == null) {
+			ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: Item");
+			return rarity;
 		}
 
-		item = items.GetRowOrDefault(itemId);
+		item = sheet.GetRowOrDefault(itemId);
 		if (item == null)
-			return 1;
+			return rarity;
 
-		return item.Value.Rarity;
+		rarity = item.Value.Rarity;
+		return rarity;
 	}
 
 	/// <summary>
-	///
+	/// Determines if an item is untradable.
 	/// </summary>
-	/// <param name="itemId"></param>
-	/// <returns></returns>
 	public static bool
 	IsUntradable(uint itemId)
 	{
-		ExcelSheet<Item>? items;
-		Item? item;
+		bool tradable;
+		ExcelSheet<Item>? sheet;
+		Item item;
 
-		items = ComfyLoot.DataManager.GetExcelSheet<Item>();
-		if (items == null) {
-			ComfyLoot.Log.Fatal("[Lumina] Cannot determine tradabiliy, Item-sheet can not be resolved");
+		tradable = false; /* fallback */
+
+		sheet = ComfyLoot.DataManager.GetExcelSheet<Item>();
+		if (sheet == null) {
+			ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: Item");
 			return true;
 		}
 
-		item = items.GetRowOrDefault(itemId);
-		if (item == null)
-			return true;
+		if (!sheet.TryGetRow(itemId, out item))
+			return tradable;
 
-		return item.Value.IsUntradable;
+		tradable = item.IsUntradable;
+		return tradable;
 	}
 
 	/// <summary>
@@ -170,18 +184,21 @@ public static class Util {
 	public static bool
 	IsCurrency(uint itemId)
 	{
-		ExcelSheet<Item>? items;
+		ExcelSheet<Item>? sheet;
 		Item? item;
+		bool result;
 
-		items = ComfyLoot.DataManager.GetExcelSheet<Item>();
-		if (items == null) {
-			ComfyLoot.Log.Fatal("[Lumina] Cannot determine category, Item-sheet can not be resolved");
+		result = false;
+
+		sheet = ComfyLoot.DataManager.GetExcelSheet<Item>();
+		if (sheet == null) {
+			ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: Item");
 			return true;
 		}
 
-		item = items.GetRowOrDefault(itemId);
+		item = sheet.GetRowOrDefault(itemId);
 		if (item == null)
-			return false;
+			return result;
 
 		/* FIXME: There might be some missing here */
 		switch (item.Value.FilterGroup) {
@@ -191,9 +208,12 @@ public static class Util {
 		case 54:
 		case 56:
 		case 57:
-			return true;
+			result = true;
+			break;
 		default:
-			return false;
+			result = false;
+			break;
 		}
+		return result;
 	}
 }

@@ -59,7 +59,7 @@ public class MainWindow : Window, IDisposable {
 		};
 	}
 
-	private static ISharedImmediateTexture? 
+	private static ISharedImmediateTexture?
 	GetIcon(uint itemId)
 	{
 		GameIconLookup lookup;

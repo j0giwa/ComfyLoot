@@ -50,6 +50,7 @@ Be as concise and reproducible as possible — screenshots/logs help.
 
 ## Known Limitations
 
+- The Pickup detection relies on InventoryEvents, they are not 100% reliable, but other methods may break Dalamud guidelines.
 - The plugin relies on game memory structures; some updates may temporarily break compatibility.
 - API lookups fail if third-party endpoints are offline.
 
@@ -70,4 +71,3 @@ as it's by design intended to be as barebones as possible.
 > — Edsger W. Dijkstra
 
 Check the guide in goatcorp's [SamplePlugin](https://github.com/goatcorp/SamplePlugin) to get started.
-

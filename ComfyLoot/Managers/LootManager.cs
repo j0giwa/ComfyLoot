@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Dalamud.Utility;
 
 using ComfyLoot.Models;
 
@@ -98,6 +99,7 @@ public class LootManager : IDisposable {
 	private async Task<int>
 	GetItemGilValue(uint itemId, bool hq)
 	{
+		(uint ItemId, ItemKind Kind) item;
 		string worldname;
 
 		/* currencys (except gil) don't have a "value", skipping */
@@ -126,106 +128,19 @@ public class LootManager : IDisposable {
 			worldname = plugin.HomeworldName;
 
 			/* prevent unnessary api calls that will fail anyway */
-			if (worldname.Equals("???")) {
-				ComfyLoot.Log.Error("[Universalis] Unknown world");
+			if (worldname.Equals("Dev")
+			|| worldname.Equals("???")
+			|| Util.IsUntradable(itemId))
 				return 0;
-			}
 
 			if (Util.IsUntradable(itemId)) {
 				ComfyLoot.Log.Warning("[Universalis] Item Untradable");
 				return 0;
 			}
 
-			return await GetUniveralisValue(itemId, worldname, hq);
+			item = ItemUtil.GetBaseId(itemId);
+			return await Universalis.GetValue(item.ItemId, worldname, hq);
 		}
-	}
-
-	/// <summary>
-	/// Fetches itmes marketboard value from universalis
-	/// </summary>
-	/// <param name="itemId">Item identifier</param>
-	/// <param name="worldname">World to fetch marketboarddata</param>
-	/// <param name="hq">high quality or no</param>
-	/// <returns>The items markerboardvalue, will return 0 on errors or invalid data</returns>
-	private static async Task<int>
-	GetUniveralisValue(uint itemId, string worldname, bool hq)
-	{
-		const string endpoint = "https://universalis.app/api/v2";
-
-		string uri;
-		MarketBoardData? data;
-
-		if (worldname.Equals("???")) {
-			ComfyLoot.Log.Error("[Universalis] Cannot call api because Homeworld is unknown.");
-			return 0;
-		}
-
-		uri = $"{endpoint}/aggregated/{worldname}/{itemId}";
-		try {
-			ComfyLoot.Log.Verbose(
-				"[Universalis] Attemting to get data for ItemId: {itemId} ({wordname})",
-				itemId,
-				worldname);
-			data = await HttpHelper.GetAsync<MarketBoardData>(uri);
-		} catch (Exception ex) {
-			ComfyLoot.Log.Error(
-				ex,
-				"[Universalis] Cannot recieve data for ItemId: {itemId}.",
-				itemId);
-			return 0;
-		}
-
-		if (data == null
-		|| data.Results == null
-		|| data.Results.Count == 0) {
-			ComfyLoot.Log.Error("[Universalis] Failed to retrieve data: Invalid response");
-			return 0;
-		}
-
-		return GetMarketValue(data, hq);
-	}
-
-	/// <summary>
-	/// Extracts Itemvalue from Unveralis response
-	/// </summary>
-	/// <param name="data">Universalis response</param>
-	/// <param name="hq">HQ item or not</param>
-	/// <returns>Itemvalue in gil</returns>
-	private static int
-	GetMarketValue(MarketBoardData data, bool hq)
-	{
-		double price;
-		AggregatedResult? result;
-		QualityData? qualityData;
-
-		if (data == null
-		|| data.Results == null
-		|| data.Results.Count == 0)
-			return 0;
-
-		result = data.Results[0];
-		if (result == null)
-			return 0;
-
-		if (hq)
-			qualityData = result.HQ;
-		else
-			qualityData = result.NQ;
-
-		if (qualityData == null)
-			return 0;
-
-		price = 0;
-		if (qualityData.MinListing != null
-		&& qualityData.MinListing.World != null)
-			price = qualityData.MinListing.World.Price;
-
-		ComfyLoot.Log.Debug(
-			"[Universalis] ItemId: {itemId} Value: {price}",
-			result.ItemId,
-			price);
-
-		return (int)price;
 	}
 
 	/// <summary>

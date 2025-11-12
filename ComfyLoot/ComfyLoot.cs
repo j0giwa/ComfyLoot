@@ -61,10 +61,14 @@ public sealed class ComfyLoot : IDalamudPlugin
 			config = new Configuration();
 		Configuration = config;
 
-		HomeworldName = Util.GetHomeWorld();
 		LootManager = new LootManager(this);
-		if (ClientState.IsLoggedIn)
+
+		/* HACK: Force initalisation in case of restart 
+		   actuall save init in OnLogin() */
+		if (ClientState.IsLoggedIn) {
 			Watcher = new InventoryWatcher(LootManager);
+			HomeworldName = Util.GetHomeWorld();
+		}
 
 		ConfigWindow = new ConfigWindow(this);
 		MainWindow = new MainWindow(this, LootManager);
@@ -105,16 +109,12 @@ public sealed class ComfyLoot : IDalamudPlugin
 		int number;
 		string zoneName;
 
-		if (dtrEntry == null)
+		if (dtrEntry == null
+		|| LootManager == null)
 			return;
 
 		dtrEntry.Shown = Configuration.ShowDtrBar;
 		dtrEntry.Tooltip = "Click to toggle overlay";
-
-		if (LootManager == null) {
-			dtrEntry.Text = $"Loading...";
-			return;
-		}
 
 		zoneName = Util.GetCurrentZoneName();
 
@@ -129,17 +129,11 @@ public sealed class ComfyLoot : IDalamudPlugin
 			break;
 		case 2:
 			number = LootManager.GetTotalItemValue();
-			if (number > 0)
-				dtrEntry.Text = $"Total: {Util.FormatGilSting(number)}";
-			else
-				dtrEntry.Text = $"Total: N/A";
+			dtrEntry.Text = $"Total: {Util.FormatGilSting(number)}";
 			break;
 		case 3:
 			number = LootManager.GetZoneItemValue(zoneName);
-			if (number > 0)
-				dtrEntry.Text = $"{zoneName}: {Util.FormatGilSting(number)}";
-			else
-				dtrEntry.Text = $"{zoneName}: N/A";
+			dtrEntry.Text = $"{zoneName}: {Util.FormatGilSting(number)}";
 			break;
 		default:
 			dtrEntry.Text = "ComfyLoot: N/A";
@@ -169,7 +163,8 @@ public sealed class ComfyLoot : IDalamudPlugin
 	private void
 	OnLogin()
 	{
-		/* HACK: Wait for login before initializing prevents issues */
+		/* safely initalizing services */
+		HomeworldName = Util.GetHomeWorld();
 		Watcher = new InventoryWatcher(LootManager);
 		UpdateDtrBar();
 	}
