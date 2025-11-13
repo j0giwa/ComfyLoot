@@ -134,10 +134,7 @@ public class MainWindow : Window, IDisposable {
 	private static void
 	DrawItemRow(LootItem item)
 	{
-		byte rarity;
 		ReadOnlySeString itemName;
-
-		rarity = Util.GetRarity(item.ItemId); /* Might be better to store in struct */
 
 		ImGui.TableNextRow();
 		ImGui.TableSetColumnIndex(0);
@@ -145,7 +142,7 @@ public class MainWindow : Window, IDisposable {
 
 		ImGui.TableNextColumn();
 		itemName = ItemUtil.GetItemName(item.ItemId, true);
-		switch (rarity) {
+		switch (item.Rarity) {
 		case 1: /* Common (white) */
 			ImGui.TextColored(ImGuiColors.DalamudWhite, itemName.ToString());
 			break;
@@ -165,6 +162,26 @@ public class MainWindow : Window, IDisposable {
 			ImGui.TextUnformatted(itemName.ToString());
 			break;
 		}
+
+#if DEBUG
+		/* PERF: rather slow to recall this, debug info only */
+		if (ImGui.IsItemHovered()) {
+			ImGui.BeginTooltip();
+			ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
+			ImGui.TextColored(ImGuiColors.DalamudRed, "DEBUG");
+			ImGui.Separator();
+			ImGui.TextUnformatted($"Item: {itemName}");
+			ImGui.TextUnformatted($"Id: {item.ItemId}");
+			ImGui.TextUnformatted($"BaseId: {Util.GetBaseId(item.ItemId)}");
+			ImGui.TextUnformatted($"Rarity: {item.Rarity}");
+			ImGui.TextUnformatted($"Tradable: {!Util.IsUntradable(item.ItemId)}");
+			ImGui.TextUnformatted($"IsCurrency: {Util.IsCurrency(item.ItemId)}");
+			ImGui.TextUnformatted($"Value: {item.Value}");
+			ImGui.PopTextWrapPos();
+			ImGui.EndTooltip();
+		}
+#endif //* DEBUG */
+
 
 		ImGui.TableNextColumn();
 		ImGui.TextUnformatted(Util.FormatNumber(item.Quantity));

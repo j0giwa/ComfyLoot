@@ -1,4 +1,5 @@
 using System.Globalization;
+using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
@@ -155,6 +156,15 @@ public static class Util {
 	}
 
 	/// <summary>
+	/// Gets the itemid without offsets
+	/// </summary>
+	public static uint
+	GetBaseId(uint itemId)
+	{
+		return ItemUtil.GetBaseId(itemId).ItemId;
+	}
+
+	/// <summary>
 	/// Determines if the given item ID represents a currency.
 	/// </summary>
 	public static bool
@@ -174,7 +184,7 @@ public static class Util {
 			return false;
 
 		/* FIXME: There might be some missing here */
-		switch (item.Value.FilterGroup){
+		switch (item.Value.FilterGroup) {
 		case 16: /* FALLTHOUGH */
 		case 29:
 		case 47:

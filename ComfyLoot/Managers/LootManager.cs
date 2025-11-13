@@ -13,6 +13,7 @@ namespace ComfyLoot.Managers;
 /// </summary>
 public record LootItem(
 	uint ItemId,
+	byte Rarity,
 	int Quantity,
 	int Value
 );
@@ -130,7 +131,7 @@ public class LootManager : IDisposable {
 				return 0;
 			}
 
-			if ( Util.IsUntradable(itemId)) {
+			if (Util.IsUntradable(itemId)) {
 				ComfyLoot.Log.Warning("[Universalis] Item Untradable");
 				return 0;
 			}
@@ -244,6 +245,7 @@ public class LootManager : IDisposable {
 		itemValue = await GetItemGilValue(id, hq);
 		item = new LootItem(
 			id,
+			Util.GetRarity(id),
 			quantity,
 			itemValue
 		);
@@ -261,7 +263,7 @@ public class LootManager : IDisposable {
 			list.Add(item);
 			loot[zoneName] = list;
 		}
-		
+
 		plugin.UpdateDtrBar();
 		ComfyLoot.Log.Information(
 			"[TRACK] {Quantity}x {ItemId} in {Zone}",
@@ -398,6 +400,7 @@ public class LootManager : IDisposable {
 			items.Remove(item);
 			items.Add(new LootItem(
 				itemId,
+				Util.GetRarity(itemId),
 				item.Quantity + addedAmount,
 				item.Value
 			));
