@@ -59,6 +59,12 @@ public class MainWindow : Window, IDisposable {
 		};
 	}
 
+	/// <summary>
+	/// gets an items icon
+	/// </summary>
+	/// <returns>
+	/// Item icon texture
+	/// </returns>
 	private static ISharedImmediateTexture?
 	GetIcon(uint itemId)
 	{
@@ -86,6 +92,9 @@ public class MainWindow : Window, IDisposable {
 		return sharedTexture;
 	}
 
+	/// <summary>
+	/// Draws the item counter
+	/// </summary>
 	private void
 	DrawItemCounter()
 	{
@@ -107,6 +116,9 @@ public class MainWindow : Window, IDisposable {
 		}
 	}
 
+	/// <summary>
+	/// draws a items icon
+	/// </summary>
 	private static void
 	DrawIcon(uint itemId)
 	{
@@ -193,6 +205,9 @@ public class MainWindow : Window, IDisposable {
 			ImGui.TextUnformatted(Util.FormatGilSting(item.Value * item.Quantity));
 	}
 
+	/// <summary>
+	/// Draws the accumulated value display
+	/// </summary>
 	private static void
 	DrawValueDisplay(int totalValue)
 	{
