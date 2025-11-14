@@ -20,7 +20,7 @@ public static class Util {
 	/// <param name="number">Gil value</param>
 	/// <returns>Formated string</returns>
 	public static string
-	FormatGilSting(int number)
+	FormatGil(int number)
 	{
 		const char gil = (char)Dalamud.Game.Text.SeIconChar.Gil;
 
@@ -45,6 +45,15 @@ public static class Util {
 		result = result.Replace(",", ".");
 
 		return $"{result}";
+	}
+
+	/// <summary>
+	/// Gets the itemid without offsets
+	/// </summary>
+	public static uint
+	GetBaseId(uint itemId)
+	{
+		return ItemUtil.GetBaseId(itemId).ItemId;
 	}
 
 	/// <summary>
@@ -145,40 +154,6 @@ public static class Util {
 	}
 
 	/// <summary>
-	/// Determines if an item is untradable.
-	/// </summary>
-	public static bool
-	IsUntradable(uint itemId)
-	{
-		bool tradable;
-		ExcelSheet<Item>? sheet;
-		Item item;
-
-		tradable = false; /* fallback */
-
-		sheet = ComfyLoot.DataManager.GetExcelSheet<Item>();
-		if (sheet == null) {
-			ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: Item");
-			return true;
-		}
-
-		if (!sheet.TryGetRow(itemId, out item))
-			return tradable;
-
-		tradable = item.IsUntradable;
-		return tradable;
-	}
-
-	/// <summary>
-	/// Gets the itemid without offsets
-	/// </summary>
-	public static uint
-	GetBaseId(uint itemId)
-	{
-		return ItemUtil.GetBaseId(itemId).ItemId;
-	}
-
-	/// <summary>
 	/// Determines if the given item ID represents a currency.
 	/// </summary>
 	public static bool
@@ -215,5 +190,26 @@ public static class Util {
 			break;
 		}
 		return result;
+	}
+
+	/// <summary>
+	/// Determines if an item is tradable.
+	/// </summary>
+	public static bool
+	IsTradable(uint itemId)
+	{
+		ExcelSheet<Item>? sheet;
+		Item item;
+
+		sheet = ComfyLoot.DataManager.GetExcelSheet<Item>();
+		if (sheet == null) {
+			ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: Item");
+			return false;
+		}
+
+		if (!sheet.TryGetRow(itemId, out item))
+			return false;
+
+		return !item.IsUntradable;
 	}
 }

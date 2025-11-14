@@ -150,7 +150,7 @@ public class MainWindow : Window, IDisposable {
 
 		ImGui.TableNextRow();
 		ImGui.TableSetColumnIndex(0);
-		DrawIcon(item.ItemId);
+		DrawIcon(Util.GetBaseId(item.ItemId));
 
 		ImGui.TableNextColumn();
 		itemName = ItemUtil.GetItemName(item.ItemId, true);
@@ -186,7 +186,7 @@ public class MainWindow : Window, IDisposable {
 			ImGui.TextUnformatted($"Id: {item.ItemId}");
 			ImGui.TextUnformatted($"BaseId: {Util.GetBaseId(item.ItemId)}");
 			ImGui.TextUnformatted($"Rarity: {item.Rarity}");
-			ImGui.TextUnformatted($"Tradable: {!Util.IsUntradable(item.ItemId)}");
+			ImGui.TextUnformatted($"Tradable: {Util.IsTradable(item.ItemId)}");
 			ImGui.TextUnformatted($"IsCurrency: {Util.IsCurrency(item.ItemId)}");
 			ImGui.TextUnformatted($"Value: {item.Value}");
 			ImGui.PopTextWrapPos();
@@ -202,7 +202,7 @@ public class MainWindow : Window, IDisposable {
 		if (item.Value == 0)
 			ImGui.TextUnformatted("N/A");
 		else
-			ImGui.TextUnformatted(Util.FormatGilSting(item.Value * item.Quantity));
+			ImGui.TextUnformatted(Util.FormatGil(item.Value * item.Quantity));
 	}
 
 	/// <summary>
@@ -214,7 +214,7 @@ public class MainWindow : Window, IDisposable {
 		if (totalValue == 0)
 			ImGui.TextUnformatted("Total Value: N/A");
 		else
-			ImGui.TextUnformatted($"Total Value: {Util.FormatGilSting(totalValue)}");
+			ImGui.TextUnformatted($"Total Value: {Util.FormatGil(totalValue)}");
 
 		ImGui.SameLine();
 
@@ -260,7 +260,7 @@ public class MainWindow : Window, IDisposable {
 		ImGui.TableNextColumn();
 		ImGui.TextUnformatted(Util.FormatNumber(loot.GetZoneItemQuantity(zone)));
 		ImGui.TableNextColumn();
-		ImGui.TextUnformatted(Util.FormatGilSting(loot.GetZoneItemValue(zone)));
+		ImGui.TextUnformatted(Util.FormatGil(loot.GetZoneItemValue(zone)));
 
 		if (!zoneOpen)
 			return;

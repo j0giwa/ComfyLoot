@@ -129,11 +129,11 @@ public sealed class ComfyLoot : IDalamudPlugin
 			break;
 		case 2:
 			number = LootManager.GetTotalItemValue();
-			dtrEntry.Text = $"Total: {Util.FormatGilSting(number)}";
+			dtrEntry.Text = $"Total: {Util.FormatGil(number)}";
 			break;
 		case 3:
 			number = LootManager.GetZoneItemValue(zoneName);
-			dtrEntry.Text = $"{zoneName}: {Util.FormatGilSting(number)}";
+			dtrEntry.Text = $"{zoneName}: {Util.FormatGil(number)}";
 			break;
 		default:
 			dtrEntry.Text = "ComfyLoot: N/A";

@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Dalamud.Utility;
 
 using ComfyLoot.Models;
 
@@ -99,7 +98,7 @@ public class LootManager : IDisposable {
 	private async Task<int>
 	GetItemGilValue(uint itemId, bool hq)
 	{
-		(uint ItemId, ItemKind Kind) item;
+		int value;
 		string worldname;
 
 		/* currencys (except gil) don't have a "value", skipping */
@@ -130,16 +129,22 @@ public class LootManager : IDisposable {
 			/* prevent unnessary api calls that will fail anyway */
 			if (worldname.Equals("Dev")
 			|| worldname.Equals("???")
-			|| Util.IsUntradable(itemId))
+			|| !Util.IsTradable(itemId)) {
+				ComfyLoot.Log.Warning("shit");
 				return 0;
+			}
 
-			if (Util.IsUntradable(itemId)) {
+			if (!Util.IsTradable(itemId)) {
 				ComfyLoot.Log.Warning("[Universalis] Item Untradable");
 				return 0;
 			}
 
-			item = ItemUtil.GetBaseId(itemId);
-			return await Universalis.GetValue(item.ItemId, worldname, hq);
+			value = await Universalis.GetValue(
+				itemId,
+				worldname,
+				hq);
+
+			return value;
 		}
 	}
 
@@ -157,7 +162,7 @@ public class LootManager : IDisposable {
 		LootItem item;
 		List<LootItem>? list;
 
-		itemValue = await GetItemGilValue(id, hq);
+		itemValue = await GetItemGilValue(Util.GetBaseId(id), hq);
 		item = new LootItem(
 			id,
 			Util.GetRarity(id),

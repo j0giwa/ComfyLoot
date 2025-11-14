@@ -42,7 +42,8 @@ See [FAQ](#FAQ) for
 
 - Spelling: I'm dyslexic, so there might be a lot of errors
 - The plugins tracking needs a second to kick in: thats on purpose to prevent login issues.
-- Items gained from sources like market boards, Delivery Moogles, and trade (unconfirmed) will count as drops and therefore will get tracked.
+- Items gained from sources like market boards, Delivery Moogles, and trade will count as drops and therefore will get tracked.
+- Items gained from trades won't get a values asingned
 - Switching to a alt might track your alts inventory
 
 Report bugs or suggestions via the Issues tab.
