@@ -39,20 +39,37 @@ public class InventoryWatcher : IDisposable {
 		loot.Clear(); /* HACK: forcefully reset after login*/
 	}
 
+	private static bool 
+	IsRelevantInventory(GameInventoryType type)
+	{
+		switch (type) {
+		case GameInventoryType.Inventory1: /* FALLTHROUGH */
+		case GameInventoryType.Inventory2:
+		case GameInventoryType.Inventory3:
+		case GameInventoryType.Inventory4:
+		case GameInventoryType.Crystals:
+		case GameInventoryType.Currency:
+			return true;
+
+		default:
+			return false;
+		}
+	}
+
 	/// <summary>
 	/// Delays subcription to events
 	/// </summary>
 	private async Task
 	DelayedSubscribe()
 	{
-		const int delay = 1000; /* adjust if needed, delay might depend on client */
+		const int delay = 2000; /* adjust if needed, delay might depend on client */
 
 		await Task.Delay(delay);
 
 		if (ComfyLoot.ClientState.IsLoggedIn)
 			ComfyLoot.GameInventory.InventoryChanged += OnInventoryChanged;
 
-		ComfyLoot.Log.Debug("[Inventory] InventoryChanged-event registered");
+		ComfyLoot.Log.Debug("[InventoryWatcher] InventoryChanged-event registered");
 	}
 
 	/// <summary>
@@ -61,29 +78,19 @@ public class InventoryWatcher : IDisposable {
 	private void
 	HandleAddItem(InventoryItemAddedArgs args, string zone)
 	{
-		switch (args.Inventory) {
-		case GameInventoryType.Inventory1: /* FALLTHROUGH */
-		case GameInventoryType.Inventory2:
-		case GameInventoryType.Inventory3:
-		case GameInventoryType.Inventory4:
-		case GameInventoryType.Crystals:
-		case GameInventoryType.Currency:
-			ComfyLoot.Log.Debug(
-				"[ADD] {Quantity}x {ItemId} in {Inventory} (slot {Slot})",
-				args.Item.Quantity,
-				args.Item.ItemId,
-				args.Inventory,
-				args.Slot);
-			_ = Task.Run(() => loot.AddItem(
-				args.Item.ItemId,
-				args.Item.Quantity,
-				zone,
-				args.Item.IsHq
-			));
-			break;
-		default:
-			break;
-		}
+		ComfyLoot.Log.Debug(
+			"[InventoryWatcher] ADD {Quantity}x {ItemId} in {Inventory} (slot {Slot})",
+			args.Item.Quantity,
+			args.Item.ItemId,
+			args.Inventory,
+			args.Slot);
+
+		_ = Task.Run(() => loot.AddItem(
+			args.Item.ItemId,
+			args.Item.Quantity,
+			zone,
+			args.Item.IsHq
+		));
 	}
 
 	/// <summary>
@@ -95,53 +102,40 @@ public class InventoryWatcher : IDisposable {
 		int previousQty;
 		int addedAmount;
 
-		switch (args.Inventory) {
-		case GameInventoryType.Inventory1:
-		case GameInventoryType.Inventory2:
-		case GameInventoryType.Inventory3:
-		case GameInventoryType.Inventory4:
-		case GameInventoryType.Crystals:
-		case GameInventoryType.Currency:
-			previousQty = args.OldItemState.Quantity;
-			addedAmount = args.Item.Quantity - previousQty;
+		previousQty = args.OldItemState.Quantity;
+		addedAmount = args.Item.Quantity - previousQty;
+		if (addedAmount > 0) {
+			ComfyLoot.Log.Debug(
+				"[InventoryWatcher] CHANGE {Quantity}x {ItemId} in {Inventory} (slot {Slot})",
+				addedAmount,
+				args.Item.ItemId,
+				args.Inventory,
+				args.Slot);
 
-			if (addedAmount > 0) {
-				ComfyLoot.Log.Debug(
-					"[CHANGE] {Quantity}x {ItemId} in {Inventory} (slot {Slot})",
-					addedAmount,
-					args.Item.ItemId,
-					args.Inventory,
-					args.Slot);
-
-				/* HACK: force add if the item is in the inventory,
-				   but not in the lootlist */
-				lock (seenLock) {
-					if (!seenItems.Contains(args.Item.ItemId)) {
-						seenItems.Add(args.Item.ItemId);
-						_ = Task.Run(() => loot.AddItem(
-							args.Item.ItemId,
-							addedAmount,
-							zone,
-							args.Item.IsHq
-						));
-						return;
-					}
+			/* HACK: force add if the item is in the inventory,
+			   but not in the lootlist */
+			lock (seenLock) {
+				if (!seenItems.Contains(args.Item.ItemId)) {
+					seenItems.Add(args.Item.ItemId);
+					_ = Task.Run(() => loot.AddItem(
+						args.Item.ItemId,
+						addedAmount,
+						zone,
+						args.Item.IsHq
+					));
+					return;
 				}
-
-				loot.UpdateItem(
-					args.Item.ItemId,
-					addedAmount,
-					zone
-				);
 			}
-			break;
-		default:
-			break;
+			loot.UpdateItem(
+				args.Item.ItemId,
+				addedAmount,
+				zone
+			);
 		}
 	}
 
 	/// <summary>
-	/// Hande iventory change event
+	/// Handle inventory change event
 	/// </summary>
 	private void
 	OnInventoryChanged(IReadOnlyCollection<InventoryEventArgs> events)
@@ -159,10 +153,13 @@ public class InventoryWatcher : IDisposable {
 	/// </summary>
 	/// <param name="token"></param>
 	/// <returns>A queue containing the queued events.</returns>
-	private async Task DebounceEvents(CancellationToken token)
+	private async Task 
+	DebounceEvents(CancellationToken token)
 	{
-		const int delay = 100;
-		Queue<InventoryEventArgs> eventsToProcess;
+		const int delay = 250; /* adjust if needed, gatherers boon might break it */
+
+		Queue<InventoryEventArgs> rawEventQueue;
+		Queue<InventoryEventArgs> eventQueue;
 
 		try {
 			await Task.Delay(delay, token);
@@ -171,11 +168,24 @@ public class InventoryWatcher : IDisposable {
 		}
 
 		lock (debounceLock) {
-			eventsToProcess = new Queue<InventoryEventArgs>(eventBuffer);
+			rawEventQueue = new Queue<InventoryEventArgs>(eventBuffer);
 			eventBuffer.Clear();
 		}
 
-		ProcessEvents(eventsToProcess);
+		/* clean up noise from irrelevant Inventorys */
+		eventQueue = new Queue<InventoryEventArgs>();
+		foreach (var evt in rawEventQueue) {
+
+			if (!IsRelevantInventory(evt.Item.ContainerType))
+				continue;
+
+			eventQueue.Enqueue(evt);
+		}
+
+		if (eventQueue.Count == 0)
+			return;
+
+		ProcessEvents(eventQueue);
 	}
 
 	private void 
@@ -184,35 +194,45 @@ public class InventoryWatcher : IDisposable {
 		int eventnumber;
 		int totalEvents;
 		string zone;
+		InventoryEventArgs evt;
 
 		totalEvents = events.Count;
 		zone = Util.GetCurrentZoneName();
 
-		ComfyLoot.Log.Verbose("[Inventory] processing {count} InventoryChanged-event(s) in {zone}",
+		ComfyLoot.Log.Verbose("[InventoryWatcher] processing {count} InventoryEvent(s) in {zone}",
 			totalEvents,
 			zone
 		);
-
+		
 		eventnumber = 1;
 		while (events.Count > 0) {
-			var evt = events.Dequeue();
+			evt = events.Dequeue();
 
-			ComfyLoot.Log.Verbose("[Inventory] processing event {number} ({type}) off {total}",
-				eventnumber,
-				evt.Type,
-				totalEvents
-			);
+			ComfyLoot.Log.Verbose("[InventoryWatcher] event {number}/{total}: ({type}) Item: {item} ",
+					eventnumber,
+					totalEvents,
+					evt.Type,
+					evt.Item.ToString()
+				);
 
 			switch (evt) {
 			case InventoryItemAddedArgs added:
+				
 				HandleAddItem(added, zone);
 				break;
 			case InventoryItemChangedArgs changed:
 				HandleChangeItem(changed, zone);
 				break;
+			default:
+				break;
 			}
 			eventnumber++;
 		}
+
+		ComfyLoot.Log.Verbose("[InventoryWatcher] proccessed {count} InventoryEvent(s) in {zone}",
+			totalEvents,
+			zone
+		);
 	}
 
 	public void

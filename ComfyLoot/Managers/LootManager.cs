@@ -120,7 +120,8 @@ public class LootManager : IDisposable {
 			return 2500;
 		case (int)SpecialItems.ALLAGAN_PLATINUM_PIECE:
 			return 10000;
-		default: /* marketboard value (if eligible) */
+		/* marketboard value (if eligible) */
+		default:
 			if (!config.UniversalisEnabled)
 				return 0;
 
@@ -130,12 +131,6 @@ public class LootManager : IDisposable {
 			if (worldname.Equals("Dev")
 			|| worldname.Equals("???")
 			|| !Util.IsTradable(itemId)) {
-				ComfyLoot.Log.Warning("shit");
-				return 0;
-			}
-
-			if (!Util.IsTradable(itemId)) {
-				ComfyLoot.Log.Warning("[Universalis] Item Untradable");
 				return 0;
 			}
 
