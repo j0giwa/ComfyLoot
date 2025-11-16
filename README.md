@@ -14,7 +14,7 @@ Inspired by [RuneLite](https://github.com/runelite/runelite/wiki/Loot-Tracker).
 * Tracks items dropped from enemies and other loot sources
 * Displays total loot value (based on market prices, optionally)
 * Display metrics in Server Info Bar (optional)
-* Works offline by default — API features are **opt-in**
+* Works offline by default—API features are **opt-in.**
 * Lightweight: minimal memory footprint, no background bloat
 
 ## Setup
@@ -22,7 +22,7 @@ Inspired by [RuneLite](https://github.com/runelite/runelite/wiki/Loot-Tracker).
 1. Install via Dalamud / XIVLauncher
 2. Enable the plugin in-game.
 3. (Optional) Enable market price fetching under Settings → Enable Universalis.
-4. (Optional) Enable quick access in severinfo bar under Settings → Enable Server Info bar entry.
+4. (Optional) Enable quick access in the server info bar under Settings → Enable Server Info Bar Entry.
 
 ComfyLoot will automatically begin tracking drops once active.
 
@@ -34,24 +34,23 @@ See [FAQ](#FAQ) for
 
 ## Roadmap
 
-- Removal of unessesary code (continous)
+- Removal of unnecessary code (continuous)
 - Improve loot source classification accuracy
 - Cleaning up the UI
 
 ## Known Issues
 
 - Spelling: I'm dyslexic, so there might be a lot of errors
-- The plugins tracking needs a second to kick in: thats on purpose to prevent login issues.
-- Items gained from sources like market boards, Delivery Moogles, and trade will count as drops and therefore will get tracked.
-- Items gained from trades won't get a values asingned
-- Switching to a alt might track your alts inventory
+- The plugin tracking needs a second to kick in: that's on purpose to prevent login issues.
+- Items gained from sources like the Marketboard and Delivery Moogles will count as drops and therefore will get tracked.
+- Items gained from Trades won't get a their Marketboard-values asingned.
 
 Report bugs or suggestions via the Issues tab.
-Be as concise and reproducible as possible — screenshots/logs help.
+Be as concise and reproducible as possible—screenshots/logs help.
 
 ## Known Limitations
 
-- The Pickup detection relies on InventoryEvents, they are not 100% reliable, but other methods may break Dalamud guidelines.
+- The pickup detection relies on inventory events; they are not 100% reliable, but other methods may break Dalamud guidelines.
 - The plugin relies on game memory structures; some updates may temporarily break compatibility.
 - API lookups fail if third-party endpoints are offline.
 
@@ -65,10 +64,10 @@ There are two types of patches: the ones that fit your personal taste and the on
 For patches that fit your personal taste and you want to share with the community, feel free to fork.
 
 For patches that should be included in main, feel free to submit a pull request.
-Most of the time this will be patches that increase reliabilty, improve the codebase.
+Most of the time this will be patches that increase reliability and improve the codebase.
 New features are very likely to be out of scope for this project, 
 as it's by design intended to be as barebones as possible.
 > Simplicity is prerequisite for reliability.
 > — Edsger W. Dijkstra
 
-Check the guide in goatcorp's [SamplePlugin](https://github.com/goatcorp/SamplePlugin) to get started.
+Check the guide in GoatCorp's [SamplePlugin](https://github.com/goatcorp/SamplePlugin) to get started.

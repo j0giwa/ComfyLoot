@@ -108,6 +108,8 @@ public class ConfigWindow : Window, IDisposable
 	protected virtual void
 	Dispose(bool disposing)
 	{
+		ComfyLoot.Log.Verbose("[ConfigWindow] Disposing UI");
+
 		/* Cleanup */
 	}
 }   

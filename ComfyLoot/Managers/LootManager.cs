@@ -23,6 +23,8 @@ public record LootItem(
 /// </summay>
 public class LootManager : IDisposable {
 
+	public bool IsDisposed { get; private set; }
+
 	private readonly ComfyLoot plugin;
 	private readonly Dictionary<string, List<LootItem>> loot;
 	private readonly Lock lootLock;
@@ -49,6 +51,8 @@ public class LootManager : IDisposable {
 	/// </summary>
 	public LootManager(ComfyLoot plugin)
 	{
+		IsDisposed = false;
+
 		this.plugin = plugin;
 		config = plugin.Configuration;
 		loot = new Dictionary<string, List<LootItem>>();
@@ -349,6 +353,11 @@ public class LootManager : IDisposable {
 	protected virtual void
 	Dispose(bool disposing)
 	{
+		ComfyLoot.Log.Verbose("[LootManager] Disposing Service");
+
 		/* Cleanup */
+		Clear();
+
+		IsDisposed = true;
 	}
 }

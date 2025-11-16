@@ -110,7 +110,7 @@ public class MainWindow : Window, IDisposable {
 			ImGui.BeginTooltip();
 			ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
 			ImGui.TextUnformatted("Only traditional items are counted.");
-			ImGui.TextUnformatted("Currencys such as Gil, Scrips or Tomestones are ignored");
+			ImGui.TextUnformatted("Currencies such as Gil, Scrips, or Tomestones are ignored.");
 			ImGui.PopTextWrapPos();
 			ImGui.EndTooltip();
 		}
@@ -211,11 +211,7 @@ public class MainWindow : Window, IDisposable {
 	private static void
 	DrawValueDisplay(int totalValue)
 	{
-		if (totalValue == 0)
-			ImGui.TextUnformatted("Total Value: N/A");
-		else
-			ImGui.TextUnformatted($"Total Value: {Util.FormatGil(totalValue)}");
-
+		ImGui.TextUnformatted($"Total Value: {Util.FormatGil(totalValue)}");
 		ImGui.SameLine();
 
 		using (ImRaii.PushFont(UiBuilder.IconFont)) {
@@ -226,7 +222,7 @@ public class MainWindow : Window, IDisposable {
 			ImGui.BeginTooltip();
 			ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
 			ImGui.TextUnformatted("Rough estimate");
-			ImGui.TextUnformatted("Actuall value may differ");
+			ImGui.TextUnformatted("Actual value may differ.");
 			ImGui.PopTextWrapPos();
 			ImGui.EndTooltip();
 		}
@@ -238,8 +234,10 @@ public class MainWindow : Window, IDisposable {
 	private void
 	DrawZoneSection(string zone, List<LootItem> items)
 	{
-		bool zoneOpen;
+		int itemCount;
+		int itemValue;
 		uint headerBg;
+		bool zoneOpen;
 
 		ImGui.TableNextRow();
 		headerBg = ImGui.GetColorU32(ImGuiCol.Tab);
@@ -255,12 +253,15 @@ public class MainWindow : Window, IDisposable {
 			ImGuiTreeNodeFlags.SpanAvailWidth);
 		ImGui.PopID();
 
+		itemCount = loot.GetZoneItemQuantity(zone);
+		itemValue = loot.GetZoneItemValue(zone);
+
 		ImGui.TableNextColumn();
 		ImGui.TextUnformatted(zone);
 		ImGui.TableNextColumn();
-		ImGui.TextUnformatted(Util.FormatNumber(loot.GetZoneItemQuantity(zone)));
+		ImGui.TextUnformatted(Util.FormatNumber(itemCount));
 		ImGui.TableNextColumn();
-		ImGui.TextUnformatted(Util.FormatGil(loot.GetZoneItemValue(zone)));
+		ImGui.TextUnformatted(Util.FormatGil(itemValue));
 
 		if (!zoneOpen)
 			return;
@@ -329,6 +330,8 @@ public class MainWindow : Window, IDisposable {
 	protected virtual void
 	Dispose(bool disposing)
 	{
+		ComfyLoot.Log.Verbose("[MainWindow] Disposing UI");
+
 		/* Cleanup */
 	}
 }

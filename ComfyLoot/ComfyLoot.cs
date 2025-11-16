@@ -81,12 +81,14 @@ public sealed class ComfyLoot : IDalamudPlugin
 				HelpMessage = "Toggle ComfyLoot window\n/loot config → Open settings"
 			});
 
-		ClientState.Login += OnLogin;
-		ClientState.Logout += OnLogout;
-		ClientState.TerritoryChanged += OnTerritoryChanged;
+		
 		Dalamud.UiBuilder.Draw += DrawUI;
 		Dalamud.UiBuilder.OpenMainUi += ToggleMainUI;
 		Dalamud.UiBuilder.OpenConfigUi += ToggleConfigUI;
+
+		ClientState.Login += OnLogin;
+		ClientState.Logout += OnLogout;
+		ClientState.TerritoryChanged += OnTerritoryChanged;
 
 		InitializeDtrBar();
 	}
@@ -160,20 +162,36 @@ public sealed class ComfyLoot : IDalamudPlugin
 		ToggleMainUI();
 	}
 
-	private void
+	private void 
 	OnLogin()
 	{
-		/* safely initalizing services */
+		Log.Verbose("[ComfyLoot] Initializing");
+
 		HomeworldName = Util.GetHomeWorld();
-		Watcher = new InventoryWatcher(LootManager);
+
+		// LootManager re-init
+		if (LootManager == null || LootManager.IsDisposed) {
+			LootManager?.Dispose();
+			LootManager = new LootManager(this);
+		}
+
+		// Watcher re-init
+		if (Watcher == null || Watcher.IsDisposed) {
+			Watcher?.Dispose();
+			Watcher = new InventoryWatcher(LootManager);
+		}
+
 		UpdateDtrBar();
 	}
 
 	private void
 	OnLogout(int type, int code)
 	{
+		Log.Verbose("[ComfyLoot] Cleaning up");
+
 		/* Cleanling up after logout to prevent issues witch character switches */
-		LootManager.Clear();
+		LootManager.Dispose();
+		Watcher.Dispose();
 	}
 
 	private void
@@ -190,11 +208,19 @@ public sealed class ComfyLoot : IDalamudPlugin
 	public void
 	Dispose()
 	{
+		Log.Verbose("[ComfyLoot] Disposing Plugin");
+
 		WindowSystem.RemoveAllWindows();
 
 		ConfigWindow.Dispose();
 		MainWindow.Dispose();
+		LootManager.Dispose();
+		Watcher.Dispose();
 
 		Commands.RemoveHandler(CommandName);
+
+		ClientState.Login -= OnLogin;
+		ClientState.Logout -= OnLogout;
+		ClientState.TerritoryChanged -= OnTerritoryChanged;
 	}
 }

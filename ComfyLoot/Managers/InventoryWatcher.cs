@@ -13,6 +13,8 @@ namespace ComfyLoot.Managers;
 /// </summary>
 public class InventoryWatcher : IDisposable {
 
+	public bool IsDisposed { get; private set; }
+
 	private readonly Lock debounceLock;
 	private readonly Lock seenLock;
 	private readonly LootManager loot;
@@ -27,6 +29,8 @@ public class InventoryWatcher : IDisposable {
 	/// </summary>
 	public InventoryWatcher(LootManager loot)
 	{
+		IsDisposed = false;
+
 		debounceLock = new Lock();
 		seenLock = new Lock();
 		this.loot = loot;
@@ -174,11 +178,9 @@ public class InventoryWatcher : IDisposable {
 
 		/* clean up noise from irrelevant Inventorys */
 		eventQueue = new Queue<InventoryEventArgs>();
-		foreach (var evt in rawEventQueue) {
-
+		foreach (InventoryEventArgs evt in rawEventQueue) {
 			if (!IsRelevantInventory(evt.Item.ContainerType))
 				continue;
-
 			eventQueue.Enqueue(evt);
 		}
 
@@ -208,7 +210,8 @@ public class InventoryWatcher : IDisposable {
 		while (events.Count > 0) {
 			evt = events.Dequeue();
 
-			ComfyLoot.Log.Verbose("[InventoryWatcher] event {number}/{total}: ({type}) Item: {item} ",
+			if (evt.Type != GameInventoryEvent.Removed)
+				ComfyLoot.Log.Debug("[InventoryWatcher] event {number}/{total}: ({type}) Item: {item} ",
 					eventnumber,
 					totalEvents,
 					evt.Type,
@@ -217,7 +220,6 @@ public class InventoryWatcher : IDisposable {
 
 			switch (evt) {
 			case InventoryItemAddedArgs added:
-				
 				HandleAddItem(added, zone);
 				break;
 			case InventoryItemChangedArgs changed:
@@ -238,7 +240,6 @@ public class InventoryWatcher : IDisposable {
 	public void
 	Dispose()
 	{
-		debounceCts.Dispose();
 		Dispose(true);
 		GC.SuppressFinalize(this);
 	}
@@ -246,6 +247,12 @@ public class InventoryWatcher : IDisposable {
 	protected virtual void
 	Dispose(bool disposing)
 	{
+		ComfyLoot.Log.Verbose("[InventoryWatcher] Disposing Events");
+
 		/* Cleanup */
+		debounceCts.Dispose();
+		ComfyLoot.GameInventory.InventoryChanged -= OnInventoryChanged;
+
+		IsDisposed = true;
 	}
 }
