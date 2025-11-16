@@ -2,7 +2,7 @@
   "Author": "j0giwa",
   "Name": "Comfy Loot",
   "InternalName": "ComfyLoot",
-  "AssemblyVersion": "0.9.5.8",
+  "AssemblyVersion": "0.9.6.5",
   "Punchline": "RuneLite inspired drop-tracker",
   "Description": "Tracks the contents and market value of items dropped while killing monsters. And drops from some other activities such as dungeons, raids, gathering, and maps.",
   "ApplicableVersion": "any",
