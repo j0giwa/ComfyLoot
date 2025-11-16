@@ -1,6 +1,7 @@
 /* See LICENSE file for copyright and license details. */
 using Dalamud.Configuration;
 using Dalamud.Game.Command;
+using Dalamud.Game.Gui.Dtr;
 using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
@@ -8,9 +9,6 @@ using Dalamud.Plugin.Services;
 
 using ComfyLoot.Managers;
 using ComfyLoot.Windows;
-using Dalamud.Game.Gui.Dtr;
-using FFXIVClientStructs.FFXIV.Client.Game.UI;
-using System;
 
 namespace ComfyLoot;
 
@@ -21,7 +19,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 {
 	private const string CommandName = "/loot";
 	public readonly WindowSystem WindowSystem = new("ComfyLoot");
-	
+
 	[PluginService]
 	internal static IDalamudPluginInterface Dalamud { get; private set; } = null!;
 	[PluginService]
@@ -36,7 +34,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 	internal static IPluginLog Log { get; private set; } = null!;
 	[PluginService]
 	internal static IGameInventory GameInventory { get; private set; } = null!;
-	[PluginService] 
+	[PluginService]
 	internal static IDtrBar DtrBar { get; private set; } = null!;
 
 	private IDtrBarEntry? dtrEntry;
@@ -63,10 +61,14 @@ public sealed class ComfyLoot : IDalamudPlugin
 			config = new Configuration();
 		Configuration = config;
 
-		HomeworldName = Util.GetHomeWorld();
 		LootManager = new LootManager(this);
-		if (ClientState.IsLoggedIn)
+
+		/* HACK: Force initalisation in case of restart 
+		   actuall save init in OnLogin() */
+		if (ClientState.IsLoggedIn) {
 			Watcher = new InventoryWatcher(LootManager);
+			HomeworldName = Util.GetHomeWorld();
+		}
 
 		ConfigWindow = new ConfigWindow(this);
 		MainWindow = new MainWindow(this, LootManager);
@@ -79,12 +81,14 @@ public sealed class ComfyLoot : IDalamudPlugin
 				HelpMessage = "Toggle ComfyLoot window\n/loot config → Open settings"
 			});
 
-		ClientState.Login += OnLogin;
-		ClientState.Logout += OnLogout;
-		ClientState.TerritoryChanged += OnTerritoryChanged;
+		
 		Dalamud.UiBuilder.Draw += DrawUI;
 		Dalamud.UiBuilder.OpenMainUi += ToggleMainUI;
 		Dalamud.UiBuilder.OpenConfigUi += ToggleConfigUI;
+
+		ClientState.Login += OnLogin;
+		ClientState.Logout += OnLogout;
+		ClientState.TerritoryChanged += OnTerritoryChanged;
 
 		InitializeDtrBar();
 	}
@@ -94,7 +98,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 	{
 		dtrEntry = DtrBar.Get("ComfyLoot");
 
-		if (dtrEntry != null) {			
+		if (dtrEntry != null) {
 			dtrEntry.OnClick = OnDtrBarClick;
 			UpdateDtrBar();
 			dtrEntry.Shown = Configuration.ShowDtrBar;
@@ -107,44 +111,34 @@ public sealed class ComfyLoot : IDalamudPlugin
 		int number;
 		string zoneName;
 
-		if (dtrEntry == null)
+		if (dtrEntry == null
+		|| LootManager == null)
 			return;
 
 		dtrEntry.Shown = Configuration.ShowDtrBar;
 		dtrEntry.Tooltip = "Click to toggle overlay";
-
-		if (LootManager == null) {
-			dtrEntry.Text = $"Loading...";
-			return;
-		}
 
 		zoneName = Util.GetCurrentZoneName();
 
 		switch (Configuration.DtrBarOption) {
 		case 0:
 			number = LootManager.GetTotalItemQuantity();
-			dtrEntry.Text = $"Items: {number} items";
+			dtrEntry.Text = $"Total: {number}";
 			break;
 		case 1:
 			number = LootManager.GetZoneItemQuantity(zoneName);
-			dtrEntry.Text = $"{zoneName}: {number} items";
+			dtrEntry.Text = $"{zoneName}: {number}";
 			break;
 		case 2:
 			number = LootManager.GetTotalItemValue();
-			if (number > 0)
-				dtrEntry.Text = $"Total value: {number}";
-			else
-				dtrEntry.Text = $"Total value: N/A";
+			dtrEntry.Text = $"Total: {Util.FormatGil(number)}";
 			break;
 		case 3:
 			number = LootManager.GetZoneItemValue(zoneName);
-			if (number > 0)
-				dtrEntry.Text = $"{zoneName}: {number}";
-			else
-				dtrEntry.Text = $"{zoneName}: N/A";
+			dtrEntry.Text = $"{zoneName}: {Util.FormatGil(number)}";
 			break;
 		default:
-			dtrEntry.Text = "Loot: N/A";
+			dtrEntry.Text = "ComfyLoot: N/A";
 			break;
 		}
 	}
@@ -168,19 +162,36 @@ public sealed class ComfyLoot : IDalamudPlugin
 		ToggleMainUI();
 	}
 
-	private void
+	private void 
 	OnLogin()
 	{
-		/* HACK: Wait for login before initializing prevents issues */
-		Watcher = new InventoryWatcher(LootManager);
+		Log.Verbose("[ComfyLoot] Initializing");
+
+		HomeworldName = Util.GetHomeWorld();
+
+		// LootManager re-init
+		if (LootManager == null || LootManager.IsDisposed) {
+			LootManager?.Dispose();
+			LootManager = new LootManager(this);
+		}
+
+		// Watcher re-init
+		if (Watcher == null || Watcher.IsDisposed) {
+			Watcher?.Dispose();
+			Watcher = new InventoryWatcher(LootManager);
+		}
+
 		UpdateDtrBar();
 	}
 
 	private void
 	OnLogout(int type, int code)
 	{
+		Log.Verbose("[ComfyLoot] Cleaning up");
+
 		/* Cleanling up after logout to prevent issues witch character switches */
-		LootManager.Clear();
+		LootManager.Dispose();
+		Watcher.Dispose();
 	}
 
 	private void
@@ -197,11 +208,19 @@ public sealed class ComfyLoot : IDalamudPlugin
 	public void
 	Dispose()
 	{
+		Log.Verbose("[ComfyLoot] Disposing Plugin");
+
 		WindowSystem.RemoveAllWindows();
 
 		ConfigWindow.Dispose();
 		MainWindow.Dispose();
+		LootManager.Dispose();
+		Watcher.Dispose();
 
 		Commands.RemoveHandler(CommandName);
+
+		ClientState.Login -= OnLogin;
+		ClientState.Logout -= OnLogout;
+		ClientState.TerritoryChanged -= OnTerritoryChanged;
 	}
 }

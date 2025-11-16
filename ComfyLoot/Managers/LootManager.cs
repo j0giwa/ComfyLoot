@@ -1,6 +1,7 @@
 /* See LICENSE file for copyright and license details. */
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 using ComfyLoot.Models;
@@ -12,6 +13,7 @@ namespace ComfyLoot.Managers;
 /// </summary>
 public record LootItem(
 	uint ItemId,
+	byte Rarity,
 	int Quantity,
 	int Value
 );
@@ -21,23 +23,40 @@ public record LootItem(
 /// </summay>
 public class LootManager : IDisposable {
 
+	public bool IsDisposed { get; private set; }
+
 	private readonly ComfyLoot plugin;
 	private readonly Dictionary<string, List<LootItem>> loot;
+	private readonly Lock lootLock;
 	private readonly Configuration config;
 
 	/// <summary>
 	/// Droplist, contains everything the player collected
 	/// </summary>
-	public IReadOnlyDictionary<string, List<LootItem>> Loot => loot;
+	public IReadOnlyDictionary<string, List<LootItem>> Loot {
+		get {
+			Dictionary<string, List<LootItem>> snapshot;
+
+			lock (lootLock) {
+				snapshot = new Dictionary<string, List<LootItem>>();
+				foreach (KeyValuePair<string, List<LootItem>> kvp in loot)
+					snapshot[kvp.Key] = new List<LootItem>(kvp.Value);
+				return snapshot;
+			}
+		}
+	}
 
 	/// <summary>
 	/// LootManager:ctor
 	/// </summary>
 	public LootManager(ComfyLoot plugin)
 	{
+		IsDisposed = false;
+
 		this.plugin = plugin;
 		config = plugin.Configuration;
 		loot = new Dictionary<string, List<LootItem>>();
+		lootLock = new Lock();
 	}
 
 	/// <summary>
@@ -51,21 +70,23 @@ public class LootManager : IDisposable {
 	{
 		List<LootItem>? zoneItems;
 
-		if (string.IsNullOrEmpty(zone)
-		|| loot == null)
+		lock (lootLock) {
+			if (string.IsNullOrEmpty(zone)
+			|| loot == null)
+				return false;
+
+			if (loot.TryGetValue(zone, out zoneItems))
+				return false;
+
+			if (zoneItems == null)
+				return false;
+
+			foreach (LootItem item in zoneItems)
+				if (item.ItemId == id)
+					return true;
+
 			return false;
-
-		if (loot.TryGetValue(zone, out zoneItems))
-			return false;
-
-		if (zoneItems == null)
-			return false;
-
-		foreach (LootItem item in zoneItems)
-			if (item.ItemId == id)
-				return true;
-
-		return false;
+		}
 	}
 
 	/// <summary>
@@ -79,7 +100,7 @@ public class LootManager : IDisposable {
 	/// 0, if none of the above applies</item>
 	/// </returns>
 	private async Task<int>
-	GetItemValue(uint itemId, bool hq)
+	GetItemGilValue(uint itemId, bool hq)
 	{
 		int value;
 		string worldname;
@@ -90,111 +111,40 @@ public class LootManager : IDisposable {
 
 		switch (itemId) {
 		case (int)SpecialItems.GIL:
-			value = 1;
-			break;
+			return 1;
 		case (int)SpecialItems.ALLAGAN_TIN_PIECE:
-			value = 25;
-			break;
+			return 25;
 		case (int)SpecialItems.ALLAGAN_BRONZE_PIECE:
 		case (int)SpecialItems.NIGHTWORLD_BRONZE_PIECE:
-			value = 100;
-			break;
+			return 100;
 		case (int)SpecialItems.ALLAGAN_SILVER_PIECE:
 		case (int)SpecialItems.NIGHTWORLD_SILVER_PIECE:
-			value = 500;
-			break;
+			return 500;
 		case (int)SpecialItems.ALLAGAN_GOLD_PIECE:
-			value = 2500;
-			break;
+			return 2500;
 		case (int)SpecialItems.ALLAGAN_PLATINUM_PIECE:
-			value = 10000;
-			break;
+			return 10000;
+		/* marketboard value (if eligible) */
 		default:
-			value = 0; /* fallback value */
-			if (config.UniversalisEnabled) {
-				worldname = plugin.HomeworldName;
-				if (!worldname.Equals("???"))
-					/* TODO: filter untrabales */
-					value = await GetUniveralisValue(itemId, worldname, hq);
+			if (!config.UniversalisEnabled)
+				return 0;
+
+			worldname = plugin.HomeworldName;
+
+			/* prevent unnessary api calls that will fail anyway */
+			if (worldname.Equals("Dev")
+			|| worldname.Equals("???")
+			|| !Util.IsTradable(itemId)) {
+				return 0;
 			}
-			break;
+
+			value = await Universalis.GetValue(
+				itemId,
+				worldname,
+				hq);
+
+			return value;
 		}
-
-		return value;
-	}
-
-	/// <summary>
-	/// Fetches itmes marketboard value form universalis
-	/// </summary>
-	/// <param name="itemId">Item identifier</param>
-	/// <param name="worldname">World to fecht mb data from</param>
-	/// <param name="hq">high quality or no</param>
-	/// <returns>The itmes value in gil</returns>
-	private static async Task<int>
-	GetUniveralisValue(uint itemId, string worldname, bool hq)
-	{
-		const string endpoint = "https://universalis.app/api/v2";
-
-		string uri;
-		MarketBoardData? data;
-
-		if (worldname.Equals("???")) {
-			ComfyLoot.Log.Error("[Universalis] Failed to retrieve data: Unknown world");
-			return 0;
-		}
-		
-		uri = $"{endpoint}/aggregated/{worldname}/{itemId}";
-		try {
-			data = await HttpHelper.GetAsync<MarketBoardData>(uri);
-		} catch (Exception) {
-			return 0;
-		}
-
-		if (data == null
-		|| data.Results == null
-		|| data.Results.Count == 0) {
-			ComfyLoot.Log.Error("[Universalis] Failed to retrieve data: Invalid response");
-			return 0;
-		}
-		
-		return GetMarketValue(data, hq);
-	}
-
-	/// <summary>
-	/// Extracts Itemvalue from Unveralis response
-	/// </summary>
-	/// <param name="data">Universalis response</param>
-	/// <param name="hq">HQ item or not</param>
-	/// <returns>Itemvalue in gil</returns>
-	private static int
-	GetMarketValue(MarketBoardData data, bool hq)
-	{
-		double price = 0;
-		AggregatedResult? result;
-		QualityData? qualityData;
-		
-		if (data == null
-		|| data.Results == null
-		|| data.Results.Count == 0)
-			return 0;
-
-		result = data.Results[0];
-		if (result == null)
-			return 0;
-
-		if (hq)
-			qualityData = result.HQ;
-		else
-			qualityData = result.NQ;
-
-		if (qualityData == null)
-			return 0;
-
-		if (qualityData.MinListing != null
-		&& qualityData.MinListing.World != null)
-			price = qualityData.MinListing.World.Price;
-
-		return (int)price;
 	}
 
 	/// <summary>
@@ -211,33 +161,34 @@ public class LootManager : IDisposable {
 		LootItem item;
 		List<LootItem>? list;
 
-		/* HACK: prevent duplicates in the same zone */
-		if (CheckDuplicate(zoneName, id)) {
-			UpdateItem(id, quantity, zoneName);
-			return;
-		}
-
-		itemValue = await GetItemValue(id, hq);
-
+		itemValue = await GetItemGilValue(Util.GetBaseId(id), hq);
 		item = new LootItem(
 			id,
+			Util.GetRarity(id),
 			quantity,
 			itemValue
 		);
 
-		if (!loot.TryGetValue(zoneName, out list))
-			list = new List<LootItem>();
-		list.Add(item);
+		lock (lootLock) {
+			/* HACK: prevent duplicates in the same zone */
+			if (CheckDuplicate(zoneName, id)) {
+				UpdateItem(id, quantity, zoneName);
+				return;
+			}
 
+			if (!loot.TryGetValue(zoneName, out list))
+				list = new List<LootItem>();
+
+			list.Add(item);
+			loot[zoneName] = list;
+		}
+
+		plugin.UpdateDtrBar();
 		ComfyLoot.Log.Information(
 			"[TRACK] {Quantity}x {ItemId} in {Zone}",
 			quantity,
 			id,
 			zoneName);
-
-		loot[zoneName] = list;
-
-		plugin.UpdateDtrBar();
 	}
 
 	/// <summary>
@@ -251,11 +202,13 @@ public class LootManager : IDisposable {
 		int totalValue = 0;
 		List<string> zones;
 
-		zones = new List<string>(loot.Keys);
-		foreach (string zone in zones)
-			totalValue += GetZoneItemValue(zone);
+		lock (lootLock) {
+			zones = new List<string>(loot.Keys);
+			foreach (string zone in zones)
+				totalValue += GetZoneItemValue(zone);
 
-		return totalValue;
+			return totalValue;
+		}
 	}
 
 	/// <summary>
@@ -268,11 +221,13 @@ public class LootManager : IDisposable {
 		int totalQuantity = 0;
 		List<string> zones;
 
-		zones = new List<string>(loot.Keys);
-		foreach (string zone in zones)
-			totalQuantity += GetZoneItemQuantity(zone);
+		lock (lootLock) {
+			zones = new List<string>(loot.Keys);
+			foreach (string zone in zones)
+				totalQuantity += GetZoneItemQuantity(zone);
 
-		return totalQuantity;
+			return totalQuantity;
+		}
 	}
 
 	/// <summary>
@@ -286,23 +241,25 @@ public class LootManager : IDisposable {
 		int zoneTotal = 0;
 		List<LootItem>? items;
 
-		if (loot == null
-		|| string.IsNullOrEmpty(zone))
-			return 0;
+		lock (lootLock) {
+			if (loot == null
+			|| string.IsNullOrEmpty(zone))
+				return 0;
 
-		if (!loot.TryGetValue(zone, out items))
-			return 0;
+			if (!loot.TryGetValue(zone, out items))
+				return 0;
 
-		if (items == null)
-			return 0;
+			if (items == null)
+				return 0;
 
-		foreach (LootItem item in items) {
-			if (Util.IsCurrency(item.ItemId))
-				continue;
-			zoneTotal += item.Quantity;
+			foreach (LootItem item in items) {
+				if (Util.IsCurrency(item.ItemId))
+					continue;
+				zoneTotal += item.Quantity;
+			}
+
+			return zoneTotal;
 		}
-
-		return zoneTotal;
 	}
 
 	/// <summary>
@@ -317,20 +274,22 @@ public class LootManager : IDisposable {
 		int zoneTotal = 0;
 		List<LootItem>? items;
 
-		if (loot == null
-		|| string.IsNullOrEmpty(zone))
-			return 0;
+		lock (lootLock) {
+			if (loot == null
+			|| string.IsNullOrEmpty(zone))
+				return 0;
 
-		if (!loot.TryGetValue(zone, out items))
-			return 0;
+			if (!loot.TryGetValue(zone, out items))
+				return 0;
 
-		if (items == null)
-			return 0;
+			if (items == null)
+				return 0;
 
-		foreach (LootItem item in items)
-			zoneTotal += item.Value * item.Quantity;
+			foreach (LootItem item in items)
+				zoneTotal += item.Value * item.Quantity;
 
-		return zoneTotal;
+			return zoneTotal;
+		}
 	}
 
 	/// <summary>
@@ -342,32 +301,46 @@ public class LootManager : IDisposable {
 		LootItem? item;
 		List<LootItem>? items;
 
-		if (!loot.TryGetValue(zoneName, out items))
-			items = new List<LootItem>();
+		lock (lootLock) {
+			if (!loot.TryGetValue(zoneName, out items))
+				items = new List<LootItem>();
 
-		item = items.Find(t => t.ItemId == itemId);
-		if (item != null) {
+			item = null;
+			foreach (LootItem entry in items) {
+				if (entry.ItemId == itemId) {
+					item = entry;
+					break;
+				}
+			}
+
+			if (item == null)
+				return;
+
 			items.Remove(item);
 			items.Add(new LootItem(
 				itemId,
+				Util.GetRarity(itemId),
 				item.Quantity + addedAmount,
 				item.Value
 			));
-			ComfyLoot.Log.Information(
-				"[TRACK] {ItemId} {Quantity}x in {Zone}",
-				itemId,
-				item.Quantity + addedAmount,
-				zoneName);
+
+			loot[zoneName] = items;
 		}
 
-		loot[zoneName] = items;
 		plugin.UpdateDtrBar();
+		ComfyLoot.Log.Information(
+			"[TRACK] {ItemId} {Quantity}x in {Zone}",
+			itemId,
+			item.Quantity + addedAmount,
+			zoneName);
 	}
 
 	public void
 	Clear()
 	{
-		loot.Clear();
+		lock (lootLock) {
+			loot.Clear();
+		}
 	}
 
 	public void
@@ -380,6 +353,11 @@ public class LootManager : IDisposable {
 	protected virtual void
 	Dispose(bool disposing)
 	{
+		ComfyLoot.Log.Verbose("[LootManager] Disposing Service");
+
 		/* Cleanup */
+		Clear();
+
+		IsDisposed = true;
 	}
 }

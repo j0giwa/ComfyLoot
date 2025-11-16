@@ -1,3 +1,7 @@
+using System.Globalization;
+using Dalamud.Utility;
+using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Lumina.Excel;
 using Lumina.Excel.Sheets;
@@ -5,76 +9,148 @@ using Lumina.Excel.Sheets;
 namespace ComfyLoot;
 
 /// <summary>
-/// Misc utility Functions
+/// Misc utility Functions.
 /// </summary>
+/* SMELL: Cohesion is fucked, but it didn't fit anywhere else */
 public static class Util {
 
 	/// <summary>
-	/// retrieves the name of the characters homeworld.
+	/// Formats a number to a gil value.
+	/// </summary>
+	/// <param name="number">Gil value</param>
+	/// <returns>Formated string</returns>
+	public static string
+	FormatGil(int number)
+	{
+		const char gil = (char)Dalamud.Game.Text.SeIconChar.Gil;
+
+		string result;
+
+		result = FormatNumber(number);
+
+		return $"{result}{gil}";
+	}
+
+	/// <summary>
+	/// Formats a number.
+	/// </summary>
+	/// <param name="number">number</param>
+	/// <returns>Formated string</returns>
+	public static string
+	FormatNumber(int number)
+	{
+		string result;
+
+		result = number.ToString("N0", CultureInfo.InvariantCulture);
+		result = result.Replace(",", ".");
+
+		return $"{result}";
+	}
+
+	/// <summary>
+	/// Gets the itemid without offsets
+	/// </summary>
+	public static uint
+	GetBaseId(uint itemId)
+	{
+		return ItemUtil.GetBaseId(itemId).ItemId;
+	}
+
+	/// <summary>
+	/// Retrieves the name of the character's homeworld.
 	/// </summary>
 	public static unsafe string
 	GetHomeWorld()
 	{
-		uint id;
-		string? name;
-		ExcelSheet<World> sheet;
+		uint worldId;
+		string name;
+		ExcelSheet<World>? sheet;
 		World worldRow;
+		BattleChara* localPlayer;
 
-		name = null;
-		id = AgentLobby.Instance()->LobbyData.HomeWorldId;
+		name = "???"; /* fallback */
+
 		sheet = ComfyLoot.DataManager.GetExcelSheet<World>();
+		if (sheet == null) {
+			ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: World");
+			return name;
+		}
 
-		if (sheet != null
-		&& sheet.TryGetRow(id, out worldRow))
-			name = worldRow.Name.ToString();
+		worldId = AgentLobby.Instance()->LobbyData.HomeWorldId;
+		if (worldId == 0) {
+			localPlayer = Control.GetLocalPlayer();
+			if (localPlayer != null)
+				worldId = localPlayer->CurrentWorld;
+		}
 
-		if (name == null) /* In case of (unlikely) failures */
-			name = "???";
+		if (!sheet.TryGetRow(worldId, out worldRow)
+		|| worldRow.Name.IsEmpty)
+			return name;
+
+		name = worldRow.Name.ToString();
+		if (name.IsNullOrWhitespace())
+			return "???";
 
 		return name;
 	}
 
 	/// <summary>
-	/// Gets the name of the current zone.
-	/// aka: Where is the player right now?
+	/// Gets the name of the current zone (where the player currently is).
 	/// </summary>
-	/// <returns>Name of the current zone</returns>
 	public static string
 	GetCurrentZoneName()
 	{
 		uint id;
-		string? name;
-		ExcelSheet<TerritoryType> sheet;
-		TerritoryType zoneRow;
+		string name;
+		ExcelSheet<TerritoryType>? sheet;
+		TerritoryType zone;
 
-		name = null;
-		id = ComfyLoot.ClientState.TerritoryType;
+		name = "???"; /* fallback */
+
 		sheet = ComfyLoot.DataManager.GetExcelSheet<TerritoryType>();
+		if (sheet == null) {
+			ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: TerritoryType");
+			return name;
+		}
 
-		if (sheet != null
-		&& sheet.TryGetRow(id, out zoneRow))
-			name = zoneRow.PlaceName.Value.Name.ToString();
+		id = ComfyLoot.ClientState.TerritoryType;
+		if (!sheet.TryGetRow(id, out zone))
+			return name;
 
-		if (name == null) /* just in case */
-			name = "???";
+		if (zone.PlaceName.Value.Name.IsEmpty)
+			return name;
+
+		name = zone.PlaceName.Value.Name.ToString();
+		if (name.IsNullOrWhitespace())
+			return "???";
 
 		return name;
 	}
 
+	/// <summary>
+	/// Gets the rarity of an item.
+	/// </summary>
 	public static byte
 	GetRarity(uint itemId)
 	{
-		ExcelSheet<Item>? items;
+		ExcelSheet<Item>? sheet;
 		Item? item;
+		byte rarity;
 
-		items = ComfyLoot.DataManager.GetExcelSheet<Item>();
-		item = items.GetRow(itemId);
+		rarity = 1; /* fallback */
 
-		if (item == null) {
-			return 1;
+		sheet = ComfyLoot.DataManager.GetExcelSheet<Item>();
+		if (sheet == null) {
+			ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: Item");
+			return rarity;
 		}
 
-		return item.Value.Rarity;
+		item = sheet.GetRowOrDefault(itemId);
+		if (item == null)
+			return rarity;
+
+		rarity = item.Value.Rarity;
+		return rarity;
 	}
 
 	/// <summary>
@@ -83,27 +159,57 @@ public static class Util {
 	public static bool
 	IsCurrency(uint itemId)
 	{
-		ExcelSheet<Item>? items;
+		ExcelSheet<Item>? sheet;
 		Item? item;
+		bool result;
 
-		items = ComfyLoot.DataManager.GetExcelSheet<Item>();
-		item = items.GetRow(itemId);
+		result = false;
 
-		if (item == null) {
-			return false;
+		sheet = ComfyLoot.DataManager.GetExcelSheet<Item>();
+		if (sheet == null) {
+			ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: Item");
+			return true;
 		}
 
+		item = sheet.GetRowOrDefault(itemId);
+		if (item == null)
+			return result;
+
 		/* FIXME: There might be some missing here */
-		switch (item.Value.FilterGroup){
+		switch (item.Value.FilterGroup) {
 		case 16: /* FALLTHOUGH */
 		case 29:
 		case 47:
 		case 54:
 		case 56:
 		case 57:
-			return true;
+			result = true;
+			break;
 		default:
+			result = false;
+			break;
+		}
+		return result;
+	}
+
+	/// <summary>
+	/// Determines if an item is tradable.
+	/// </summary>
+	public static bool
+	IsTradable(uint itemId)
+	{
+		ExcelSheet<Item>? sheet;
+		Item item;
+
+		sheet = ComfyLoot.DataManager.GetExcelSheet<Item>();
+		if (sheet == null) {
+			ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: Item");
 			return false;
-		}	
+		}
+
+		if (!sheet.TryGetRow(itemId, out item))
+			return false;
+
+		return !item.IsUntradable;
 	}
 }
