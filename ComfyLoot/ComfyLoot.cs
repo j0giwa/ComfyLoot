@@ -61,6 +61,10 @@ public sealed class ComfyLoot : IDalamudPlugin
 			config = new Configuration();
 		Configuration = config;
 
+#if DEBUG 
+		HomeworldName = "Balmung";
+#endif //* DEBUG */
+
 		LootManager = new LootManager(this);
 
 		/* HACK: Force initalisation in case of restart 
@@ -81,7 +85,6 @@ public sealed class ComfyLoot : IDalamudPlugin
 				HelpMessage = "Toggle ComfyLoot window\n/loot config → Open settings"
 			});
 
-		
 		Dalamud.UiBuilder.Draw += DrawUI;
 		Dalamud.UiBuilder.OpenMainUi += ToggleMainUI;
 		Dalamud.UiBuilder.OpenConfigUi += ToggleConfigUI;

@@ -16,6 +16,8 @@ using Lumina.Excel;
 using Lumina.Text.ReadOnly;
 
 using ComfyLoot.Managers;
+using FFXIVClientStructs;
+using System.Threading.Tasks;
 
 namespace ComfyLoot.Windows;
 
@@ -38,12 +40,27 @@ public class MainWindow : Window, IDisposable {
 
 		this.plugin = plugin;
 		this.loot = loot;
-
-		/* WARN:
-		 * This snippet likely originated from an Epsteinsync
-		 * cba to trace it's origins, assume yes
-		 */
+		
 		TitleBarButtons = new() {
+#if DEBUG
+			new TitleBarButton() {
+				Icon = FontAwesomeIcon.Code,
+				Click = async (msg) => {
+					await Populate(this.loot);
+				},
+				IconOffset = new(2,1),
+				ShowTooltip = () => {
+					ImGui.BeginTooltip();
+					ImGui.Text("Debug Populate");
+					ImGui.EndTooltip();
+				}
+			},
+#endif //* DEBUG*/
+
+			/* WARN:
+		         * This snippet likely originated from an Epsteinsync
+			 * cba to trace it's origins, assume yes
+		 	 */
 			new TitleBarButton() {
 				Icon = FontAwesomeIcon.Cog,
 				Click = (msg) => {
@@ -58,6 +75,77 @@ public class MainWindow : Window, IDisposable {
 			}
 		};
 	}
+
+#if DEBUG
+	private static void
+	DrawDebugTooltip(LootItem item, ReadOnlySeString itemName)
+	{
+		if (ImGui.IsItemHovered()) {
+			ImGui.BeginTooltip();
+			ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
+			ImGui.TextColored(ImGuiColors.DalamudRed, "DEBUG");
+			ImGui.Separator();
+			ImGui.TextUnformatted($"Item: {itemName}");
+			ImGui.TextUnformatted($"Id: {item.ItemId}");
+			ImGui.TextUnformatted($"BaseId: {Util.GetBaseId(item.ItemId)}");
+			ImGui.TextUnformatted($"Rarity: {item.Rarity}");
+			ImGui.TextUnformatted($"Tradable: {Util.IsTradable(item.ItemId)}");
+			ImGui.TextUnformatted($"IsCurrency: {Util.IsCurrency(item.ItemId)}");
+			ImGui.TextUnformatted($"Value: {item.Value}");
+			ImGui.PopTextWrapPos();
+			ImGui.EndTooltip();
+		}
+	}
+
+	private static  async Task
+	Populate(LootManager loot)
+	{
+		const string fakezonename = "Ligma Lominsa";
+
+		await loot.AddItem(
+			id: 1, /* gil */
+			quantity: 1000000,
+			zoneName: fakezonename,
+			hq: false
+		);
+		await loot.AddItem(
+			id: 14, /* fire cluster */
+			quantity: 999,
+			zoneName: fakezonename,
+			hq: false
+		);
+		await loot.AddItem(
+			id: 1046003, /* mate cookie (hq) */
+			quantity: 99,
+			zoneName: fakezonename,
+			hq: true
+		);
+		await loot.AddItem(
+			id: 2791, /* aetherial mythril circlet (rubellite) */
+			quantity: 1,
+			zoneName: fakezonename,
+			hq: false
+		);
+		await loot.AddItem(
+			id: 3035, /* acolyte's robe */
+			quantity: 1,
+			zoneName: fakezonename,
+			hq: true
+		);
+		await loot.AddItem(
+			id: 32418,/* cryptlurker sword */
+			quantity: 1,
+			zoneName: fakezonename,
+			hq: false
+		);
+		await loot.AddItem(
+			id: 33475, /* blade's fealty */
+			quantity: 1,
+			zoneName: fakezonename,
+			hq: false
+		);
+	}
+#endif //* DEBUG*/
 
 	/// <summary>
 	/// gets an items icon
@@ -154,6 +242,7 @@ public class MainWindow : Window, IDisposable {
 
 		ImGui.TableNextColumn();
 		itemName = ItemUtil.GetItemName(item.ItemId, true);
+		ImGui.PushID((int)item.ItemId);
 		switch (item.Rarity) {
 		case 1: /* Common (white) */
 			ImGui.TextColored(ImGuiColors.DalamudWhite, itemName.ToString());
@@ -175,26 +264,23 @@ public class MainWindow : Window, IDisposable {
 			break;
 		}
 
-#if DEBUG
-		/* PERF: rather slow to recall this, debug info only */
-		if (ImGui.IsItemHovered()) {
-			ImGui.BeginTooltip();
-			ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
-			ImGui.TextColored(ImGuiColors.DalamudRed, "DEBUG");
-			ImGui.Separator();
-			ImGui.TextUnformatted($"Item: {itemName}");
-			ImGui.TextUnformatted($"Id: {item.ItemId}");
-			ImGui.TextUnformatted($"BaseId: {Util.GetBaseId(item.ItemId)}");
-			ImGui.TextUnformatted($"Rarity: {item.Rarity}");
-			ImGui.TextUnformatted($"Tradable: {Util.IsTradable(item.ItemId)}");
-			ImGui.TextUnformatted($"IsCurrency: {Util.IsCurrency(item.ItemId)}");
-			ImGui.TextUnformatted($"Value: {item.Value}");
-			ImGui.PopTextWrapPos();
-			ImGui.EndTooltip();
+		if (ImGui.BeginPopupContextItem("##ItemContext")) {
+			if (ImGui.MenuItem("Add to Array")) {
+				/* TODO: Add var to config*/
+			}
+
+			if (ImGui.MenuItem("Copy Name")) {
+				ImGui.SetClipboardText(itemName.ToString());
+			}
+
+			ImGui.EndPopup();
 		}
+
+#if DEBUG
+		DrawDebugTooltip(item, itemName); /* PERF: rather slow, debug info only */
 #endif //* DEBUG */
-
-
+		ImGui.PopID();
+		
 		ImGui.TableNextColumn();
 		ImGui.TextUnformatted(Util.FormatNumber(item.Quantity));
 

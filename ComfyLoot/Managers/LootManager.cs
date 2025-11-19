@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using ComfyLoot.Models;
+using Lumina.Excel.Sheets;
 
 namespace ComfyLoot.Managers;
 
@@ -132,7 +133,8 @@ public class LootManager : IDisposable {
 			worldname = plugin.HomeworldName;
 
 			/* prevent unnessary api calls that will fail anyway */
-			if (worldname.Equals("Dev")
+			if (worldname == null
+			|| worldname.Equals("Dev")
 			|| worldname.Equals("???")
 			|| !Util.IsTradable(itemId)) {
 				return 0;
