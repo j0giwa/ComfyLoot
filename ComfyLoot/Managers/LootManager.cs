@@ -155,7 +155,7 @@ public class LootManager : IDisposable {
 	/// <summary>
 	/// Add or update an item in the droplist.
 	/// </summary>
-	public async Task 
+	public async Task
 	AddItem(uint id, int amount, string zoneName, bool hq)
 	{
 		int itemValue;

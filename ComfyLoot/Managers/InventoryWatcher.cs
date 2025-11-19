@@ -38,12 +38,12 @@ public class InventoryWatcher : IDisposable {
 		eventBuffer = new List<InventoryEventArgs>();
 		seenItems = new HashSet<uint>();
 		debounceCts = null;
-		
+
 		_ = DelayedSubscribe(); /* HACK: delay prevents issues with serverhoppin/logon */
 		loot.Clear(); /* HACK: forcefully reset after login*/
 	}
 
-	private static bool 
+	private static bool
 	IsRelevantInventory(GameInventoryType type)
 	{
 		switch (type) {
@@ -136,7 +136,7 @@ public class InventoryWatcher : IDisposable {
 		}
 	}
 
-	private void 
+	private void
 	ProcessEvents(Queue<InventoryEventArgs> events, string zone)
 	{
 		int eventnumber;
@@ -148,7 +148,7 @@ public class InventoryWatcher : IDisposable {
 			totalEvents,
 			zone
 		);
-		
+
 		eventnumber = 1;
 		while (events.Count > 0) {
 			evt = events.Dequeue();
@@ -186,7 +186,7 @@ public class InventoryWatcher : IDisposable {
 		switch (argsObj) {
 		case InventoryItemAddedArgs addedArgs:
 			quantity = addedArgs.Item.Quantity;
-			
+
 			ComfyLoot.Log.Debug(
 				"[InventoryWatcher] ADD {Quantity}x {ItemId} in {Inventory} (slot {Slot})",
 				quantity,
@@ -200,7 +200,7 @@ public class InventoryWatcher : IDisposable {
 				zone,
 				addedArgs.Item.IsHq
 			));
-			
+
 			break;
 		case InventoryItemChangedArgs changedArgs:
 			quantity = changedArgs.OldItemState.Quantity;
@@ -231,7 +231,7 @@ public class InventoryWatcher : IDisposable {
 			break;
 		default:
 			ComfyLoot.Log.Warning(
-				"[InventoryWatcher] Unknown event type: {Type}", 
+				"[InventoryWatcher] Unknown event type: {Type}",
 				argsObj.GetType());
 			break;
 		}
