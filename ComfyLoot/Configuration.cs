@@ -1,5 +1,6 @@
 ﻿/* See LICENSE file for copyright and license details. */
 using System;
+using System.Collections.Generic;
 using Dalamud.Configuration;
 
 namespace ComfyLoot;
@@ -14,6 +15,8 @@ public class Configuration : IPluginConfiguration
 
 	public bool ShowDtrBar { get; set; } = false;
 	public int DtrBarOption { get; set; } = 0;
+
+	public List<uint> IgnoredItemIds { get; set; } = [];
 
 	/// <summary>
 	/// Saves plugin config

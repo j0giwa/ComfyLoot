@@ -231,7 +231,7 @@ public class MainWindow : Window, IDisposable {
 	/// <summary>
 	/// Draws a single loot item row inside a zone.
 	/// </summary>
-	private static void
+	private void
 	DrawItemRow(LootItem item)
 	{
 		ReadOnlySeString itemName;
@@ -265,13 +265,13 @@ public class MainWindow : Window, IDisposable {
 		}
 
 		if (ImGui.BeginPopupContextItem("##ItemContext")) {
-			if (ImGui.MenuItem("Add to Array")) {
-				/* TODO: Add var to config*/
+			if (ImGui.MenuItem("Ignore Item")) {
+				plugin.Configuration.IgnoredItemIds.Add(item.ItemId);
+				plugin.Configuration.Save();
 			}
 
-			if (ImGui.MenuItem("Copy Name")) {
+			if (ImGui.MenuItem("Copy Name"))
 				ImGui.SetClipboardText(itemName.ToString());
-			}
 
 			ImGui.EndPopup();
 		}
@@ -280,7 +280,7 @@ public class MainWindow : Window, IDisposable {
 		DrawDebugTooltip(item, itemName); /* PERF: rather slow, debug info only */
 #endif //* DEBUG */
 		ImGui.PopID();
-		
+
 		ImGui.TableNextColumn();
 		ImGui.TextUnformatted(Util.FormatNumber(item.Quantity));
 

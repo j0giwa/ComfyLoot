@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
@@ -190,6 +191,56 @@ public static class Util {
 			break;
 		}
 		return result;
+	}
+
+	public static uint
+	GetItemBaseId(string name)
+	{
+		uint baseid;
+		string target;
+		string itemName;
+		ExcelSheet<Item>? sheet;
+		Item? item;
+
+		if (string.IsNullOrWhiteSpace(name))
+			return 0;
+
+		sheet = ComfyLoot.DataManager.GetExcelSheet<Item>();
+		if (sheet == null) {
+			ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: Item");
+			return 0;
+		}
+
+		target = name.Trim();
+		item = null;
+
+		/* EXACT case-insensitive match */		
+		foreach (Item row in sheet) {
+			itemName = row.Name.ExtractText();
+			if (itemName.Equals(target, StringComparison.OrdinalIgnoreCase)) {
+				item = row;
+				break;
+			}
+		}
+
+		/* PARTIAL match as fallback */
+		if (item == null) {
+			foreach (Item row in sheet) {
+				itemName = row.Name.ExtractText();
+				if (itemName.Contains(target, StringComparison.OrdinalIgnoreCase)) {
+					item = row;
+					break;
+				}
+			}
+		}
+
+		if (item == null) {
+			ComfyLoot.Log.Warning("[Lumina] Item not found: {item}", target);
+			return 0;
+		}
+
+		baseid = ItemUtil.GetBaseId(item.Value.RowId).ItemId;
+		return baseid;
 	}
 
 	/// <summary>
