@@ -1,6 +1,7 @@
 /* See LICENSE file for copyright and license details. */
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -67,27 +68,13 @@ public class LootManager : IDisposable {
 	/// <param name="id">item id</param>
 	/// <returns>true, if the item</returns>
 	private bool
-	CheckDuplicate(string zone, uint id)
+	CheckIgnored(uint itemId)
 	{
-		List<LootItem>? zoneItems;
+		foreach (uint id in plugin.Configuration.IgnoredItemIds)
+			if (id == itemId)
+				return true;
 
-		lock (lootLock) {
-			if (string.IsNullOrEmpty(zone)
-			|| loot == null)
-				return false;
-
-			if (loot.TryGetValue(zone, out zoneItems))
-				return false;
-
-			if (zoneItems == null)
-				return false;
-
-			foreach (LootItem item in zoneItems)
-				if (item.ItemId == id)
-					return true;
-
-			return false;
-		}
+		return false;
 	}
 
 	/// <summary>
@@ -150,47 +137,65 @@ public class LootManager : IDisposable {
 	}
 
 	/// <summary>
-	/// Add an Item to the droplist
+	/// Add or update an item in the droplist.
 	/// </summary>
-	/// <param name="id">Item identifier</param>
-	/// <param name="quantity">Amount of items</param>
-	/// <param name="zoneName">Zone where the item was gathered</param>
-	/// <param name="hq">High quality or no</param>
-	public async Task
-	AddItem(uint id, int quantity, string zoneName, bool hq)
+	public async Task 
+	AddItem(uint id, int amount, string zoneName, bool hq)
 	{
 		int itemValue;
+		int quantity;
 		LootItem item;
-		List<LootItem>? list;
+		LootItem? existing;
+		List<LootItem>? items;
+
+		if(CheckIgnored(id))
+			return;
 
 		itemValue = await GetItemGilValue(Util.GetBaseId(id), hq);
 		item = new LootItem(
-			id,
-			Util.GetRarity(id),
-			quantity,
-			itemValue
+		    id,
+		    Util.GetRarity(id),
+		    amount,
+		    itemValue
 		);
 
 		lock (lootLock) {
-			/* HACK: prevent duplicates in the same zone */
-			if (CheckDuplicate(zoneName, id)) {
-				UpdateItem(id, quantity, zoneName);
+			if (!loot.TryGetValue(zoneName, out items))
+				items = new List<LootItem>();
+
+			existing = items.FirstOrDefault(x => x.ItemId == id);
+			if (existing != null) {
+				quantity = existing.Quantity + amount;
+
+				items.Remove(existing);
+				items.Add(new LootItem(
+					id,
+					Util.GetRarity(id),
+					quantity,
+					existing.Value
+				));
+
+				loot[zoneName] = items;
+
+				plugin.UpdateDtrBar();
+				ComfyLoot.Log.Information(
+					"[TRACK] {Quantity}x {ItemId} in {Zone}",
+					quantity,
+					id,
+					zoneName);
 				return;
 			}
 
-			if (!loot.TryGetValue(zoneName, out list))
-				list = new List<LootItem>();
+			items.Add(item);
+			loot[zoneName] = items;
 
-			list.Add(item);
-			loot[zoneName] = list;
+			plugin.UpdateDtrBar();
+			ComfyLoot.Log.Information(
+				"[TRACK] {Quantity}x {ItemId} in {Zone}",
+				amount,
+				id,
+				zoneName);
 		}
-
-		plugin.UpdateDtrBar();
-		ComfyLoot.Log.Information(
-			"[TRACK] {Quantity}x {ItemId} in {Zone}",
-			quantity,
-			id,
-			zoneName);
 	}
 
 	/// <summary>
@@ -292,49 +297,6 @@ public class LootManager : IDisposable {
 
 			return zoneTotal;
 		}
-	}
-
-	/// <summary>
-	/// Updates an item's quantity.
-	/// </summary>
-	public void
-	UpdateItem(uint itemId, int addedAmount, string zoneName)
-	{
-		LootItem? item;
-		List<LootItem>? items;
-
-		lock (lootLock) {
-			if (!loot.TryGetValue(zoneName, out items))
-				items = new List<LootItem>();
-
-			item = null;
-			foreach (LootItem entry in items) {
-				if (entry.ItemId == itemId) {
-					item = entry;
-					break;
-				}
-			}
-
-			if (item == null)
-				return;
-
-			items.Remove(item);
-			items.Add(new LootItem(
-				itemId,
-				Util.GetRarity(itemId),
-				item.Quantity + addedAmount,
-				item.Value
-			));
-
-			loot[zoneName] = items;
-		}
-
-		plugin.UpdateDtrBar();
-		ComfyLoot.Log.Information(
-			"[TRACK] {ItemId} {Quantity}x in {Zone}",
-			itemId,
-			item.Quantity + addedAmount,
-			zoneName);
 	}
 
 	public void

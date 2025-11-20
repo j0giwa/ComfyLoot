@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
@@ -14,6 +15,79 @@ namespace ComfyLoot;
 /// </summary>
 /* SMELL: Cohesion is fucked, but it didn't fit anywhere else */
 public static class Util {
+
+	public static bool 
+	IsTargetMarketboard()
+	{
+		IGameObject ? target;
+
+		if (!ComfyLoot.ClientState.IsLoggedIn)
+			return false;
+
+		try {
+			target = ComfyLoot.TargetManager.Target;
+			if (target == null)
+				return false;
+			ComfyLoot.Log.Debug($"Mail Target Check: BaseId={target.BaseId}, DataId={target.DataId}, Name={target.Name.TextValue}");
+
+			if (target.BaseId == 2000402)
+				return true;
+
+			/* fallback: identification over name */
+			switch (target.Name.TextValue) {
+			case "Market Board": /* FALLTHROUGH */
+			case "Schwarzes Brett":
+			case "Panneau des ventes":
+			case "マーケットボード":
+				return true;
+			default:
+				return false;
+			}
+		} catch (Exception e) {
+			ComfyLoot.Log.Error(e, "WTF");
+			return false;
+		}
+	}
+
+	public static bool
+	IsTargetMail()
+	{
+    		IGameObject? target;
+
+    		if (!ComfyLoot.ClientState.IsLoggedIn)
+        		return false;
+
+   	 	try {
+        		target = ComfyLoot.TargetManager.Target;
+        		if (target == null)
+            		return false;
+
+			ComfyLoot.Log.Debug($"Mail Target Check: BaseId={target.BaseId}, DataId={target.DataId}, Name={target.Name.TextValue}");
+
+        		if (target.BaseId == 1003567 /* Delivery Moogle NPC */
+			|| target.DataId == 1969) /* housing mailbox (BaseId may vary slightly but DataId is consistent) */
+				return true;
+
+			/* fallback: identification over name */
+			switch (target.Name.TextValue){
+            		case "Delivery Moogle":
+			case "Mailbox":
+			case "Kupo-Kurier":
+			case "Briefkasten":
+			case "Mog postier":
+			case "Boîte aux lettres":
+			case "レターモーグリ":
+            		case "メールボックス":
+                		return true;
+            		default:
+                		return false;
+        		}
+    		} catch (Exception ex) {
+        		ComfyLoot.Log.Error(ex, "Error detecting mailbox/delivery moogle target");
+        		return false;
+    		}
+	}
+
 
 	/// <summary>
 	/// Formats a number to a gil value.

@@ -42,7 +42,7 @@ See [FAQ](#FAQ) for
 
 - Spelling: I'm dyslexic, so there might be a lot of errors
 - The plugin tracking needs a second to kick in: that's on purpose to prevent login issues.
-- Items gained from sources like the Marketboard and Delivery Moogles will count as drops and therefore will get tracked.
+- Items gained from Delivery Moogles may count as drops and therefore will get tracked (partially fixed).
 - Items gained from Trades won't get a their Marketboard-values asingned.
 
 Report bugs or suggestions via the Issues tab.

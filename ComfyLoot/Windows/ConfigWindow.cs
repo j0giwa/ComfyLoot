@@ -117,7 +117,6 @@ public class ConfigWindow : Window, IDisposable
 			ImGui.TableNextColumn();
 			ImGui.SetNextItemWidth(-1);
 
-			// Use persistent buffer!
 			ImGui.InputText("##NewItemId", ref ignoredItemNewEntry, 64);
 
 			ImGui.TableNextColumn();
@@ -130,7 +129,7 @@ public class ConfigWindow : Window, IDisposable
 						ignoredItemIds.Add(baseId);
 						Configuration.Save();
 						ComfyLoot.Log.Verbose("Ignoring item {Name} -> BaseId={BaseId}", ignoredItemNewEntry, baseId);
-						ignoredItemNewEntry = ""; // clear after adding
+						ignoredItemNewEntry = "";
 					} else {
 						ComfyLoot.Log.Warning("Unknown item name: {Name}", ignoredItemNewEntry);
 					}

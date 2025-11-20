@@ -104,43 +104,43 @@ public class MainWindow : Window, IDisposable {
 
 		await loot.AddItem(
 			id: 1, /* gil */
-			quantity: 1000000,
+			amount: 1000000,
 			zoneName: fakezonename,
 			hq: false
 		);
 		await loot.AddItem(
 			id: 14, /* fire cluster */
-			quantity: 999,
+			amount: 999,
 			zoneName: fakezonename,
 			hq: false
 		);
 		await loot.AddItem(
 			id: 1046003, /* mate cookie (hq) */
-			quantity: 99,
+			amount: 99,
 			zoneName: fakezonename,
 			hq: true
 		);
 		await loot.AddItem(
 			id: 2791, /* aetherial mythril circlet (rubellite) */
-			quantity: 1,
+			amount: 1,
 			zoneName: fakezonename,
 			hq: false
 		);
 		await loot.AddItem(
 			id: 3035, /* acolyte's robe */
-			quantity: 1,
+			amount: 1,
 			zoneName: fakezonename,
 			hq: true
 		);
 		await loot.AddItem(
 			id: 32418,/* cryptlurker sword */
-			quantity: 1,
+			amount: 1,
 			zoneName: fakezonename,
 			hq: false
 		);
 		await loot.AddItem(
 			id: 33475, /* blade's fealty */
-			quantity: 1,
+			amount: 1,
 			zoneName: fakezonename,
 			hq: false
 		);

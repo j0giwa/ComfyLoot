@@ -9,6 +9,7 @@ using Dalamud.Plugin.Services;
 
 using ComfyLoot.Managers;
 using ComfyLoot.Windows;
+using Dalamud.Game.ClientState.Objects;
 
 namespace ComfyLoot;
 
@@ -36,6 +37,9 @@ public sealed class ComfyLoot : IDalamudPlugin
 	internal static IGameInventory GameInventory { get; private set; } = null!;
 	[PluginService]
 	internal static IDtrBar DtrBar { get; private set; } = null!;
+
+	[PluginService]
+	public static ITargetManager TargetManager { get; private set; } = null!;
 
 	private IDtrBarEntry? dtrEntry;
 	private ConfigWindow ConfigWindow { get; init; }
