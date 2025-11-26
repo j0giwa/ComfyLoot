@@ -16,6 +16,7 @@ using Lumina.Excel;
 using Lumina.Text.ReadOnly;
 
 using ComfyLoot.Managers;
+using System.Threading.Tasks;
 
 namespace ComfyLoot.Windows;
 
@@ -38,12 +39,27 @@ public class MainWindow : Window, IDisposable {
 
 		this.plugin = plugin;
 		this.loot = loot;
-
-		/* WARN:
-		 * This snippet likely originated from an Epsteinsync
-		 * cba to trace it's origins, assume yes
-		 */
+		
 		TitleBarButtons = new() {
+#if DEBUG
+			new TitleBarButton() {
+				Icon = FontAwesomeIcon.Code,
+				Click = async (msg) => {
+					await Populate(this.loot);
+				},
+				IconOffset = new(2,1),
+				ShowTooltip = () => {
+					ImGui.BeginTooltip();
+					ImGui.Text("Debug Populate");
+					ImGui.EndTooltip();
+				}
+			},
+#endif //* DEBUG*/
+
+			/* WARN:
+		         * This snippet likely originated from an Epsteinsync
+			 * cba to trace it's origins, assume yes
+		 	 */
 			new TitleBarButton() {
 				Icon = FontAwesomeIcon.Cog,
 				Click = (msg) => {
@@ -58,6 +74,57 @@ public class MainWindow : Window, IDisposable {
 			}
 		};
 	}
+
+#if DEBUG
+	private static  async Task
+	Populate(LootManager loot)
+	{
+		const uint fakezone = 2; /* mail moogle */
+
+		await loot.AddItem(
+			id: 1, /* gil */
+			amount: 1000000,
+			zone: fakezone,
+			hq: false
+		);
+		await loot.AddItem(
+			id: 14, /* fire cluster */
+			amount: 999,
+			zone: fakezone,
+			hq: false
+		);
+		await loot.AddItem(
+			id: 1046003, /* mate cookie (hq) */
+			amount: 99,
+			zone: fakezone,
+			hq: true
+		);
+		await loot.AddItem(
+			id: 2791, /* aetherial mythril circlet (rubellite) */
+			amount: 1,
+			zone: fakezone,
+			hq: false
+		);
+		await loot.AddItem(
+			id: 3035, /* acolyte's robe */
+			amount: 1,
+			zone: fakezone,
+			hq: true
+		);
+		await loot.AddItem(
+			id: 32418,/* cryptlurker sword */
+			amount: 1,
+			zone: fakezone,
+			hq: false
+		);
+		await loot.AddItem(
+			id: 33475, /* blade's fealty */
+			amount: 1,
+			zone: fakezone,
+			hq: false
+		);
+	}
+#endif //* DEBUG*/
 
 	/// <summary>
 	/// gets an items icon
@@ -143,7 +210,7 @@ public class MainWindow : Window, IDisposable {
 	/// <summary>
 	/// Draws a single loot item row inside a zone.
 	/// </summary>
-	private static void
+	private void
 	DrawItemRow(LootItem item)
 	{
 		ReadOnlySeString itemName;
@@ -154,6 +221,7 @@ public class MainWindow : Window, IDisposable {
 
 		ImGui.TableNextColumn();
 		itemName = ItemUtil.GetItemName(item.ItemId, true);
+		ImGui.PushID((int)item.ItemId);
 		switch (item.Rarity) {
 		case 1: /* Common (white) */
 			ImGui.TextColored(ImGuiColors.DalamudWhite, itemName.ToString());
@@ -175,25 +243,21 @@ public class MainWindow : Window, IDisposable {
 			break;
 		}
 
-#if DEBUG
-		/* PERF: rather slow to recall this, debug info only */
-		if (ImGui.IsItemHovered()) {
-			ImGui.BeginTooltip();
-			ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
-			ImGui.TextColored(ImGuiColors.DalamudRed, "DEBUG");
-			ImGui.Separator();
-			ImGui.TextUnformatted($"Item: {itemName}");
-			ImGui.TextUnformatted($"Id: {item.ItemId}");
-			ImGui.TextUnformatted($"BaseId: {Util.GetBaseId(item.ItemId)}");
-			ImGui.TextUnformatted($"Rarity: {item.Rarity}");
-			ImGui.TextUnformatted($"Tradable: {Util.IsTradable(item.ItemId)}");
-			ImGui.TextUnformatted($"IsCurrency: {Util.IsCurrency(item.ItemId)}");
-			ImGui.TextUnformatted($"Value: {item.Value}");
-			ImGui.PopTextWrapPos();
-			ImGui.EndTooltip();
-		}
-#endif //* DEBUG */
+		if (ImGui.BeginPopupContextItem("##ItemContext")) {
+			if (ImGui.MenuItem("Ignore Item")) {
+				plugin.Configuration.IgnoredItemIds.Add(item.ItemId);
+				plugin.Configuration.Save();
+			}
 
+			if (ImGui.MenuItem("Copy Name"))
+				ImGui.SetClipboardText(itemName.ToString());
+
+			ImGui.EndPopup();
+		}
+
+		DrawItemTooltip(item, itemName); /* PERF: rather slow, debug info only */
+
+		ImGui.PopID();
 
 		ImGui.TableNextColumn();
 		ImGui.TextUnformatted(Util.FormatNumber(item.Quantity));
@@ -203,6 +267,27 @@ public class MainWindow : Window, IDisposable {
 			ImGui.TextUnformatted("N/A");
 		else
 			ImGui.TextUnformatted(Util.FormatGil(item.Value * item.Quantity));
+	}
+
+	private static void
+	DrawItemTooltip(LootItem item, ReadOnlySeString itemName)
+	{
+		if (ImGui.IsItemHovered()) {
+			ImGui.BeginTooltip();
+			ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
+			ImGui.TextUnformatted($"Item: {itemName}");
+			ImGui.TextUnformatted($"Id: {item.ItemId}");
+			ImGui.TextUnformatted($"Value: {item.Value}");
+#if DEBUG
+			ImGui.Separator();
+			ImGui.TextUnformatted($"BaseId: {Util.GetBaseId(item.ItemId)}");
+			ImGui.TextUnformatted($"Rarity: {item.Rarity}");
+			ImGui.TextUnformatted($"Tradable: {Util.IsTradable(item.ItemId)}");
+			ImGui.TextUnformatted($"IsCurrency: {Util.IsCurrency(item.ItemId)}");
+#endif //* DEBUG*/			
+			ImGui.PopTextWrapPos();
+			ImGui.EndTooltip();
+		}
 	}
 
 	/// <summary>
@@ -232,12 +317,13 @@ public class MainWindow : Window, IDisposable {
 	/// Draws a zone header row and its item list as subtables.
 	/// </summary>
 	private void
-	DrawZoneSection(string zone, List<LootItem> items)
+	DrawZoneSection(uint zone, List<LootItem> items)
 	{
 		int itemCount;
 		int itemValue;
 		uint headerBg;
 		bool zoneOpen;
+		string zoneName;
 
 		ImGui.TableNextRow();
 		headerBg = ImGui.GetColorU32(ImGuiCol.Tab);
@@ -253,11 +339,23 @@ public class MainWindow : Window, IDisposable {
 			ImGuiTreeNodeFlags.SpanAvailWidth);
 		ImGui.PopID();
 
+		zoneName = Util.GetZoneName(zone);
 		itemCount = loot.GetZoneItemQuantity(zone);
 		itemValue = loot.GetZoneItemValue(zone);
 
 		ImGui.TableNextColumn();
-		ImGui.TextUnformatted(zone);
+		ImGui.TextUnformatted(zoneName);
+		if (ImGui.BeginPopupContextItem("##ZoneContext")) {
+			if (ImGui.MenuItem("Ignore Zone")) {
+				plugin.Configuration.IgnoredZoneIds.Add(zone);
+				plugin.Configuration.Save();
+			}
+
+			if (ImGui.MenuItem("Copy Name"))
+				ImGui.SetClipboardText(zoneName);
+
+			ImGui.EndPopup();
+		}
 		ImGui.TableNextColumn();
 		ImGui.TextUnformatted(Util.FormatNumber(itemCount));
 		ImGui.TableNextColumn();
@@ -302,18 +400,13 @@ public class MainWindow : Window, IDisposable {
 
 			ImGui.TableHeadersRow();
 
-			foreach (KeyValuePair<string, List<LootItem>> kvp in plugin.LootManager.Loot) {
-				if (kvp.Key != null)
-					zoneName = kvp.Key;
-				else
-					zoneName = "<Unknown Zone>";
-
+			foreach (KeyValuePair<uint, List<LootItem>> kvp in plugin.LootManager.Loot) {
 				if (kvp.Value != null)
 					items = kvp.Value;
 				else
 					items = new List<LootItem>();
 
-				DrawZoneSection(zoneName, items);
+				DrawZoneSection(kvp.Key, items);
 			}
 
 			ImGui.EndTable();

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using ComfyLoot.Models;
 using Dalamud.Game.Inventory;
 using Dalamud.Game.Inventory.InventoryEventArgTypes;
 
@@ -38,12 +39,12 @@ public class InventoryWatcher : IDisposable {
 		eventBuffer = new List<InventoryEventArgs>();
 		seenItems = new HashSet<uint>();
 		debounceCts = null;
-		
+
 		_ = DelayedSubscribe(); /* HACK: delay prevents issues with serverhoppin/logon */
 		loot.Clear(); /* HACK: forcefully reset after login*/
 	}
 
-	private static bool 
+	private static bool
 	IsRelevantInventory(GameInventoryType type)
 	{
 		switch (type) {
@@ -54,7 +55,6 @@ public class InventoryWatcher : IDisposable {
 		case GameInventoryType.Crystals:
 		case GameInventoryType.Currency:
 			return true;
-
 		default:
 			return false;
 		}
@@ -77,88 +77,12 @@ public class InventoryWatcher : IDisposable {
 	}
 
 	/// <summary>
-	/// Hande add item event
-	/// </summary>
-	private void
-	HandleAddItem(InventoryItemAddedArgs args, string zone)
-	{
-		ComfyLoot.Log.Debug(
-			"[InventoryWatcher] ADD {Quantity}x {ItemId} in {Inventory} (slot {Slot})",
-			args.Item.Quantity,
-			args.Item.ItemId,
-			args.Inventory,
-			args.Slot);
-
-		_ = Task.Run(() => loot.AddItem(
-			args.Item.ItemId,
-			args.Item.Quantity,
-			zone,
-			args.Item.IsHq
-		));
-	}
-
-	/// <summary>
-	/// Hande change item event
-	/// </summary>
-	private void
-	HandleChangeItem(InventoryItemChangedArgs args, string zone)
-	{
-		int previousQty;
-		int addedAmount;
-
-		previousQty = args.OldItemState.Quantity;
-		addedAmount = args.Item.Quantity - previousQty;
-		if (addedAmount > 0) {
-			ComfyLoot.Log.Debug(
-				"[InventoryWatcher] CHANGE {Quantity}x {ItemId} in {Inventory} (slot {Slot})",
-				addedAmount,
-				args.Item.ItemId,
-				args.Inventory,
-				args.Slot);
-
-			/* HACK: force add if the item is in the inventory,
-			   but not in the lootlist */
-			lock (seenLock) {
-				if (!seenItems.Contains(args.Item.ItemId)) {
-					seenItems.Add(args.Item.ItemId);
-					_ = Task.Run(() => loot.AddItem(
-						args.Item.ItemId,
-						addedAmount,
-						zone,
-						args.Item.IsHq
-					));
-					return;
-				}
-			}
-			loot.UpdateItem(
-				args.Item.ItemId,
-				addedAmount,
-				zone
-			);
-		}
-	}
-
-	/// <summary>
-	/// Handle inventory change event
-	/// </summary>
-	private void
-	OnInventoryChanged(IReadOnlyCollection<InventoryEventArgs> events)
-	{
-		lock (debounceLock) {
-			eventBuffer.AddRange(events);
-			debounceCts?.Cancel();
-			debounceCts = new CancellationTokenSource();
-			_ = Task.Run(() => DebounceEvents(debounceCts.Token));
-		}
-	}
-
-	/// <summary>
 	/// Queues the event buffer and returns a queue of events.
 	/// </summary>
 	/// <param name="token"></param>
 	/// <returns>A queue containing the queued events.</returns>
-	private async Task 
-	DebounceEvents(CancellationToken token)
+	private async Task
+	DebounceEvents(CancellationToken token, uint zone)
 	{
 		const int delay = 250; /* adjust if needed, gatherers boon might break it */
 
@@ -187,25 +111,44 @@ public class InventoryWatcher : IDisposable {
 		if (eventQueue.Count == 0)
 			return;
 
-		ProcessEvents(eventQueue);
+		ProcessEvents(eventQueue, zone);
 	}
 
-	private void 
-	ProcessEvents(Queue<InventoryEventArgs> events)
+	/// <summary>
+	/// Handle inventory change event
+	/// </summary>
+	private void
+	OnInventoryChanged(IReadOnlyCollection<InventoryEventArgs> events)
+	{
+		uint zone;
+
+		zone = ComfyLoot.ClientState.TerritoryType;
+		if (Util.IsTargetMarketboard())
+			zone = (uint) Zones.MARKETBOARD;
+		if (Util.IsTargetMail())
+			zone = (uint)Zones.MAIL;
+
+		lock (debounceLock) {
+			eventBuffer.AddRange(events);
+			debounceCts?.Cancel();
+			debounceCts = new CancellationTokenSource();
+			_ = Task.Run(() => DebounceEvents(debounceCts.Token, zone));
+		}
+	}
+
+	private void
+	ProcessEvents(Queue<InventoryEventArgs> events, uint zone)
 	{
 		int eventnumber;
 		int totalEvents;
-		string zone;
 		InventoryEventArgs evt;
 
 		totalEvents = events.Count;
-		zone = Util.GetCurrentZoneName();
-
 		ComfyLoot.Log.Verbose("[InventoryWatcher] processing {count} InventoryEvent(s) in {zone}",
 			totalEvents,
 			zone
 		);
-		
+
 		eventnumber = 1;
 		while (events.Count > 0) {
 			evt = events.Dequeue();
@@ -218,16 +161,10 @@ public class InventoryWatcher : IDisposable {
 					evt.Item.ToString()
 				);
 
-			switch (evt) {
-			case InventoryItemAddedArgs added:
-				HandleAddItem(added, zone);
-				break;
-			case InventoryItemChangedArgs changed:
-				HandleChangeItem(changed, zone);
-				break;
-			default:
-				break;
-			}
+			if (evt.Type == GameInventoryEvent.Added
+			|| evt.Type == GameInventoryEvent.Changed)
+				ProccessEventItem(evt, zone);
+
 			eventnumber++;
 		}
 
@@ -235,6 +172,69 @@ public class InventoryWatcher : IDisposable {
 			totalEvents,
 			zone
 		);
+	}
+
+	/// <summary>
+	/// Handle inventory item events (add or change)
+	/// </summary>
+	private void
+	ProccessEventItem(object argsObj, uint zone)
+	{
+		int quantity;
+		int addedAmount;
+
+		switch (argsObj) {
+		case InventoryItemAddedArgs addedArgs:
+			quantity = addedArgs.Item.Quantity;
+
+			ComfyLoot.Log.Debug(
+				"[InventoryWatcher] ADD {Quantity}x {ItemId} in {Inventory} (slot {Slot})",
+				quantity,
+				addedArgs.Item.ItemId,
+				addedArgs.Inventory,
+				addedArgs.Slot);
+
+			_ = Task.Run(() => loot.AddItem(
+				addedArgs.Item.ItemId,
+				quantity,
+				zone,
+				addedArgs.Item.IsHq
+			));
+
+			break;
+		case InventoryItemChangedArgs changedArgs:
+			quantity = changedArgs.OldItemState.Quantity;
+			addedAmount = changedArgs.Item.Quantity - quantity;
+
+			if (addedAmount <= 0)
+				break;
+
+			ComfyLoot.Log.Debug(
+				"[InventoryWatcher] CHANGE {Quantity}x {ItemId} in {Inventory} (slot {Slot})",
+				addedAmount,
+				changedArgs.Item.ItemId,
+				changedArgs.Inventory,
+				changedArgs.Slot);
+
+			lock (seenLock) {
+				if (!seenItems.Contains(changedArgs.Item.ItemId))
+					seenItems.Add(changedArgs.Item.ItemId);
+			}
+
+			_ = Task.Run(() => loot.AddItem(
+				changedArgs.Item.ItemId,
+				addedAmount,
+				zone,
+				changedArgs.Item.IsHq
+			));
+
+			break;
+		default:
+			ComfyLoot.Log.Warning(
+				"[InventoryWatcher] Unknown event type: {Type}",
+				argsObj.GetType());
+			break;
+		}
 	}
 
 	public void
@@ -250,7 +250,7 @@ public class InventoryWatcher : IDisposable {
 		ComfyLoot.Log.Verbose("[InventoryWatcher] Disposing Events");
 
 		/* Cleanup */
-		debounceCts.Dispose();
+		debounceCts?.Dispose();
 		ComfyLoot.GameInventory.InventoryChanged -= OnInventoryChanged;
 
 		IsDisposed = true;
