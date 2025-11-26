@@ -78,6 +78,22 @@ public class LootManager : IDisposable {
 	}
 
 	/// <summary>
+	/// Check if an Item already exists in a given zone
+	/// </summary>
+	/// <param name="zone">Zone to check</param>
+	/// <param name="id">item id</param>
+	/// <returns>true, if the item</returns>
+	private bool
+	CheckIgnored(string zonename)
+	{
+		foreach (string zone in plugin.Configuration.IgnoredZones)
+			if (zone == zonename)
+				return true;
+
+		return false;
+	}
+
+	/// <summary>
 	/// Gets the gil value of the given item
 	/// </summary>
 	/// <param name="itemId">Item identyfier</param>
@@ -148,7 +164,8 @@ public class LootManager : IDisposable {
 		LootItem? existing;
 		List<LootItem>? items;
 
-		if(CheckIgnored(id))
+		if(CheckIgnored(id)
+		|| CheckIgnored(zoneName))
 			return;
 
 		itemValue = await GetItemGilValue(Util.GetBaseId(id), hq);

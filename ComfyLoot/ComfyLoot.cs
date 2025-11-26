@@ -221,8 +221,8 @@ public sealed class ComfyLoot : IDalamudPlugin
 
 		ConfigWindow.Dispose();
 		MainWindow.Dispose();
-		LootManager.Dispose();
-		Watcher.Dispose();
+		LootManager?.Dispose();
+		Watcher?.Dispose();
 
 		Commands.RemoveHandler(CommandName);
 

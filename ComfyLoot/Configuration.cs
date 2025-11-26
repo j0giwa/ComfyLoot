@@ -17,6 +17,8 @@ public class Configuration : IPluginConfiguration
 	public int DtrBarOption { get; set; } = 0;
 
 	public List<uint> IgnoredItemIds { get; set; } = [];
+	public List<string> IgnoredZones { get; set; } = [];
+
 
 	/// <summary>
 	/// Saves plugin config

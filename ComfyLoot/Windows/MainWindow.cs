@@ -77,30 +77,10 @@ public class MainWindow : Window, IDisposable {
 	}
 
 #if DEBUG
-	private static void
-	DrawDebugTooltip(LootItem item, ReadOnlySeString itemName)
-	{
-		if (ImGui.IsItemHovered()) {
-			ImGui.BeginTooltip();
-			ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
-			ImGui.TextColored(ImGuiColors.DalamudRed, "DEBUG");
-			ImGui.Separator();
-			ImGui.TextUnformatted($"Item: {itemName}");
-			ImGui.TextUnformatted($"Id: {item.ItemId}");
-			ImGui.TextUnformatted($"BaseId: {Util.GetBaseId(item.ItemId)}");
-			ImGui.TextUnformatted($"Rarity: {item.Rarity}");
-			ImGui.TextUnformatted($"Tradable: {Util.IsTradable(item.ItemId)}");
-			ImGui.TextUnformatted($"IsCurrency: {Util.IsCurrency(item.ItemId)}");
-			ImGui.TextUnformatted($"Value: {item.Value}");
-			ImGui.PopTextWrapPos();
-			ImGui.EndTooltip();
-		}
-	}
-
 	private static  async Task
 	Populate(LootManager loot)
 	{
-		const string fakezonename = "Ligma Lominsa";
+		const string fakezonename = "Ligma Lominsa"; /* purosefully silly */
 
 		await loot.AddItem(
 			id: 1, /* gil */
@@ -276,9 +256,8 @@ public class MainWindow : Window, IDisposable {
 			ImGui.EndPopup();
 		}
 
-#if DEBUG
-		DrawDebugTooltip(item, itemName); /* PERF: rather slow, debug info only */
-#endif //* DEBUG */
+		DrawItemTooltip(item, itemName); /* PERF: rather slow, debug info only */
+
 		ImGui.PopID();
 
 		ImGui.TableNextColumn();
@@ -289,6 +268,27 @@ public class MainWindow : Window, IDisposable {
 			ImGui.TextUnformatted("N/A");
 		else
 			ImGui.TextUnformatted(Util.FormatGil(item.Value * item.Quantity));
+	}
+
+	private static void
+	DrawItemTooltip(LootItem item, ReadOnlySeString itemName)
+	{
+		if (ImGui.IsItemHovered()) {
+			ImGui.BeginTooltip();
+			ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
+			ImGui.TextUnformatted($"Item: {itemName}");
+			ImGui.TextUnformatted($"Id: {item.ItemId}");
+			ImGui.TextUnformatted($"Value: {item.Value}");
+#if DEBUG
+			ImGui.Separator();
+			ImGui.TextUnformatted($"BaseId: {Util.GetBaseId(item.ItemId)}");
+			ImGui.TextUnformatted($"Rarity: {item.Rarity}");
+			ImGui.TextUnformatted($"Tradable: {Util.IsTradable(item.ItemId)}");
+			ImGui.TextUnformatted($"IsCurrency: {Util.IsCurrency(item.ItemId)}");
+#endif //* DEBUG*/			
+			ImGui.PopTextWrapPos();
+			ImGui.EndTooltip();
+		}
 	}
 
 	/// <summary>

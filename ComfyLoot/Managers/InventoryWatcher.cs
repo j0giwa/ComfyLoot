@@ -250,7 +250,7 @@ public class InventoryWatcher : IDisposable {
 		ComfyLoot.Log.Verbose("[InventoryWatcher] Disposing Events");
 
 		/* Cleanup */
-		debounceCts.Dispose();
+		debounceCts?.Dispose();
 		ComfyLoot.GameInventory.InventoryChanged -= OnInventoryChanged;
 
 		IsDisposed = true;
