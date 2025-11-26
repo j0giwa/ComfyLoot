@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using ComfyLoot.Models;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
@@ -172,6 +173,7 @@ public static class Util {
 	/// <summary>
 	/// Gets the name of the current zone (where the player currently is).
 	/// </summary>
+	/*
 	public static string
 	GetCurrentZoneName()
 	{
@@ -180,7 +182,7 @@ public static class Util {
 		ExcelSheet<TerritoryType>? sheet;
 		TerritoryType zone;
 
-		name = "???"; /* fallback */
+		name = "???"; 
 
 		sheet = ComfyLoot.DataManager.GetExcelSheet<TerritoryType>();
 		if (sheet == null) {
@@ -200,6 +202,45 @@ public static class Util {
 			return "???";
 
 		return name;
+	}
+	*/
+
+	/// <summary>
+	/// Gets the name of the current zone (where the player currently is).
+	/// </summary>
+	public static string
+	GetZoneName(uint id)
+	{
+		string name;
+		ExcelSheet<TerritoryType>? sheet;
+		TerritoryType zone;
+
+		name = "???"; /* fallback */
+
+		switch (id){
+		case (uint) Zones.MARKETBOARD:
+			return "Marketboard";
+		case (uint)Zones.MAIL:
+			return "Delivery";
+		default:
+			sheet = ComfyLoot.DataManager.GetExcelSheet<TerritoryType>();
+			if (sheet == null) {
+				ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: TerritoryType");
+				return name;
+			}
+
+			if (!sheet.TryGetRow(id, out zone))
+				return name;
+
+			if (zone.PlaceName.Value.Name.IsEmpty)
+				return name;
+
+			name = zone.PlaceName.Value.Name.ToString();
+			if (name.IsNullOrWhitespace())
+				return "???";
+
+			return name;
+		}
 	}
 
 	/// <summary>
@@ -315,6 +356,58 @@ public static class Util {
 
 		baseid = ItemUtil.GetBaseId(item.Value.RowId).ItemId;
 		return baseid;
+	}
+
+	public static uint
+	GetZoneId(string name)
+	{
+		if (string.IsNullOrWhiteSpace(name))
+			return 0;
+
+		string target = name.Trim();
+		string zoneName;
+		ExcelSheet<TerritoryType>? sheet;
+		TerritoryType row;
+
+		if (target.Equals("Marketboard", StringComparison.OrdinalIgnoreCase))
+			return (uint)Zones.MARKETBOARD;
+
+		if (target.Equals("Delivery", StringComparison.OrdinalIgnoreCase) ||
+		    target.Equals("Mail", StringComparison.OrdinalIgnoreCase))
+			return (uint)Zones.MAIL;
+
+		sheet = ComfyLoot.DataManager.GetExcelSheet<TerritoryType>();
+		if (sheet == null) {
+			ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: TerritoryType");
+			return 0;
+		}
+
+		TerritoryType? found = null;
+
+		foreach (TerritoryType zone in sheet) {
+			zoneName = zone.PlaceName.Value.Name.ExtractText() ?? "";
+			if (zoneName.Equals(target, StringComparison.OrdinalIgnoreCase)) {
+				found = zone;
+				break;
+			}
+		}
+
+		if (found == null) {
+			foreach (TerritoryType zone in sheet) {
+				zoneName = zone.PlaceName.Value.Name.ExtractText() ?? "";
+				if (zoneName.Contains(target, StringComparison.OrdinalIgnoreCase)) {
+					found = zone;
+					break;
+				}
+			}
+		}
+
+		if (found == null) {
+			ComfyLoot.Log.Warning("[Lumina] Zone not found: {Zone}", target);
+			return 0;
+		}
+
+		return found.Value.RowId;
 	}
 
 	/// <summary>

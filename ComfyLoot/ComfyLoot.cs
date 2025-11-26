@@ -116,6 +116,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 	UpdateDtrBar()
 	{
 		int number;
+		uint zone;
 		string zoneName;
 
 		if (dtrEntry == null
@@ -125,7 +126,8 @@ public sealed class ComfyLoot : IDalamudPlugin
 		dtrEntry.Shown = Configuration.ShowDtrBar;
 		dtrEntry.Tooltip = "Click to toggle overlay";
 
-		zoneName = Util.GetCurrentZoneName();
+		zone = ClientState.TerritoryType;
+		zoneName = Util.GetZoneName(zone);
 
 		switch (Configuration.DtrBarOption) {
 		case 0:
@@ -133,7 +135,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 			dtrEntry.Text = $"Total: {number}";
 			break;
 		case 1:
-			number = LootManager.GetZoneItemQuantity(zoneName);
+			number = LootManager.GetZoneItemQuantity(zone);
 			dtrEntry.Text = $"{zoneName}: {number}";
 			break;
 		case 2:
@@ -141,7 +143,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 			dtrEntry.Text = $"Total: {Util.FormatGil(number)}";
 			break;
 		case 3:
-			number = LootManager.GetZoneItemValue(zoneName);
+			number = LootManager.GetZoneItemValue(zone);
 			dtrEntry.Text = $"{zoneName}: {Util.FormatGil(number)}";
 			break;
 		default:
@@ -176,14 +178,14 @@ public sealed class ComfyLoot : IDalamudPlugin
 
 		HomeworldName = Util.GetHomeWorld();
 
-		// LootManager re-init
-		if (LootManager == null || LootManager.IsDisposed) {
+		if (LootManager == null 
+		|| LootManager.IsDisposed) {
 			LootManager?.Dispose();
 			LootManager = new LootManager(this);
 		}
 
-		// Watcher re-init
-		if (Watcher == null || Watcher.IsDisposed) {
+		if (Watcher == null 
+		|| Watcher.IsDisposed) {
 			Watcher?.Dispose();
 			Watcher = new InventoryWatcher(LootManager);
 		}

@@ -41,45 +41,11 @@ public class ConfigWindow : Window, IDisposable
 	PreDraw()
 	{
 		/* Flags must be added or removed before Draw() is being called, or they won't apply */
-		if (Configuration.IsConfigWindowMovable)
-			Flags &= ~ImGuiWindowFlags.NoMove;
-		else
-			Flags |= ImGuiWindowFlags.NoMove;
 	}
 
-/* TODO: flawed implementation */
 #region ignoreListHelpers
-	private int 
-	DrawRowsString(List<string> list, string widgetIdPrefix)
-	{
-		int removeIndex = -1;
-		string value;
-
-		for (int i = 0; i < list.Count; i++) {
-			ImGui.PushID(i);
-
-			ImGui.TableNextRow();
-			ImGui.TableNextColumn();
-			ImGui.SetNextItemWidth(-1);
-
-			value = list[i];
-			if (ImGui.InputText(widgetIdPrefix, ref value, 64)) {
-				list[i] = value;
-				Configuration.Save();
-			}
-
-			ImGui.TableNextColumn();
-			if (ImGuiComponents.IconButton(FontAwesomeIcon.Trash))
-				removeIndex = i;
-
-			ImGui.PopID();
-		}
-
-		return removeIndex;
-	}
-
 	private int
-	DrawRowsUint(List<uint> list, string widgetIdPrefix)
+	DrawRowsUint(List<uint> list, string widgetIdPrefix, Func<uint, string> getName)
 	{
 		int removeIndex = -1;
 		string text;
@@ -92,7 +58,8 @@ public class ConfigWindow : Window, IDisposable
 			ImGui.TableNextColumn();
 			ImGui.SetNextItemWidth(-1);
 
-			text = ItemUtil.GetItemName(list[i]).ToString();
+			//text = ItemUtil.GetItemName(list[i]).ToString();
+			text = getName(list[i]);
 			if (ImGui.InputText(widgetIdPrefix, ref text, 16, ImGuiInputTextFlags.CharsDecimal)) {
 				if (uint.TryParse(text, out parsed)) {
 					if (list[i] != parsed) {
@@ -112,31 +79,8 @@ public class ConfigWindow : Window, IDisposable
 		return removeIndex;
 	}
 
-	private void 
-	DrawAddRowString(ref string newEntry, string widgetId, List<string> list)
-	{
-		ImGui.PushID(widgetId);
-
-		ImGui.TableNextRow();
-		ImGui.TableNextColumn();
-		ImGui.SetNextItemWidth(-1);
-
-		ImGui.InputText("##New", ref newEntry, 64);
-
-		ImGui.TableNextColumn();
-		if (ImGuiComponents.IconButton(FontAwesomeIcon.Plus)) {
-			if (!string.IsNullOrWhiteSpace(newEntry)) {
-				list.Add(newEntry.Trim());
-				Configuration.Save();
-				newEntry = "";
-			}
-		}
-
-		ImGui.PopID();
-	}
-
-	private void 
-	DrawAddRowUint(ref string newEntry, string widgetId, List<uint> list)
+	private void
+	DrawAddRowUint(ref string newEntry, string widgetId, List<uint> list, Action<List<uint>> addAction)
 	{
 		ImGui.PushID(widgetId);
 
@@ -148,11 +92,10 @@ public class ConfigWindow : Window, IDisposable
 
 		ImGui.TableNextColumn();
 		if (ImGuiComponents.IconButton(FontAwesomeIcon.Plus))
-			TryAddIgnoredItem(list);
+			addAction(list);      // <-- key change
 
 		ImGui.PopID();
 	}
-#endregion
 
 	private void 
 	TryAddIgnoredItem(List<uint> ignoredItemIds)
@@ -175,20 +118,29 @@ public class ConfigWindow : Window, IDisposable
 		ignoredItemNewEntry = "";
 	}
 
-	private int
-	DrawItemRows(List<uint> ignoredItemIds) => DrawRowsUint(ignoredItemIds, "##ItemId");
-
 	private void
-	DrawNewItemRow(List<uint> ignoredItemIds) => DrawAddRowUint(ref ignoredItemNewEntry, "AddNewItem", ignoredItemIds);
+	TryAddIgnoredZone(List<uint> ignoredZoneIds)
+	{
+		uint baseId;
 
-	private int 
-	DrawZoneRows(List<string> zones) => DrawRowsString(zones, "##Zone");
+		if (string.IsNullOrWhiteSpace(ignoredItemNewEntry))
+			return;
+
+		baseId = Util.GetZoneId(ignoredZoneNewEntry);
+		if (baseId == 0) {
+			ComfyLoot.Log.Warning("Unknown item name: {Name}", ignoredItemNewEntry);
+			return;
+		}
+
+		ignoredZoneIds.Add(baseId);
+		Configuration.Save();
+
+		ComfyLoot.Log.Verbose("Ignoring item {Name} -> BaseId={BaseId}", ignoredItemNewEntry, baseId);
+		ignoredItemNewEntry = "";
+	}
 
 	private void 
-	DrawNewZoneRow(List<string> zones) => DrawAddRowString(ref ignoredZoneNewEntry, "AddNewZone", zones);
-
-	private void 
-	RemoveZone(List<string> zones, int index)
+	RemoveZone(List<uint> zones, int index)
 	{
 		zones.RemoveAt(index);
 		Configuration.Save();
@@ -201,6 +153,31 @@ public class ConfigWindow : Window, IDisposable
 		Configuration.Save();
 	}
 
+	private string ResolveItemName(uint id) =>
+		ItemUtil.GetItemName(id).ToString();
+
+	private string ResolveZoneName(uint id) =>
+		Util.GetZoneName(id);
+#endregion
+
+	private int
+	DrawItemRows(List<uint> ignoredItemIds) => 
+		DrawRowsUint(ignoredItemIds, "##ItemId", ResolveItemName);
+
+	private int
+	DrawZoneRows(List<uint> ignoredZoneIds) =>
+		DrawRowsUint(ignoredZoneIds, "##Zone", ResolveZoneName);
+
+	private void
+	DrawNewItemRow(List<uint> ignoredItemIds) => 
+		DrawAddRowUint(ref ignoredItemNewEntry, "AddNewItem", ignoredItemIds, TryAddIgnoredItem);
+
+	private void
+	DrawNewZoneRow(List<uint> ignoredZoneIds) => 
+		DrawAddRowUint(ref ignoredZoneNewEntry, "AddNewZone", ignoredZoneIds, TryAddIgnoredZone);
+
+	
+
 	public override void
 	Draw()
 	{
@@ -209,14 +186,14 @@ public class ConfigWindow : Window, IDisposable
 		bool serverinfoDisplayChanged;
 		int serverinfoDisplayOption;
 		List<uint> ignoredItemIds;
-		List<string> ignoredZones;
+		List<uint> ignoredZoneIds;
 
 		/* Can't ref a property, so use a local copy */
 		universalis = Configuration.UniversalisEnabled;
 		serverinfo = Configuration.ShowDtrBar;
 		serverinfoDisplayOption = Configuration.DtrBarOption;
 		ignoredItemIds = Configuration.IgnoredItemIds;
-		ignoredZones = Configuration.IgnoredZones;
+		ignoredZoneIds = Configuration.IgnoredZoneIds;
 
 		ImGui.TextColored(ImGuiColors.DalamudRed, "Read this!!!");
 		ImGui.TextColoredWrapped(ImGuiColors.DalamudYellow, "Ugh, another conscent thingy. We hate them too, but apparently it's the law. If you enable this, your ip, homeworld, and items you picked up will be sent to Universalis. We don't know what they will do with this data.");
@@ -229,8 +206,8 @@ public class ConfigWindow : Window, IDisposable
 		}
 
 		ImGui.Separator();
-		DrawIgnoredZoneList(ignoredZones);
-		DrawItemIgnoreList(ignoredItemIds);
+		DrawZoneIgnorelist(ignoredZoneIds);
+		DrawItemIgnorelist(ignoredItemIds);
 		ImGui.Separator();
 
 		if (ImGui.Checkbox("Enable Server Info bar entry", ref serverinfo)) {
@@ -266,26 +243,7 @@ public class ConfigWindow : Window, IDisposable
 	}
 
 	private void
-	DrawIgnoredZoneList(List<string> ignoredZones)
-	{
-		ImGui.TextUnformatted("Ignored zones");
-		if (!ImGui.BeginTable("IgnoredZonesTable", 2, ImGuiTableFlags.SizingStretchProp))
-			return;
-
-		ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthStretch);
-		ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 25.0f);
-
-		int removeIndex = DrawZoneRows(ignoredZones);
-		if (removeIndex >= 0)
-			RemoveZone(ignoredZones, removeIndex);
-
-		DrawNewZoneRow(ignoredZones);
-
-		ImGui.EndTable();
-	}
-
-	private void 
-	DrawItemIgnoreList(List<uint> ignoredItemIds)
+	DrawItemIgnorelist(List<uint> ignoredItemIds)
 	{
 		ImGui.TextUnformatted("Ignored items");
 		if (!ImGui.BeginTable("IgnoredItemIdsTable", 2, ImGuiTableFlags.SizingStretchProp))
@@ -299,6 +257,25 @@ public class ConfigWindow : Window, IDisposable
 			RemoveItem(ignoredItemIds, removeIndex);
 
 		DrawNewItemRow(ignoredItemIds);
+
+		ImGui.EndTable();
+	}
+
+	private void
+	DrawZoneIgnorelist(List<uint> ignoredZoneIds)
+	{
+		ImGui.TextUnformatted("Ignored zones");
+		if (!ImGui.BeginTable("IgnoredZonesTable", 2, ImGuiTableFlags.SizingStretchProp))
+			return;
+
+		ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthStretch);
+		ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 25.0f);
+
+		int removeIndex = DrawZoneRows(ignoredZoneIds);
+		if (removeIndex >= 0)
+			RemoveZone(ignoredZoneIds, removeIndex);
+
+		DrawNewZoneRow(ignoredZoneIds);
 
 		ImGui.EndTable();
 	}

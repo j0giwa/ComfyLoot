@@ -16,7 +16,6 @@ using Lumina.Excel;
 using Lumina.Text.ReadOnly;
 
 using ComfyLoot.Managers;
-using FFXIVClientStructs;
 using System.Threading.Tasks;
 
 namespace ComfyLoot.Windows;
@@ -80,48 +79,48 @@ public class MainWindow : Window, IDisposable {
 	private static  async Task
 	Populate(LootManager loot)
 	{
-		const string fakezonename = "Ligma Lominsa"; /* purosefully silly */
+		const uint fakezone = 2; /* mail moogle */
 
 		await loot.AddItem(
 			id: 1, /* gil */
 			amount: 1000000,
-			zoneName: fakezonename,
+			zone: fakezone,
 			hq: false
 		);
 		await loot.AddItem(
 			id: 14, /* fire cluster */
 			amount: 999,
-			zoneName: fakezonename,
+			zone: fakezone,
 			hq: false
 		);
 		await loot.AddItem(
 			id: 1046003, /* mate cookie (hq) */
 			amount: 99,
-			zoneName: fakezonename,
+			zone: fakezone,
 			hq: true
 		);
 		await loot.AddItem(
 			id: 2791, /* aetherial mythril circlet (rubellite) */
 			amount: 1,
-			zoneName: fakezonename,
+			zone: fakezone,
 			hq: false
 		);
 		await loot.AddItem(
 			id: 3035, /* acolyte's robe */
 			amount: 1,
-			zoneName: fakezonename,
+			zone: fakezone,
 			hq: true
 		);
 		await loot.AddItem(
 			id: 32418,/* cryptlurker sword */
 			amount: 1,
-			zoneName: fakezonename,
+			zone: fakezone,
 			hq: false
 		);
 		await loot.AddItem(
 			id: 33475, /* blade's fealty */
 			amount: 1,
-			zoneName: fakezonename,
+			zone: fakezone,
 			hq: false
 		);
 	}
@@ -318,12 +317,13 @@ public class MainWindow : Window, IDisposable {
 	/// Draws a zone header row and its item list as subtables.
 	/// </summary>
 	private void
-	DrawZoneSection(string zone, List<LootItem> items)
+	DrawZoneSection(uint zone, List<LootItem> items)
 	{
 		int itemCount;
 		int itemValue;
 		uint headerBg;
 		bool zoneOpen;
+		string zoneName;
 
 		ImGui.TableNextRow();
 		headerBg = ImGui.GetColorU32(ImGuiCol.Tab);
@@ -339,11 +339,23 @@ public class MainWindow : Window, IDisposable {
 			ImGuiTreeNodeFlags.SpanAvailWidth);
 		ImGui.PopID();
 
+		zoneName = Util.GetZoneName(zone);
 		itemCount = loot.GetZoneItemQuantity(zone);
 		itemValue = loot.GetZoneItemValue(zone);
 
 		ImGui.TableNextColumn();
-		ImGui.TextUnformatted(zone);
+		ImGui.TextUnformatted(zoneName);
+		if (ImGui.BeginPopupContextItem("##ZoneContext")) {
+			if (ImGui.MenuItem("Ignore Zone")) {
+				plugin.Configuration.IgnoredZoneIds.Add(zone);
+				plugin.Configuration.Save();
+			}
+
+			if (ImGui.MenuItem("Copy Name"))
+				ImGui.SetClipboardText(zoneName);
+
+			ImGui.EndPopup();
+		}
 		ImGui.TableNextColumn();
 		ImGui.TextUnformatted(Util.FormatNumber(itemCount));
 		ImGui.TableNextColumn();
@@ -388,18 +400,13 @@ public class MainWindow : Window, IDisposable {
 
 			ImGui.TableHeadersRow();
 
-			foreach (KeyValuePair<string, List<LootItem>> kvp in plugin.LootManager.Loot) {
-				if (kvp.Key != null)
-					zoneName = kvp.Key;
-				else
-					zoneName = "<Unknown Zone>";
-
+			foreach (KeyValuePair<uint, List<LootItem>> kvp in plugin.LootManager.Loot) {
 				if (kvp.Value != null)
 					items = kvp.Value;
 				else
 					items = new List<LootItem>();
 
-				DrawZoneSection(zoneName, items);
+				DrawZoneSection(kvp.Key, items);
 			}
 
 			ImGui.EndTable();

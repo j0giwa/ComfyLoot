@@ -10,15 +10,12 @@ public class Configuration : IPluginConfiguration
 {
 	public int Version { get; set; } = 0; /* TODO: figure out the point of this */
 
-	public bool IsConfigWindowMovable { get; set; } = true;
-	public bool UniversalisEnabled { get; set; } = false; /* disabled for legal reasons */
-
+	/* NOTE: all features should be opt in */
+	public bool UniversalisEnabled { get; set; } = false; /* NOTE: disabled for legal reasons */
+	public List<uint> IgnoredItemIds { get; set; } = new List<uint>();
+	public List<uint> IgnoredZoneIds { get; set; } = new List<uint>();
 	public bool ShowDtrBar { get; set; } = false;
 	public int DtrBarOption { get; set; } = 0;
-
-	public List<uint> IgnoredItemIds { get; set; } = [];
-	public List<string> IgnoredZones { get; set; } = [];
-
 
 	/// <summary>
 	/// Saves plugin config

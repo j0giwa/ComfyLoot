@@ -53,6 +53,7 @@ Be as concise and reproducible as possible—screenshots/logs help.
 - The pickup detection relies on inventory events; they are not 100% reliable, but other methods may break Dalamud guidelines.
 - The plugin relies on game memory structures; some updates may temporarily break compatibility.
 - API lookups fail if third-party endpoints are offline.
+- UI is a mess
 
 ## Contribute
 

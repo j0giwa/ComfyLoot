@@ -6,7 +6,6 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using ComfyLoot.Models;
-using Lumina.Excel.Sheets;
 
 namespace ComfyLoot.Managers;
 
@@ -28,20 +27,20 @@ public class LootManager : IDisposable {
 	public bool IsDisposed { get; private set; }
 
 	private readonly ComfyLoot plugin;
-	private readonly Dictionary<string, List<LootItem>> loot;
+	private readonly Dictionary<uint, List<LootItem>> loot;
 	private readonly Lock lootLock;
 	private readonly Configuration config;
 
 	/// <summary>
 	/// Droplist, contains everything the player collected
 	/// </summary>
-	public IReadOnlyDictionary<string, List<LootItem>> Loot {
+	public IReadOnlyDictionary<uint, List<LootItem>> Loot {
 		get {
-			Dictionary<string, List<LootItem>> snapshot;
+			Dictionary<uint, List<LootItem>> snapshot;
 
 			lock (lootLock) {
-				snapshot = new Dictionary<string, List<LootItem>>();
-				foreach (KeyValuePair<string, List<LootItem>> kvp in loot)
+				snapshot = new Dictionary<uint, List<LootItem>>();
+				foreach (KeyValuePair<uint, List<LootItem>> kvp in loot)
 					snapshot[kvp.Key] = new List<LootItem>(kvp.Value);
 				return snapshot;
 			}
@@ -57,7 +56,7 @@ public class LootManager : IDisposable {
 
 		this.plugin = plugin;
 		config = plugin.Configuration;
-		loot = new Dictionary<string, List<LootItem>>();
+		loot = new Dictionary<uint, List<LootItem>>();
 		lootLock = new Lock();
 	}
 
@@ -68,8 +67,9 @@ public class LootManager : IDisposable {
 	/// <param name="id">item id</param>
 	/// <returns>true, if the item</returns>
 	private bool
-	CheckIgnored(uint itemId)
+	CheckIgnoredItem(uint itemId)
 	{
+		/* FIXME: not null safe */
 		foreach (uint id in plugin.Configuration.IgnoredItemIds)
 			if (id == itemId)
 				return true;
@@ -84,10 +84,11 @@ public class LootManager : IDisposable {
 	/// <param name="id">item id</param>
 	/// <returns>true, if the item</returns>
 	private bool
-	CheckIgnored(string zonename)
+	CheckIgnoredZone(uint zoneId)
 	{
-		foreach (string zone in plugin.Configuration.IgnoredZones)
-			if (zone == zonename)
+		/* FIXME: not null safe */
+		foreach (uint id in plugin.Configuration.IgnoredZoneIds)
+			if (id == zoneId)
 				return true;
 
 		return false;
@@ -128,8 +129,7 @@ public class LootManager : IDisposable {
 			return 2500;
 		case (int)SpecialItems.ALLAGAN_PLATINUM_PIECE:
 			return 10000;
-		/* marketboard value (if eligible) */
-		default:
+		default: /* marketboard value (if eligible) */
 			if (!config.UniversalisEnabled)
 				return 0;
 
@@ -139,9 +139,8 @@ public class LootManager : IDisposable {
 			if (worldname == null
 			|| worldname.Equals("Dev")
 			|| worldname.Equals("???")
-			|| !Util.IsTradable(itemId)) {
+			|| !Util.IsTradable(itemId))
 				return 0;
-			}
 
 			value = await Universalis.GetValue(
 				itemId,
@@ -156,7 +155,7 @@ public class LootManager : IDisposable {
 	/// Add or update an item in the droplist.
 	/// </summary>
 	public async Task
-	AddItem(uint id, int amount, string zoneName, bool hq)
+	AddItem(uint id, int amount, uint zone, bool hq)
 	{
 		int itemValue;
 		int quantity;
@@ -164,8 +163,8 @@ public class LootManager : IDisposable {
 		LootItem? existing;
 		List<LootItem>? items;
 
-		if(CheckIgnored(id)
-		|| CheckIgnored(zoneName))
+		if(CheckIgnoredItem(id)
+		|| CheckIgnoredZone(zone))
 			return;
 
 		itemValue = await GetItemGilValue(Util.GetBaseId(id), hq);
@@ -177,7 +176,7 @@ public class LootManager : IDisposable {
 		);
 
 		lock (lootLock) {
-			if (!loot.TryGetValue(zoneName, out items))
+			if (!loot.TryGetValue(zone, out items))
 				items = new List<LootItem>();
 
 			existing = items.FirstOrDefault(x => x.ItemId == id);
@@ -192,26 +191,26 @@ public class LootManager : IDisposable {
 					existing.Value
 				));
 
-				loot[zoneName] = items;
+				loot[zone] = items;
 
 				plugin.UpdateDtrBar();
 				ComfyLoot.Log.Information(
-					"[TRACK] {Quantity}x {ItemId} in {Zone}",
+					"[TRACK] {Quantity}x {ItemId} in zone: {Zone}",
 					quantity,
 					id,
-					zoneName);
+					zone);
 				return;
 			}
 
 			items.Add(item);
-			loot[zoneName] = items;
+			loot[zone] = items;
 
 			plugin.UpdateDtrBar();
 			ComfyLoot.Log.Information(
-				"[TRACK] {Quantity}x {ItemId} in {Zone}",
+				"[TRACK] {Quantity}x {ItemId} in zone: {Zone}",
 				amount,
 				id,
-				zoneName);
+				zone);
 		}
 	}
 
@@ -224,11 +223,11 @@ public class LootManager : IDisposable {
 	GetTotalItemValue()
 	{
 		int totalValue = 0;
-		List<string> zones;
+		List<uint> zones;
 
 		lock (lootLock) {
-			zones = new List<string>(loot.Keys);
-			foreach (string zone in zones)
+			zones = new List<uint>(loot.Keys);
+			foreach (uint zone in zones)
 				totalValue += GetZoneItemValue(zone);
 
 			return totalValue;
@@ -243,11 +242,11 @@ public class LootManager : IDisposable {
 	GetTotalItemQuantity()
 	{
 		int totalQuantity = 0;
-		List<string> zones;
+		List<uint> zones;
 
 		lock (lootLock) {
-			zones = new List<string>(loot.Keys);
-			foreach (string zone in zones)
+			zones = new List<uint>(loot.Keys);
+			foreach (uint zone in zones)
 				totalQuantity += GetZoneItemQuantity(zone);
 
 			return totalQuantity;
@@ -260,14 +259,13 @@ public class LootManager : IDisposable {
 	/// <param name="zoneItems">The list of items in the zone</param>
 	/// <returns>Total number of non-currency items in this zone</returns>
 	public int
-	GetZoneItemQuantity(string zone)
+	GetZoneItemQuantity(uint zone)
 	{
 		int zoneTotal = 0;
 		List<LootItem>? items;
 
 		lock (lootLock) {
-			if (loot == null
-			|| string.IsNullOrEmpty(zone))
+			if (loot == null)
 				return 0;
 
 			if (!loot.TryGetValue(zone, out items))
@@ -293,14 +291,13 @@ public class LootManager : IDisposable {
 	/// <param name="zone">zonename</param>
 	/// <returns>Total number of non-currency items in this zone</returns>
 	public int
-	GetZoneItemValue(string zone)
+	GetZoneItemValue(uint zone)
 	{
 		int zoneTotal = 0;
 		List<LootItem>? items;
 
 		lock (lootLock) {
-			if (loot == null
-			|| string.IsNullOrEmpty(zone))
+			if (loot == null)
 				return 0;
 
 			if (!loot.TryGetValue(zone, out items))

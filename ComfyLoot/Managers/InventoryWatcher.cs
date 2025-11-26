@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using ComfyLoot.Models;
 using Dalamud.Game.Inventory;
 using Dalamud.Game.Inventory.InventoryEventArgTypes;
 
@@ -81,7 +82,7 @@ public class InventoryWatcher : IDisposable {
 	/// <param name="token"></param>
 	/// <returns>A queue containing the queued events.</returns>
 	private async Task
-	DebounceEvents(CancellationToken token, string zone)
+	DebounceEvents(CancellationToken token, uint zone)
 	{
 		const int delay = 250; /* adjust if needed, gatherers boon might break it */
 
@@ -119,13 +120,13 @@ public class InventoryWatcher : IDisposable {
 	private void
 	OnInventoryChanged(IReadOnlyCollection<InventoryEventArgs> events)
 	{
-		string zone;
+		uint zone;
 
-		zone = Util.GetCurrentZoneName();
+		zone = ComfyLoot.ClientState.TerritoryType;
 		if (Util.IsTargetMarketboard())
-			zone = "Marketboard";
+			zone = (uint) Zones.MARKETBOARD;
 		if (Util.IsTargetMail())
-			zone = "Delivery";
+			zone = (uint)Zones.MAIL;
 
 		lock (debounceLock) {
 			eventBuffer.AddRange(events);
@@ -136,7 +137,7 @@ public class InventoryWatcher : IDisposable {
 	}
 
 	private void
-	ProcessEvents(Queue<InventoryEventArgs> events, string zone)
+	ProcessEvents(Queue<InventoryEventArgs> events, uint zone)
 	{
 		int eventnumber;
 		int totalEvents;
@@ -177,7 +178,7 @@ public class InventoryWatcher : IDisposable {
 	/// Handle inventory item events (add or change)
 	/// </summary>
 	private void
-	ProccessEventItem(object argsObj, string zone)
+	ProccessEventItem(object argsObj, uint zone)
 	{
 		int quantity;
 		int addedAmount;
