@@ -54,7 +54,6 @@ public class InventoryWatcher : IDisposable {
 		case GameInventoryType.Crystals:
 		case GameInventoryType.Currency:
 			return true;
-
 		default:
 			return false;
 		}
