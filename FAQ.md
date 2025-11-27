@@ -22,8 +22,9 @@ If you feel the need to ask this question, you have already answered it yourself
 
 This is not endoresed by Square Enix, if you heard something else, they were lying.
 The code contains snippets from sources, that are at best, questionable.
-The Plugin accesses API's that did not disclose their practices of handling user data. And no amount of me yappin could prove my intents. (see: [Privacy](PRIVACY.md))
+The Plugin accesses API's that did not disclose their practices of handling user data (see: [Privacy](Privacy.md)). 
 
+And no amount of me yappin could prove my intents. 
 What i can offer is this: You are on GitHub, you have the code in front of you, see for yourself.
   (If you don't understand code, ask someone you trust (not ChatGPT), or assume it's malicious)
 
@@ -42,3 +43,4 @@ Im not here to police your tool-choice, but i would advise to not use ChatGPT fo
 
 I'm not, i'd be happy if at least a handfull of people use it.
 However there is a fair share of drama in the plogon community, and i prefer to play with open cards.
+
