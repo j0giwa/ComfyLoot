@@ -20,6 +20,9 @@ using System.Threading.Tasks;
 
 namespace ComfyLoot.Windows;
 
+/// <summary>
+/// Mainplugin UI
+/// </summary>
 public class MainWindow : Window, IDisposable {
 
 	private readonly ComfyLoot plugin;
@@ -75,88 +78,28 @@ public class MainWindow : Window, IDisposable {
 		};
 	}
 
-#if DEBUG
-	private static  async Task
-	Populate(LootManager loot)
-	{
-		const uint fakezone = 2; /* mail moogle */
-
-		await loot.AddItem(
-			id: 1, /* gil */
-			amount: 1000000,
-			zone: fakezone,
-			hq: false
-		);
-		await loot.AddItem(
-			id: 14, /* fire cluster */
-			amount: 999,
-			zone: fakezone,
-			hq: false
-		);
-		await loot.AddItem(
-			id: 1046003, /* mate cookie (hq) */
-			amount: 99,
-			zone: fakezone,
-			hq: true
-		);
-		await loot.AddItem(
-			id: 2791, /* aetherial mythril circlet (rubellite) */
-			amount: 1,
-			zone: fakezone,
-			hq: false
-		);
-		await loot.AddItem(
-			id: 3035, /* acolyte's robe */
-			amount: 1,
-			zone: fakezone,
-			hq: true
-		);
-		await loot.AddItem(
-			id: 32418,/* cryptlurker sword */
-			amount: 1,
-			zone: fakezone,
-			hq: false
-		);
-		await loot.AddItem(
-			id: 33475, /* blade's fealty */
-			amount: 1,
-			zone: fakezone,
-			hq: false
-		);
-	}
-#endif //* DEBUG*/
-
 	/// <summary>
-	/// gets an items icon
+	/// draws a items icon
 	/// </summary>
-	/// <returns>
-	/// Item icon texture
-	/// </returns>
-	private static ISharedImmediateTexture?
-	GetIcon(uint itemId)
+	private static void
+	DrawIcon(uint itemId)
 	{
-		GameIconLookup lookup;
-		ISharedImmediateTexture? sharedTexture;
-		ExcelSheet<Item> items;
-		Item item;
+		Vector2 iconSize = new Vector2(20, 20);
+		ISharedImmediateTexture? sharedTexture = GetIcon(itemId);
 
-		items = ComfyLoot.DataManager.GetExcelSheet<Item>();
-		if (items == null) {
-			ComfyLoot.Log.Fatal("[Lumina] Cannot determine Icon, Item-sheet can not be resolved");
-			return null;
+		if (sharedTexture == null) {
+			ImGui.TextUnformatted("");
+			return;
 		}
 
-		if (!items.TryGetRow(itemId, out item)) {
-			return null;
-		}
+		using IDalamudTextureWrap? wrap = sharedTexture.GetWrapOrEmpty();
 
-		lookup = new GameIconLookup(item.Icon);
-		if (!ComfyLoot.Textures.TryGetFromGameIcon(in lookup, out sharedTexture)
-		|| sharedTexture == null) {
-			return null;
+		if (wrap != null) {
+			ImGui.SetCursorPosX(ImGui.GetCursorPosX() - 20f);
+			ImGui.Image(wrap.Handle, iconSize);
+		} else {
+			ImGui.TextUnformatted("");
 		}
-
-		return sharedTexture;
 	}
 
 	/// <summary>
@@ -180,30 +123,6 @@ public class MainWindow : Window, IDisposable {
 			ImGui.TextUnformatted("Currencies such as Gil, Scrips, or Tomestones are ignored.");
 			ImGui.PopTextWrapPos();
 			ImGui.EndTooltip();
-		}
-	}
-
-	/// <summary>
-	/// draws a items icon
-	/// </summary>
-	private static void
-	DrawIcon(uint itemId)
-	{
-		Vector2 iconSize = new Vector2(20, 20);
-		ISharedImmediateTexture? sharedTexture = GetIcon(itemId);
-
-		if (sharedTexture == null) {
-			ImGui.TextUnformatted("");
-			return;
-		}
-
-		using IDalamudTextureWrap? wrap = sharedTexture.GetWrapOrEmpty();
-
-		if (wrap != null) {
-			ImGui.SetCursorPosX(ImGui.GetCursorPosX() - 20f);
-			ImGui.Image(wrap.Handle, iconSize);
-		} else {
-			ImGui.TextUnformatted("");
 		}
 	}
 
@@ -370,10 +289,93 @@ public class MainWindow : Window, IDisposable {
 		ImGui.TreePop();
 	}
 
+	/// <summary>
+	/// gets an items icon
+	/// </summary>
+	/// <returns>
+	/// Item icon texture
+	/// </returns>
+	private static ISharedImmediateTexture?
+	GetIcon(uint itemId)
+	{
+		GameIconLookup lookup;
+		ISharedImmediateTexture? sharedTexture;
+		ExcelSheet<Item> items;
+		Item item;
+
+		items = ComfyLoot.DataManager.GetExcelSheet<Item>();
+		if (items == null) {
+			ComfyLoot.Log.Fatal("[Lumina] Cannot determine Icon, Item-sheet can not be resolved");
+			return null;
+		}
+
+		if (!items.TryGetRow(itemId, out item)) {
+			return null;
+		}
+
+		lookup = new GameIconLookup(item.Icon);
+		if (!ComfyLoot.Textures.TryGetFromGameIcon(in lookup, out sharedTexture)
+		|| sharedTexture == null) {
+			return null;
+		}
+
+		return sharedTexture;
+	}
+
+#if DEBUG
+	private static async Task
+	Populate(LootManager loot)
+	{
+		const uint fakezone = 2; /* mail moogle */
+
+		await loot.AddItem(
+			id: 1, /* gil */
+			amount: 1000000,
+			zone: fakezone,
+			hq: false
+		);
+		await loot.AddItem(
+			id: 14, /* fire cluster */
+			amount: 999,
+			zone: fakezone,
+			hq: false
+		);
+		await loot.AddItem(
+			id: 1046003, /* mate cookie (hq) */
+			amount: 99,
+			zone: fakezone,
+			hq: true
+		);
+		await loot.AddItem(
+			id: 2791, /* aetherial mythril circlet (rubellite) */
+			amount: 1,
+			zone: fakezone,
+			hq: false
+		);
+		await loot.AddItem(
+			id: 3035, /* acolyte's robe */
+			amount: 1,
+			zone: fakezone,
+			hq: true
+		);
+		await loot.AddItem(
+			id: 32418,/* cryptlurker sword */
+			amount: 1,
+			zone: fakezone,
+			hq: false
+		);
+		await loot.AddItem(
+			id: 33475, /* blade's fealty */
+			amount: 1,
+			zone: fakezone,
+			hq: false
+		);
+	}
+#endif //* DEBUG*/
+
 	public override void
 	Draw()
 	{
-		string zoneName;
 		ImGuiTableFlags tableFlags;
 		List<LootItem> items;
 

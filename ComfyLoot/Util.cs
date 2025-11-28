@@ -17,79 +17,6 @@ namespace ComfyLoot;
 /* SMELL: Cohesion is fucked, but it didn't fit anywhere else */
 public static class Util {
 
-	public static bool 
-	IsTargetMarketboard()
-	{
-		IGameObject ? target;
-
-		if (!ComfyLoot.ClientState.IsLoggedIn)
-			return false;
-
-		try {
-			target = ComfyLoot.TargetManager.Target;
-			if (target == null)
-				return false;
-			ComfyLoot.Log.Debug($"Mail Target Check: BaseId={target.BaseId}, DataId={target.DataId}, Name={target.Name.TextValue}");
-
-			if (target.BaseId == 2000402)
-				return true;
-
-			/* fallback: identification over name */
-			switch (target.Name.TextValue) {
-			case "Market Board": /* FALLTHROUGH */
-			case "Schwarzes Brett":
-			case "Panneau des ventes":
-			case "マーケットボード":
-				return true;
-			default:
-				return false;
-			}
-		} catch (Exception e) {
-			ComfyLoot.Log.Error(e, "WTF");
-			return false;
-		}
-	}
-
-	public static bool
-	IsTargetMail()
-	{
-    		IGameObject? target;
-
-    		if (!ComfyLoot.ClientState.IsLoggedIn)
-        		return false;
-
-   	 	try {
-        		target = ComfyLoot.TargetManager.Target;
-        		if (target == null)
-            		return false;
-
-			ComfyLoot.Log.Debug($"Mail Target Check: BaseId={target.BaseId}, DataId={target.DataId}, Name={target.Name.TextValue}");
-
-        		if (target.BaseId == 1003567 /* Delivery Moogle NPC */
-			|| target.DataId == 1969) /* housing mailbox (BaseId may vary slightly but DataId is consistent) */
-				return true;
-
-			/* fallback: identification over name */
-			switch (target.Name.TextValue){
-            		case "Delivery Moogle":
-			case "Mailbox":
-			case "Kupo-Kurier":
-			case "Briefkasten":
-			case "Mog postier":
-			case "Boîte aux lettres":
-			case "レターモーグリ":
-            		case "メールボックス":
-                		return true;
-            		default:
-                		return false;
-        		}
-    		} catch (Exception ex) {
-        		ComfyLoot.Log.Error(ex, "Error detecting mailbox/delivery moogle target");
-        		return false;
-    		}
-	}
-
-
 	/// <summary>
 	/// Formats a number to a gil value.
 	/// </summary>
@@ -103,7 +30,6 @@ public static class Util {
 		string result;
 
 		result = FormatNumber(number);
-
 		return $"{result}{gil}";
 	}
 
@@ -119,13 +45,14 @@ public static class Util {
 
 		result = number.ToString("N0", CultureInfo.InvariantCulture);
 		result = result.Replace(",", ".");
-
 		return $"{result}";
 	}
 
 	/// <summary>
 	/// Gets the itemid without offsets
 	/// </summary>
+	/// <param name="itemId">itemid</param>
+	/// <returns>item baseid</returns>
 	public static uint
 	GetBaseId(uint itemId)
 	{
@@ -170,77 +97,54 @@ public static class Util {
 		return name;
 	}
 
-	/// <summary>
-	/// Gets the name of the current zone (where the player currently is).
-	/// </summary>
-	/*
-	public static string
-	GetCurrentZoneName()
+	public static uint
+	GetItemBaseId(string name)
 	{
-		uint id;
-		string name;
-		ExcelSheet<TerritoryType>? sheet;
-		TerritoryType zone;
+		uint baseid;
+		string target;
+		string itemName;
+		ExcelSheet<Item>? sheet;
+		Item? item;
 
-		name = "???"; 
+		if (string.IsNullOrWhiteSpace(name))
+			return 0;
 
-		sheet = ComfyLoot.DataManager.GetExcelSheet<TerritoryType>();
+		sheet = ComfyLoot.DataManager.GetExcelSheet<Item>();
 		if (sheet == null) {
-			ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: TerritoryType");
-			return name;
+			ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: Item");
+			return 0;
 		}
 
-		id = ComfyLoot.ClientState.TerritoryType;
-		if (!sheet.TryGetRow(id, out zone))
-			return name;
+		target = name.Trim();
+		item = null;
 
-		if (zone.PlaceName.Value.Name.IsEmpty)
-			return name;
-
-		name = zone.PlaceName.Value.Name.ToString();
-		if (name.IsNullOrWhitespace())
-			return "???";
-
-		return name;
-	}
-	*/
-
-	/// <summary>
-	/// Gets the name of the current zone (where the player currently is).
-	/// </summary>
-	public static string
-	GetZoneName(uint id)
-	{
-		string name;
-		ExcelSheet<TerritoryType>? sheet;
-		TerritoryType zone;
-
-		name = "???"; /* fallback */
-
-		switch (id){
-		case (uint) Zones.MARKETBOARD:
-			return "Marketboard";
-		case (uint)Zones.MAIL:
-			return "Delivery";
-		default:
-			sheet = ComfyLoot.DataManager.GetExcelSheet<TerritoryType>();
-			if (sheet == null) {
-				ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: TerritoryType");
-				return name;
+		/* EXACT case-insensitive match */
+		foreach (Item row in sheet) {
+			itemName = row.Name.ExtractText();
+			if (itemName.Equals(target, StringComparison.OrdinalIgnoreCase)) {
+				item = row;
+				break;
 			}
-
-			if (!sheet.TryGetRow(id, out zone))
-				return name;
-
-			if (zone.PlaceName.Value.Name.IsEmpty)
-				return name;
-
-			name = zone.PlaceName.Value.Name.ToString();
-			if (name.IsNullOrWhitespace())
-				return "???";
-
-			return name;
 		}
+
+		/* PARTIAL match as fallback */
+		if (item == null) {
+			foreach (Item row in sheet) {
+				itemName = row.Name.ExtractText();
+				if (itemName.Contains(target, StringComparison.OrdinalIgnoreCase)) {
+					item = row;
+					break;
+				}
+			}
+		}
+
+		if (item == null) {
+			ComfyLoot.Log.Warning("[Lumina] Item not found: {item}", target);
+			return 0;
+		}
+
+		baseid = ItemUtil.GetBaseId(item.Value.RowId).ItemId;
+		return baseid;
 	}
 
 	/// <summary>
@@ -267,6 +171,96 @@ public static class Util {
 
 		rarity = item.Value.Rarity;
 		return rarity;
+	}
+
+	public static uint
+	GetZoneId(string name)
+	{
+		string zoneName;
+		ExcelSheet<TerritoryType>? sheet;
+		TerritoryType? found;
+
+		if (string.IsNullOrWhiteSpace(name))
+			return 0;
+
+		name = name.Trim();
+		if (name.Equals("Marketboard", StringComparison.OrdinalIgnoreCase))
+			return (uint)Zones.MARKETBOARD;
+
+		if (name.Equals("Delivery", StringComparison.OrdinalIgnoreCase) ||
+		    name.Equals("Mail", StringComparison.OrdinalIgnoreCase))
+			return (uint)Zones.MAIL;
+
+		sheet = ComfyLoot.DataManager.GetExcelSheet<TerritoryType>();
+		if (sheet == null) {
+			ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: TerritoryType");
+			return 0;
+		}
+
+		found = null;
+		foreach (TerritoryType zone in sheet) {
+			zoneName = zone.PlaceName.Value.Name.ExtractText() ?? "";
+			if (zoneName.Equals(name, StringComparison.OrdinalIgnoreCase)) {
+				found = zone;
+				break;
+			}
+		}
+
+		if (found == null) {
+			foreach (TerritoryType zone in sheet) {
+				zoneName = zone.PlaceName.Value.Name.ExtractText() ?? "";
+				if (zoneName.Contains(name, StringComparison.OrdinalIgnoreCase)) {
+					found = zone;
+					break;
+				}
+			}
+		}
+
+		if (found == null) {
+			ComfyLoot.Log.Warning("[Lumina] Zone not found: {Zone}", 
+				name);
+			return 0;
+		}
+
+		return found.Value.RowId;
+	}
+
+	/// <summary>
+	/// Gets the name of the current zone (where the player currently is).
+	/// </summary>
+	public static string
+	GetZoneName(uint id)
+	{
+		string name;
+		ExcelSheet<TerritoryType>? sheet;
+		TerritoryType zone;
+
+		name = "???"; /* fallback */
+
+		switch (id) {
+		case (uint)Zones.MARKETBOARD:
+			return "Marketboard";
+		case (uint)Zones.MAIL:
+			return "Delivery";
+		default:
+			sheet = ComfyLoot.DataManager.GetExcelSheet<TerritoryType>();
+			if (sheet == null) {
+				ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: TerritoryType");
+				return name;
+			}
+
+			if (!sheet.TryGetRow(id, out zone))
+				return name;
+
+			if (zone.PlaceName.Value.Name.IsEmpty)
+				return name;
+
+			name = zone.PlaceName.Value.Name.ToString();
+			if (name.IsNullOrWhitespace())
+				return "???";
+
+			return name;
+		}
 	}
 
 	/// <summary>
@@ -308,106 +302,81 @@ public static class Util {
 		return result;
 	}
 
-	public static uint
-	GetItemBaseId(string name)
+	public static bool
+	IsTargetMail()
 	{
-		uint baseid;
-		string target;
-		string itemName;
-		ExcelSheet<Item>? sheet;
-		Item? item;
+		IGameObject? target;
 
-		if (string.IsNullOrWhiteSpace(name))
-			return 0;
+		if (!ComfyLoot.ClientState.IsLoggedIn)
+			return false;
 
-		sheet = ComfyLoot.DataManager.GetExcelSheet<Item>();
-		if (sheet == null) {
-			ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: Item");
-			return 0;
-		}
+		try {
+			target = ComfyLoot.TargetManager.Target;
+			if (target == null)
+				return false;
 
-		target = name.Trim();
-		item = null;
+			ComfyLoot.Log.Debug("Mail Target Check: BaseId={baseId}, Name={textValue}",
+				target.BaseId,
+				target.Name.TextValue);
 
-		/* EXACT case-insensitive match */		
-		foreach (Item row in sheet) {
-			itemName = row.Name.ExtractText();
-			if (itemName.Equals(target, StringComparison.OrdinalIgnoreCase)) {
-				item = row;
-				break;
+			if (target.BaseId == 1003567 /* Delivery Moogle NPC */
+			|| target.BaseId == 1969) /* housing mailbox */
+				return true;
+
+			/* fallback: identification over name */
+			switch (target.Name.TextValue) {
+			case "Delivery Moogle": /* FALLTHROUGH */
+			case "Mailbox":
+			case "Kupo-Kurier":
+			case "Briefkasten":
+			case "Mog postier":
+			case "Boîte aux lettres":
+			case "レターモーグリ":
+			case "メールボックス":
+				return true;
+			default:
+				return false;
 			}
+		} catch (Exception ex) {
+			ComfyLoot.Log.Error(ex, "Error detecting mailbox/delivery moogle target");
+			return false;
 		}
-
-		/* PARTIAL match as fallback */
-		if (item == null) {
-			foreach (Item row in sheet) {
-				itemName = row.Name.ExtractText();
-				if (itemName.Contains(target, StringComparison.OrdinalIgnoreCase)) {
-					item = row;
-					break;
-				}
-			}
-		}
-
-		if (item == null) {
-			ComfyLoot.Log.Warning("[Lumina] Item not found: {item}", target);
-			return 0;
-		}
-
-		baseid = ItemUtil.GetBaseId(item.Value.RowId).ItemId;
-		return baseid;
 	}
 
-	public static uint
-	GetZoneId(string name)
+	public static bool
+	IsTargetMarketboard()
 	{
-		if (string.IsNullOrWhiteSpace(name))
-			return 0;
+		IGameObject? target;
 
-		string target = name.Trim();
-		string zoneName;
-		ExcelSheet<TerritoryType>? sheet;
-		TerritoryType row;
+		if (!ComfyLoot.ClientState.IsLoggedIn)
+			return false;
 
-		if (target.Equals("Marketboard", StringComparison.OrdinalIgnoreCase))
-			return (uint)Zones.MARKETBOARD;
+		try {
+			target = ComfyLoot.TargetManager.Target;
+			if (target == null)
+				return false;
 
-		if (target.Equals("Delivery", StringComparison.OrdinalIgnoreCase) ||
-		    target.Equals("Mail", StringComparison.OrdinalIgnoreCase))
-			return (uint)Zones.MAIL;
+			ComfyLoot.Log.Debug("Mail Target Check: BaseId={baseId}, Name={textValue}",
+				target.BaseId,
+				target.Name.TextValue);
 
-		sheet = ComfyLoot.DataManager.GetExcelSheet<TerritoryType>();
-		if (sheet == null) {
-			ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: TerritoryType");
-			return 0;
-		}
+			if (target.BaseId == 2000402)
+				return true;
 
-		TerritoryType? found = null;
-
-		foreach (TerritoryType zone in sheet) {
-			zoneName = zone.PlaceName.Value.Name.ExtractText() ?? "";
-			if (zoneName.Equals(target, StringComparison.OrdinalIgnoreCase)) {
-				found = zone;
-				break;
+			/* fallback: identification over name */
+			switch (target.Name.TextValue) {
+			case "Market Board": /* FALLTHROUGH */
+			case "Schwarzes Brett":
+			case "Panneau des ventes":
+			case "マーケットボード":
+				return true;
+			default:
+				return false;
 			}
+		} catch (Exception e) {
+			ComfyLoot.Log.Error(e, "WTF");
+			return false;
 		}
-
-		if (found == null) {
-			foreach (TerritoryType zone in sheet) {
-				zoneName = zone.PlaceName.Value.Name.ExtractText() ?? "";
-				if (zoneName.Contains(target, StringComparison.OrdinalIgnoreCase)) {
-					found = zone;
-					break;
-				}
-			}
-		}
-
-		if (found == null) {
-			ComfyLoot.Log.Warning("[Lumina] Zone not found: {Zone}", target);
-			return 0;
-		}
-
-		return found.Value.RowId;
 	}
 
 	/// <summary>

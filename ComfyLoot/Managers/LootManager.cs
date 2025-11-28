@@ -1,7 +1,6 @@
 /* See LICENSE file for copyright and license details. */
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -69,7 +68,6 @@ public class LootManager : IDisposable {
 	private bool
 	CheckIgnoredItem(uint itemId)
 	{
-		/* FIXME: not null safe */
 		foreach (uint id in plugin.Configuration.IgnoredItemIds)
 			if (id == itemId)
 				return true;
@@ -86,7 +84,6 @@ public class LootManager : IDisposable {
 	private bool
 	CheckIgnoredZone(uint zoneId)
 	{
-		/* FIXME: not null safe */
 		foreach (uint id in plugin.Configuration.IgnoredZoneIds)
 			if (id == zoneId)
 				return true;
@@ -102,7 +99,7 @@ public class LootManager : IDisposable {
 	/// Item count, if the item is gil;
 	/// Vendor value, if the item is meant to be sold to vendors;
 	/// Univesalis value, if the item can be sold on the marketboard;
-	/// 0, if none of the above applies</item>
+	/// 0, if none of the above applies
 	/// </returns>
 	private async Task<int>
 	GetItemGilValue(uint itemId, bool hq)
@@ -179,7 +176,8 @@ public class LootManager : IDisposable {
 			if (!loot.TryGetValue(zone, out items))
 				items = new List<LootItem>();
 
-			existing = items.FirstOrDefault(x => x.ItemId == id);
+			existing = items.Find(x => x.ItemId == id);
+
 			if (existing != null) {
 				quantity = existing.Quantity + amount;
 
@@ -204,13 +202,24 @@ public class LootManager : IDisposable {
 
 			items.Add(item);
 			loot[zone] = items;
-
 			plugin.UpdateDtrBar();
+
 			ComfyLoot.Log.Information(
 				"[TRACK] {Quantity}x {ItemId} in zone: {Zone}",
 				amount,
 				id,
 				zone);
+		}
+	}
+
+	/// <summary>
+	/// Resets the loot list 
+	/// </summary>
+	public void
+	Clear()
+	{
+		lock (lootLock) {
+			loot.Clear();
 		}
 	}
 
@@ -310,14 +319,6 @@ public class LootManager : IDisposable {
 				zoneTotal += item.Value * item.Quantity;
 
 			return zoneTotal;
-		}
-	}
-
-	public void
-	Clear()
-	{
-		lock (lootLock) {
-			loot.Clear();
 		}
 	}
 
