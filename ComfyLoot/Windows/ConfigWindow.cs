@@ -26,7 +26,7 @@ public class ConfigWindow : Window, IDisposable {
 		: base("ComfyLoot config###comfyloot_config_ui")
 	{
 		SizeConstraints = new WindowSizeConstraints {
-			MinimumSize = new Vector2(600, 400),
+			MinimumSize = new Vector2(600, 500),
 			MaximumSize = new Vector2(600, 2000),
 		};
 
@@ -36,6 +36,9 @@ public class ConfigWindow : Window, IDisposable {
 		this.plugin = plugin;
 	}
 
+	///
+	///
+	///
 	private void
 	DrawResolvedIdAdd(string widgetId, ref string newEntry,  List<uint> list, Action<List<uint>> addAction)
 	{
@@ -53,6 +56,9 @@ public class ConfigWindow : Window, IDisposable {
 		ImGui.PopID();
 	}
 
+	///
+	///
+	///
 	private int
 	DrawResolvedIdList(string widgetId, List<uint> idList, Func<uint, string> nameResovler)
 	{
@@ -85,7 +91,7 @@ public class ConfigWindow : Window, IDisposable {
 		return removeIndex;
 	}
 
-	public override void 
+	public override void
 	Draw()
 	{
 		bool universalis;
@@ -94,43 +100,72 @@ public class ConfigWindow : Window, IDisposable {
 		List<uint> ignoredItemIds;
 		List<uint> ignoredZoneIds;
 
-
 		universalis = Configuration.UniversalisEnabled;
 		serverinfo = Configuration.ShowDtrBar;
 		serverinfoDisplayOption = Configuration.DtrBarOption;
 		ignoredItemIds = Configuration.IgnoredItemIds;
 		ignoredZoneIds = Configuration.IgnoredZoneIds;
 
+		if (ImGui.TreeNodeEx("Ignored Entrys")) {
+			DrawZoneIgnorelist(ignoredZoneIds);
+			DrawItemIgnorelist(ignoredItemIds);
+		}
+
+		ImGui.Separator();
+
 		DrawUniversalisSection(ref universalis);
-
-		ImGui.Separator();
-
-		DrawZoneIgnorelist(ignoredZoneIds);
-		DrawItemIgnorelist(ignoredItemIds);
-
-		ImGui.Separator();
-
 		DrawDtrSection(ref serverinfo, ref serverinfoDisplayOption);
 	}
 
 	private void 
 	DrawUniversalisSection(ref bool universalis)
 	{
-		ImGui.TextColored(ImGuiColors.DalamudRed, "Read this!!!");
-		ImGui.TextColoredWrapped(ImGuiColors.DalamudYellow,
-			"Ugh, another conscent thingy. We hate them too, but apparently it's the law. " +
-			"If you enable this, your ip, homeworld, and items you picked up will be sent to Universalis. " +
-			"We don't know what they will do with this data.");
-		ImGui.TextColored(ImGuiColors.DalamudYellow, "Click 'Enable' so we can all pretend this mattered.");
+		bool opened;
+
+		if (universalis) {
+			if (ImGui.Checkbox("Enable Universalis", ref universalis)) {
+				Configuration.UniversalisEnabled = universalis;
+				Configuration.Save();
+				ComfyLoot.Log.Debug("[CONFIG] Universalis enabled {universalis}", universalis);
+			}
+			return;
+		}
+
+		opened = ImGui.TreeNodeEx("Read this!!!");
+		if (opened) {
+			ImGui.TextColored(ImGuiColors.DalamudRed, "Universalis Consent & Warning");
+
+			ImGui.TextColoredWrapped(
+			    ImGuiColors.DalamudYellow,
+			    "Ugh, another consent thingy. We hate them too, but apparently it's the law. " +
+			    "If you enable this, your IP, homeworld, and items you picked up will be sent to Universalis. " +
+			    "We don't know what they will do with this data."
+			);
+
+			ImGui.TextColored(
+			    ImGuiColors.DalamudYellow,
+			    "Click 'Enable' so we can all pretend this mattered."
+			);
+
+			ImGui.Spacing();
+			ImGui.TreePop();
+		}
+
+		ImGui.BeginDisabled(!opened);
 
 		if (ImGui.Checkbox("Enable Universalis", ref universalis)) {
 			Configuration.UniversalisEnabled = universalis;
 			Configuration.Save();
-			ComfyLoot.Log.Debug("[CONFIG) Universalis enabled {univeralis}", universalis);
+			ComfyLoot.Log.Debug("[CONFIG] Universalis enabled {universalis}", universalis);
 		}
+
+		ImGui.EndDisabled();
 	}
 
-	private void 
+	/// <summary>
+	/// Draws configuration options regarding the dtr bar
+	/// </summary>
+	private void
 	DrawDtrSection(ref bool serverinfo, ref int serverinfoDisplayOption)
 	{
 		if (ImGui.Checkbox("Enable Server Info bar entry", ref serverinfo)) {
@@ -165,6 +200,9 @@ public class ConfigWindow : Window, IDisposable {
 			ImGui.EndDisabled();
 	}
 
+	/// <summary>
+	/// Draws an item ignorelist
+	/// </summary>
 	private void
 	DrawItemIgnorelist(List<uint> ignoredItemIds)
 	{
@@ -194,6 +232,9 @@ public class ConfigWindow : Window, IDisposable {
 		ImGui.EndTable();
 	}
 
+	/// <summary>
+	/// Draws an item ignorelist
+	/// </summary>
 	private void
 	DrawZoneIgnorelist(List<uint> ignoredZoneIds)
 	{
@@ -216,28 +257,37 @@ public class ConfigWindow : Window, IDisposable {
 		DrawResolvedIdAdd(
 			"##AddNewZone",
 			ref ignoredZoneNewEntry,
-			ignoredZoneIds, 
+			ignoredZoneIds,
 			TryAddIgnoredZone
 		);
 
 		ImGui.EndTable();
 	}
 
-	private void 
+	/// <summary>
+	/// removes a zone from the zone ignorelist
+	/// </summary>
+	private void
 	RemoveZone(List<uint> zones, int index)
 	{
 		zones.RemoveAt(index);
 		Configuration.Save();
 	}
 
-	private void 
+	/// <summary>
+	/// removes a item from the zone ignorelist
+	/// </summary>
+	private void
 	RemoveItem(List<uint> list, int index)
 	{
 		list.RemoveAt(index);
 		Configuration.Save();
 	}
 
-	private void 
+	/// <summary>
+	/// attempts to add an item to the ignorelist
+	/// </summary>
+	private void
 	TryAddIgnoredItem(List<uint> ignoredItemIds)
 	{
 		uint baseId;
@@ -258,7 +308,10 @@ public class ConfigWindow : Window, IDisposable {
 		ignoredItemNewEntry = "";
 	}
 
-	private void 
+	/// <summary>
+	/// attempts to add an zone to the ignorelist
+	/// </summary>
+	private void
 	TryAddIgnoredZone(List<uint> ignoredZoneIds)
 	{
 		uint baseId;
@@ -279,14 +332,14 @@ public class ConfigWindow : Window, IDisposable {
 		ignoredZoneNewEntry = "";
 	}
 
-	public void 
+	public void
 	Dispose()
 	{
 		Dispose(true);
 		GC.SuppressFinalize(this);
 	}
 
-	protected virtual void 
+	protected virtual void
 	Dispose(bool disposing)
 	{
 		ComfyLoot.Log.Verbose("[ConfigWindow] Disposing UI");
