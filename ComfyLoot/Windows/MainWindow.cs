@@ -40,6 +40,11 @@ public class MainWindow : Window, IDisposable {
 	private readonly List<uint> hidenItems;
 	private readonly List<uint> hidenZones;
 
+	/// <summary>
+	/// MainWindow:ctor
+	/// </summary>
+	/// <param name="plugin"></param>
+	/// <param name="loot"></param>
 	public MainWindow(ComfyLoot plugin, LootManager loot)
 		: base("ComfyLoot###comfyloot_ui", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
 	{
@@ -81,8 +86,17 @@ public class MainWindow : Window, IDisposable {
 			Click = async (msg) => { await Populate(this.loot); },
 			IconOffset = new(2, 1),
 			ShowTooltip = () => {
+				Vector4 color = ImGuiColors.ParsedGrey;
+
 				ImGui.BeginTooltip();
-				ImGui.Text("Debug Populate");
+				ImGui.Text("Debug (Click me to Populate)");
+
+				ImGui.Separator();
+
+				ImGui.TextColored(color, $"Homeworld: {Util.GetHomeWorld()}");
+				ImGui.TextColored(color, $"Is_Target_Mail: {Util.IsTargetMail()}");
+				ImGui.TextColored(color, $"Is_Target_Marketboard: {Util.IsTargetMarketboard()}");
+
 				ImGui.EndTooltip();
 			}
 		});
@@ -125,7 +139,7 @@ public class MainWindow : Window, IDisposable {
 			return;
 		}
 
-		ImGui.BeginChild("LootCountersChild", new Vector2(0, 55), true, ImGuiWindowFlags.NoScrollbar);
+		ImGui.BeginChild("LootCountersChild", new Vector2(0, 55), true);
 		DrawItemCounter();
 		DrawValueDisplay(plugin.LootManager.GetTotalItemValue());
 		ImGui.EndChild();
@@ -216,6 +230,7 @@ public class MainWindow : Window, IDisposable {
 			}
 		}
 
+		ImGui.BeginChild("LootZonesChild", new Vector2(0, 0), false);
 		foreach (var kvp in zones) {
 			items = kvp.Value;
 			if (items == null)
@@ -224,6 +239,7 @@ public class MainWindow : Window, IDisposable {
 			if (!(hideItems && hidenZones.Contains(kvp.Key)))
 				DrawItemList(kvp.Key, items);
 		}
+		ImGui.EndChild();
 	}
 
 	private static void
@@ -336,6 +352,7 @@ public class MainWindow : Window, IDisposable {
 		ImGui.TextUnformatted($"Rarity: {item.Rarity}");
 		ImGui.TextUnformatted($"Tradable: {Util.IsTradable(item.ItemId)}");
 		ImGui.TextUnformatted($"IsCurrency: {Util.IsCurrency(item.ItemId)}");
+		
 #endif
 
 		ImGui.PopTextWrapPos();
@@ -567,6 +584,7 @@ public class MainWindow : Window, IDisposable {
 	{
 		const uint marketboard = 1;
 		const uint delivery = 2;
+		const uint aurum_vale = 172;
 
 		await loot.AddItem(
 			id: 1, /* gil */
@@ -574,6 +592,49 @@ public class MainWindow : Window, IDisposable {
 			zone: delivery,
 			hq: false
 		);
+		await loot.AddItem(
+			id: 5823, /* allagan tin */
+			amount: 20,
+			zone: delivery,
+			hq: false
+		);
+		await loot.AddItem(
+			id: 5824, /* allagan bronze */
+			amount: 20,
+			zone: delivery,
+			hq: false
+		);
+		await loot.AddItem(
+			id: 27994, /* nightworld bronce */
+			amount: 20,
+			zone: delivery,
+			hq: false
+		);
+		await loot.AddItem(
+			id: 5825, /* allagan silver */
+			amount: 20,
+			zone: delivery,
+			hq: false
+		);
+		await loot.AddItem(
+			id: 28062, /* nightworld silver */
+			amount: 20,
+			zone: delivery,
+			hq: false
+		);
+		await loot.AddItem(
+			id: 5826, /* allagan gold */
+			amount: 20,
+			zone: delivery,
+			hq: false
+		);
+		await loot.AddItem(
+			id: 5827, /* allagan platinum */
+			amount: 20,
+			zone: delivery,
+			hq: false
+		);
+
 		await loot.AddItem(
 			id: 14, /* fire cluster */
 			amount: 999,
@@ -586,28 +647,29 @@ public class MainWindow : Window, IDisposable {
 			zone: marketboard,
 			hq: true
 		);
+
 		await loot.AddItem(
 			id: 2791, /* aetherial mythril circlet (rubellite) */
 			amount: 1,
-			zone: delivery,
+			zone: aurum_vale,
 			hq: false
 		);
 		await loot.AddItem(
 			id: 3035, /* acolyte's robe */
 			amount: 1,
-			zone: delivery,
+			zone: aurum_vale,
 			hq: true
 		);
 		await loot.AddItem(
 			id: 32418,/* cryptlurker sword */
 			amount: 1,
-			zone: delivery,
+			zone: aurum_vale,
 			hq: false
 		);
 		await loot.AddItem(
 			id: 33475, /* blade's fealty */
 			amount: 1,
-			zone: delivery,
+			zone: aurum_vale,
 			hq: false
 		);
 	}

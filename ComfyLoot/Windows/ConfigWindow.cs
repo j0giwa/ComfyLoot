@@ -136,15 +136,15 @@ public class ConfigWindow : Window, IDisposable {
 			ImGui.TextColored(ImGuiColors.DalamudRed, "Universalis Consent & Warning");
 
 			ImGui.TextColoredWrapped(
-			    ImGuiColors.DalamudYellow,
-			    "Ugh, another consent thingy. We hate them too, but apparently it's the law. " +
-			    "If you enable this, your IP, homeworld, and items you picked up will be sent to Universalis. " +
-			    "We don't know what they will do with this data."
+				ImGuiColors.DalamudYellow,
+				"Ugh, another consent thingy. We hate them too, but apparently it's the law. " +
+				"If you enable this, your IP, homeworld, and items you picked up will be sent to Universalis. " +
+				"We don't know what they will do with this data."
 			);
 
 			ImGui.TextColored(
-			    ImGuiColors.DalamudYellow,
-			    "Click 'Enable' so we can all pretend this mattered."
+				ImGuiColors.DalamudYellow,
+				"Click 'Enable' so we can all pretend this mattered."
 			);
 
 			ImGui.Spacing();
