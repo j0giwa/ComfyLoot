@@ -2,7 +2,7 @@
 <Project Sdk="Dalamud.NET.Sdk/13.0.0">
   <PropertyGroup>
     <Version>1.0.0</Version>
-    <Description>Cozy loot Tracker</Description>
+    <Description>RuneLite inspired drop-tracker</Description>
     <PackageProjectUrl>https://github.com/j0giwa/Comfyloot</PackageProjectUrl>
     <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
     <IsPackable>false</IsPackable>
@@ -15,4 +15,5 @@
     </Content>
   </ItemGroup>
 </Project>
+
 
