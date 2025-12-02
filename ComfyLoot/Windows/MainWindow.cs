@@ -37,7 +37,7 @@ public class MainWindow : Window, IDisposable {
 	private readonly LootManager loot;
 
 	public MainWindow(ComfyLoot plugin, LootManager loot)
-	    : base("ComfyLoot###comfyloot_ui", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
+		: base("ComfyLoot###comfyloot_ui", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
 	{
 		SizeConstraints = new WindowSizeConstraints {
 			MinimumSize = new Vector2(375, 330),
@@ -52,12 +52,12 @@ public class MainWindow : Window, IDisposable {
 				Icon = FontAwesomeIcon.Cog,
 				Click = (msg) => { this.plugin.ToggleConfigUI(); },
 				IconOffset = new(2,1),
-				ShowTooltip = () => {
+	    			ShowTooltip = () => {
 					ImGui.BeginTooltip();
 					ImGui.Text("Open Settings");
 					ImGui.EndTooltip();
-				}
-	    		}
+	    			}
+			}
 		];
 #if DEBUG
 		TitleBarButtons.Add(new TitleBarButton() {
@@ -70,27 +70,36 @@ public class MainWindow : Window, IDisposable {
 				ImGui.EndTooltip();
 			}
 		});
-#endif //* DEBUG */
+#endif
 	}
 
 	public override void 
 	Draw()
 	{
+		uint headerBg;
+		int col;
+		string label;
+		Vector2 labelSize;
+		Vector2 cursorPos;
+		Vector2 windowSize;
+		Vector2 textSize;
+		ImGuiTableFlags tableFlags;
 		List<LootItem> items;
-
+		IEnumerable<KeyValuePair<uint, List<LootItem>>> zones;
+		
 		if (plugin.LootManager.Loot.Count == 0) {
 			ImGui.Spacing();
 
-			var text = "You have not received any loot yet";
-			var windowSize = ImGui.GetWindowSize();
-			var textSize = ImGui.CalcTextSize(text);
+			label = "You have not received any loot yet";
+			windowSize = ImGui.GetWindowSize();
+			textSize = ImGui.CalcTextSize(label);
 
 			ImGui.SetCursorPos(new Vector2(
 			    (windowSize.X - textSize.X) * 0.5f,
 			    (windowSize.Y - textSize.Y) * 0.5f
 			));
 
-			ImGui.TextColored(ImGuiColors.DalamudGrey, text);
+			ImGui.TextColored(ImGuiColors.DalamudGrey, label);
 			return;
 		}
 
@@ -100,10 +109,10 @@ public class MainWindow : Window, IDisposable {
 		ImGui.EndChild();
 		ImGui.Spacing();
 
-		ImGuiTableFlags tableFlags = ImGuiTableFlags.RowBg |
-					     ImGuiTableFlags.BordersOuter |
-					     ImGuiTableFlags.BordersInnerV |
-					     ImGuiTableFlags.SizingStretchProp;
+		tableFlags = ImGuiTableFlags.RowBg |
+			     ImGuiTableFlags.BordersOuter |
+			     ImGuiTableFlags.BordersInnerV |
+			     ImGuiTableFlags.SizingStretchProp;
 
 		if (ImGui.BeginTable("lootheader", 4, tableFlags)) {
 			ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed, 20.0f);
@@ -112,66 +121,74 @@ public class MainWindow : Window, IDisposable {
 			ImGui.TableSetupColumn("Value", ImGuiTableColumnFlags.WidthFixed, 80.0f);
 
 			ImGui.TableNextRow();
-			ImGui.TableSetColumnIndex(1);
-			string itemLabel = "Zone Name" + (globalSort?.Column == 1 ? (globalSort.Ascending ? " ▲" : " ▼") : "");
-			Vector2 cursorPos = ImGui.GetCursorPos();
-			if (ImGui.InvisibleButton("##ZoneNameSort", ImGui.CalcTextSize(itemLabel))) {
-				if (globalSort == null)
-					globalSort = new SortState();
-				if (globalSort.Column == 1)
-					globalSort.Ascending = !globalSort.Ascending;
-				else { globalSort.Column = 1; globalSort.Ascending = true; }
-			}
-			ImGui.SetCursorPos(cursorPos);
-			ImGui.Text(itemLabel);
+			headerBg = ImGui.GetColorU32(ImGuiCol.Tab);
 
-			ImGui.TableNextColumn();
-			string amountLabel = "Total Items" + (globalSort?.Column == 2 ? (globalSort.Ascending ? " ▲" : " ▼") : "");
-			cursorPos = ImGui.GetCursorPos();
-			if (ImGui.InvisibleButton("##ZoneAmountSort", ImGui.CalcTextSize(amountLabel))) {
-				if (globalSort == null)
-					globalSort = new SortState();
-				if (globalSort.Column == 2)
-					globalSort.Ascending = !globalSort.Ascending;
-				else { globalSort.Column = 2; globalSort.Ascending = true; }
-			}
-			ImGui.SetCursorPos(cursorPos);
-			ImGui.Text(amountLabel);
+			for (col = 1; col <= 3; col++) {
+				ImGui.TableSetColumnIndex(col);
+				ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, headerBg, ImGui.TableGetRowIndex());
 
-			ImGui.TableNextColumn();
-			string valueLabel = "Total Value" + (globalSort?.Column == 3 ? (globalSort.Ascending ? " ▲" : " ▼") : "");
-			cursorPos = ImGui.GetCursorPos();
-			if (ImGui.InvisibleButton("##ZoneValueSort", ImGui.CalcTextSize(valueLabel))) {
-				if (globalSort == null)
-					globalSort = new SortState();
-				if (globalSort.Column == 3)
-					globalSort.Ascending = !globalSort.Ascending;
-				else { globalSort.Column = 3; globalSort.Ascending = true; }
+				switch (col) {
+				case 1:
+					label = "Zone Name";
+					break;
+				case 2:
+					label = "Total Items";
+					break;
+				case 3:
+					label = "Total Value";
+					break;
+				default:
+					label = "";
+					break;
+				}
+
+				labelSize = ImGui.CalcTextSize(label);
+				cursorPos = ImGui.GetCursorPos();
+
+				if (ImGui.InvisibleButton($"##HeaderBtn{col}", labelSize)) {
+					if (globalSort == null)
+						globalSort = new SortState();
+
+					if (globalSort.Column == col) {
+						globalSort.Ascending = !globalSort.Ascending;
+					} else {
+						globalSort.Column = col;
+						globalSort.Ascending = true;
+					}
+				}
+
+				ImGui.SetCursorPos(cursorPos);
+				ImGui.TextUnformatted(label);
+
+				if (globalSort != null && globalSort.Column == col) {
+					ImGui.SameLine();
+					DrawSortingArrow(globalSort.Ascending);
+				}
 			}
-			ImGui.SetCursorPos(cursorPos);
-			ImGui.Text(valueLabel);
 
 			ImGui.EndTable();
 		}
 
-		IEnumerable<KeyValuePair<uint, List<LootItem>>> zones = plugin.LootManager.Loot;
-
+		zones = plugin.LootManager.Loot;
 		if (globalSort != null) {
 			switch (globalSort.Column) {
-			case 1: /* Sort by zone name */
-				zones = globalSort.Ascending
-				    ? zones.OrderBy(z => Util.GetZoneName(z.Key))
-				    : zones.OrderByDescending(z => Util.GetZoneName(z.Key));
+			case 1:
+				if (globalSort.Ascending)
+					zones = zones.OrderBy(z => Util.GetZoneName(z.Key)).ToList();
+				else
+					zones = zones.OrderByDescending(z => Util.GetZoneName(z.Key)).ToList();
 				break;
-			case 2: /* Sort by total items */
-				zones = globalSort.Ascending
-				    ? zones.OrderBy(z => loot.GetZoneItemQuantity(z.Key))
-				    : zones.OrderByDescending(z => loot.GetZoneItemQuantity(z.Key));
+			case 2:
+				if (globalSort.Ascending)
+					zones = zones.OrderBy(z => loot.GetZoneItemQuantity(z.Key)).ToList();
+				else
+					zones = zones.OrderByDescending(z => loot.GetZoneItemQuantity(z.Key)).ToList();
 				break;
-			case 3: /* Sort by total value */
-				zones = globalSort.Ascending
-				    ? zones.OrderBy(z => loot.GetZoneItemValue(z.Key))
-				    : zones.OrderByDescending(z => loot.GetZoneItemValue(z.Key));
+			case 3:
+				if (globalSort.Ascending)
+					zones = zones.OrderBy(z => loot.GetZoneItemValue(z.Key)).ToList();
+				else
+					zones = zones.OrderByDescending(z => loot.GetZoneItemValue(z.Key)).ToList();
 				break;
 			}
 		}
@@ -181,9 +198,10 @@ public class MainWindow : Window, IDisposable {
 			if (items == null)
 				continue;
 
-			DrawItemList(kvp.Key, items); // zone-level sorting is independent
+			DrawItemList(kvp.Key, items);
 		}
 	}
+
 
 	private static void
 	DrawIcon(uint itemId)
@@ -236,7 +254,19 @@ public class MainWindow : Window, IDisposable {
 		itemName = ItemUtil.GetItemName(item.ItemId, true);
 		ImGui.PushID((int)item.ItemId);
 		ImGui.TextColored(GetRarityColor(item.Rarity), itemName.ToString());
+		DrawItemContext(item, itemName);
+		DrawItemTooltip(item, itemName);
+		ImGui.PopID();
 
+		ImGui.TableNextColumn();
+		ImGui.TextUnformatted(Util.FormatNumber(item.Quantity));
+		ImGui.TableNextColumn();
+		ImGui.TextUnformatted(item.Value == 0 ? "N/A" : Util.FormatGil(item.Value * item.Quantity));
+	}
+
+	private void 
+	DrawItemContext(LootItem item, ReadOnlySeString itemName)
+	{
 		if (ImGui.BeginPopupContextItem("##ItemContext")) {
 			if (ImGui.MenuItem("Ignore Item")) {
 				plugin.Configuration.IgnoredItemIds.Add(item.ItemId);
@@ -246,14 +276,6 @@ public class MainWindow : Window, IDisposable {
 				ImGui.SetClipboardText(itemName.ToString());
 			ImGui.EndPopup();
 		}
-
-		DrawItemTooltip(item, itemName);
-		ImGui.PopID();
-
-		ImGui.TableNextColumn();
-		ImGui.TextUnformatted(Util.FormatNumber(item.Quantity));
-		ImGui.TableNextColumn();
-		ImGui.TextUnformatted(item.Value == 0 ? "N/A" : Util.FormatGil(item.Value * item.Quantity));
 	}
 
 	private static void 
@@ -295,20 +317,25 @@ public class MainWindow : Window, IDisposable {
 		ImGui.EndTooltip();
 	}
 
-	private void DrawItemList(uint zone, List<LootItem> items)
+	private void 
+	DrawItemList(uint zone, List<LootItem> items)
 	{
-		bool zoneOpen;
+		int col;
 		uint headerBg;
+		bool zoneOpen;
 		string tableId;
-		string itemLabel;
-		string amountLabel;
-		string valueLabel;
+		string label;
+		SortState sort;
+		Vector2 cursorPos;
+		Vector2 labelSize;
+		ImGuiTableFlags tableFlags;
+		Comparison<LootItem> comparison;
 
 		tableId = $"LootTableZone_{zone}";
-		ImGuiTableFlags tableFlags = ImGuiTableFlags.RowBg |
-					     ImGuiTableFlags.BordersOuter |
-					     ImGuiTableFlags.BordersInnerV |
-					     ImGuiTableFlags.SizingStretchProp;
+		tableFlags = ImGuiTableFlags.RowBg |
+			     ImGuiTableFlags.BordersOuter |
+			     ImGuiTableFlags.BordersInnerV |
+			     ImGuiTableFlags.SizingStretchProp;
 
 		if (!ImGui.BeginTable(tableId, 4, tableFlags))
 			return;
@@ -320,90 +347,65 @@ public class MainWindow : Window, IDisposable {
 
 		ImGui.TableNextRow();
 		headerBg = ImGui.GetColorU32(ImGuiCol.Tab);
-		for (int col = 0; col < 4; col++)
-			ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, headerBg, ImGui.TableGetRowIndex());
 
-		// TreeNode / collapse column
-		ImGui.TableSetColumnIndex(0);
-		ImGui.PushID((int)zone);
-		zoneOpen = ImGui.TreeNodeEx("##zone", ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.SpanFullWidth);
-		ImGui.PopID();
-
-		// ----------------------------
-		// Per-zone sort state
-		// ----------------------------
-		if (!sortStates.TryGetValue(zone, out var sort)) {
-			sort = new SortState();  // defaults: Column = 1, Ascending = true
+		if (!sortStates.TryGetValue(zone, out sort)) {
+			sort = new SortState();
 			sortStates[zone] = sort;
 		}
 
-		// Column 1: Item
-		ImGui.TableNextColumn();
-		ImGui.PushID("ItemHeader");
-		itemLabel = Util.GetZoneName(zone) + (sort.Column == 1 ? (sort.Ascending ? " ▲" : " ▼") : "");
-		Vector2 itemSize = ImGui.CalcTextSize(itemLabel);
-		Vector2 cursorPos = ImGui.GetCursorPos();
-		if (ImGui.InvisibleButton("##ItemBtn", itemSize)) {
-			if (sort.Column == 1)
-				sort.Ascending = !sort.Ascending;
-			else { sort.Column = 1; sort.Ascending = true; }
-		}
-		ImGui.SetCursorPos(cursorPos);
-		ImGui.Text(itemLabel);
-
-		// Context menu
-		if (ImGui.BeginPopupContextItem("##ZoneContext")) {
-			if (ImGui.MenuItem("Ignore Zone")) {
-				plugin.Configuration.IgnoredZoneIds.Add(zone);
-				plugin.Configuration.Save();
+		zoneOpen = false;
+		for (col = 0; col <= 3; col++) {
+			ImGui.TableSetColumnIndex(col);
+			ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, headerBg, ImGui.TableGetRowIndex());
+			switch (col) {
+			case 0: /* List collapser */
+				ImGui.PushID((int)zone);
+				zoneOpen = ImGui.TreeNodeEx("##zone", ImGuiTreeNodeFlags.DefaultOpen);
+				DrawItemListContext(zone); // right-click menu
+				ImGui.PopID();
+				continue; // skip the rest of the loop for this column
+			case 1: /* Zone Name */
+				ImGui.PushID("HeaderZoneName");
+				label = Util.GetZoneName(zone);
+				break;
+			case 2: /* Item Amount */
+				ImGui.PushID("HeaderAmount");
+				label = Util.FormatNumber(loot.GetZoneItemQuantity(zone)) + " x";
+				break;
+			case 3: /* Item Value */
+				ImGui.PushID("HeaderValue");
+				label = Util.FormatGil(loot.GetZoneItemValue(zone));
+				break;
+			default:
+				label = "";
+				break;
 			}
-			if (ImGui.MenuItem("Copy Name"))
-				ImGui.SetClipboardText(Util.GetZoneName(zone));
-			if (ImGui.MenuItem("Reset")) {
-				loot.ClearZone(zone);
-				plugin.UpdateDtrBar();
+
+			labelSize = ImGui.CalcTextSize(label);
+			cursorPos = ImGui.GetCursorPos();
+			if (ImGui.InvisibleButton($"##HeaderBtn{col}", labelSize)) {
+				if (sort.Column == col)
+					sort.Ascending = !sort.Ascending;
+				else { sort.Column = col; sort.Ascending = true; }
 			}
-			ImGui.EndPopup();
-		}
-		ImGui.PopID();
 
-		// Column 2: Amount
-		ImGui.TableNextColumn();
-		ImGui.PushID("AmountHeader");
-		amountLabel = Util.FormatNumber(loot.GetZoneItemQuantity(zone)) + " x" +
-			      (sort.Column == 2 ? (sort.Ascending ? " ▲" : " ▼") : "");
-		cursorPos = ImGui.GetCursorPos();
-		if (ImGui.InvisibleButton("##AmountBtn", ImGui.CalcTextSize(amountLabel))) {
-			if (sort.Column == 2)
-				sort.Ascending = !sort.Ascending;
-			else { sort.Column = 2; sort.Ascending = true; }
-		}
-		ImGui.SetCursorPos(cursorPos);
-		ImGui.Text(amountLabel);
-		ImGui.PopID();
+			ImGui.SetCursorPos(cursorPos);
+			ImGui.TextUnformatted(label);
 
-		// Column 3: Value
-		ImGui.TableNextColumn();
-		ImGui.PushID("ValueHeader");
-		valueLabel = Util.FormatGil(loot.GetZoneItemValue(zone)) +
-			     (sort.Column == 3 ? (sort.Ascending ? " ▲" : " ▼") : "");
-		cursorPos = ImGui.GetCursorPos();
-		if (ImGui.InvisibleButton("##ValueBtn", ImGui.CalcTextSize(valueLabel))) {
-			if (sort.Column == 3)
-				sort.Ascending = !sort.Ascending;
-			else { sort.Column = 3; sort.Ascending = true; }
-		}
-		ImGui.SetCursorPos(cursorPos);
-		ImGui.Text(valueLabel);
-		ImGui.PopID();
+			if (sort.Column == col) {
+				ImGui.SameLine();
+				DrawSortingArrow(sort.Ascending);
+			}
 
-		// ----------------------------
-		// Sort items per zone
-		// ----------------------------
-		Comparison<LootItem> comparison = sort.Column switch {
-			1 => (a, b) => string.Compare(ItemUtil.GetItemName(a.ItemId, true).ToString(),
-						      ItemUtil.GetItemName(b.ItemId, true).ToString(),
-						      StringComparison.OrdinalIgnoreCase),
+			DrawItemListContext(zone);
+			ImGui.PopID();
+		}
+
+		comparison = sort.Column switch {
+			1 => (a, b) => string.Compare(
+			    ItemUtil.GetItemName(a.ItemId, true).ToString(),
+			    ItemUtil.GetItemName(b.ItemId, true).ToString(),
+			    StringComparison.OrdinalIgnoreCase),
 			2 => (a, b) => a.Quantity.CompareTo(b.Quantity),
 			3 => (a, b) => ((long)a.Value * a.Quantity).CompareTo((long)b.Value * b.Quantity),
 			_ => (a, b) => 0
@@ -417,6 +419,55 @@ public class MainWindow : Window, IDisposable {
 		}
 
 		ImGui.EndTable();
+	}
+
+	private void 
+	DrawItemListContext(uint zone)
+	{
+		if (ImGui.BeginPopupContextItem($"##ZoneContextName_{zone}")) {
+			if (ImGui.MenuItem("Ignore Zone")) {
+				plugin.Configuration.IgnoredZoneIds.Add(zone);
+				plugin.Configuration.Save();
+			}
+			if (ImGui.MenuItem("Copy Name"))
+				ImGui.SetClipboardText(Util.GetZoneName(zone));
+			if (ImGui.MenuItem("Reset")) {
+				loot.ClearZone(zone);
+				plugin.UpdateDtrBar();
+			}
+			ImGui.EndPopup();
+		}
+	}
+
+	private static void
+	DrawSortingArrow(bool asc)
+	{
+		const float scale = 0.65f;
+
+		string glyph;
+		float fontsize;
+		float offsetY;
+		ImDrawListPtr drawList;
+		Vector2 position;
+
+		drawList = ImGui.GetWindowDrawList();
+		position = ImGui.GetCursorScreenPos();
+		fontsize = ImGui.GetFontSize() * scale;
+		offsetY = (ImGui.GetTextLineHeight() - fontsize) * 0.5f;
+		position.Y += offsetY;
+
+		if (asc)
+			glyph = "▲";
+		else
+			glyph = "▼";
+
+		drawList.AddText(
+			ImGui.GetFont(),
+			fontsize,
+			position,
+			ImGui.GetColorU32(ImGuiCol.Text),
+			glyph
+		);
 	}
 
 	/// <summary>
