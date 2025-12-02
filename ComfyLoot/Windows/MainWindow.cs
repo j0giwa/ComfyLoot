@@ -137,10 +137,11 @@ public class MainWindow : Window, IDisposable {
 			     ImGuiTableFlags.SizingStretchProp;
 
 		if (ImGui.BeginTable("lootheader", 4, tableFlags)) {
-			ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed, 20.0f);
-			ImGui.TableSetupColumn("Item", ImGuiTableColumnFlags.WidthStretch);
-			ImGui.TableSetupColumn("Amount", ImGuiTableColumnFlags.WidthFixed, 80.0f);
-			ImGui.TableSetupColumn("Value", ImGuiTableColumnFlags.WidthFixed, 80.0f);
+			/* NOTE: lables will get set later */
+			ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 20.0f);
+			ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthStretch);
+			ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 80.0f);
+			ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 80.0f);
 
 			ImGui.TableNextRow();
 			headerBg = ImGui.GetColorU32(ImGuiCol.Tab);
@@ -151,16 +152,16 @@ public class MainWindow : Window, IDisposable {
 
 				switch (col) {
 				case 1:
-					label = "Zone Name";
+					label = "Item";
 					break;
 				case 2:
-					label = "Total Items";
+					label = "Amount";
 					break;
 				case 3:
-					label = "Total Value";
+					label = "Value";
 					break;
 				default:
-					label = "";
+					label = "#";
 					break;
 				}
 
@@ -489,9 +490,9 @@ public class MainWindow : Window, IDisposable {
 		position.Y += offsetY;
 
 		if (asc)
-			glyph = "▲";
-		else
 			glyph = "▼";
+		else
+			glyph = "▲";
 
 		drawList.AddText(
 			ImGui.GetFont(),
