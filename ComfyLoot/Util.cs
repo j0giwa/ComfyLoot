@@ -18,34 +18,40 @@ namespace ComfyLoot;
 public static class Util {
 
 	/// <summary>
-	/// Formats a number to a gil value.
+	/// Formats a number to a gil value with shortened format.
 	/// </summary>
 	/// <param name="number">Gil value</param>
-	/// <returns>Formated string</returns>
-	public static string
+	/// <returns>Formatted string</returns>
+	public static string 
 	FormatGil(int number)
 	{
 		const char gil = (char)Dalamud.Game.Text.SeIconChar.Gil;
-
-		string result;
-
-		result = FormatNumber(number);
-		return $"{result}{gil}";
+		return $"{FormatNumber(number)}{gil}";
 	}
 
 	/// <summary>
-	/// Formats a number.
+	/// Formats a number in a shortened form (K for thousands, M for millions).
 	/// </summary>
-	/// <param name="number">number</param>
-	/// <returns>Formated string</returns>
-	public static string
+	/// <param name="number">Number</param>
+	/// <returns>Formatted string</returns>
+	public static string 
 	FormatNumber(int number)
 	{
-		string result;
+		double value = number;
+		string suffix = "";
+		string format;
 
-		result = number.ToString("N0", CultureInfo.InvariantCulture);
-		result = result.Replace(",", ".");
-		return $"{result}";
+		if (Math.Abs(value) >= 1_000_000) {
+			value /= 1_000_000;
+			suffix = "M";
+		} else if (Math.Abs(value) >= 1_000) {
+			value /= 1_000;
+			suffix = "K";
+		}
+
+		// Keep one decimal if needed, otherwise no decimal
+		format = value % 1 == 0 ? "0" : "0.#";
+		return value.ToString(format, CultureInfo.InvariantCulture) + suffix;
 	}
 
 	/// <summary>

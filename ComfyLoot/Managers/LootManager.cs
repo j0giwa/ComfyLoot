@@ -224,6 +224,17 @@ public class LootManager : IDisposable {
 	}
 
 	/// <summary>
+	/// Resets the loot list 
+	/// </summary>
+	public void
+	ClearZone(uint zoneId)
+	{
+		lock (lootLock) {
+			loot.Remove(zoneId);
+		}
+	}
+
+	/// <summary>
 	/// Calculate the combined item value across all zones.
 	/// </summary>
 	/// <param name="zoneItems">The list of items in the zone.</param>
