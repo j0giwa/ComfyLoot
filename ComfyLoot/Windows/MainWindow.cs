@@ -43,8 +43,8 @@ public class MainWindow : Window, IDisposable {
 	/// <summary>
 	/// MainWindow:ctor
 	/// </summary>
-	/// <param name="plugin"></param>
-	/// <param name="loot"></param>
+	/// <param name="plugin">Reference to the parent <see cref="ComfyLoot"/> plugin.</param>
+	/// <param name="loot">Reference the active loot manager instance.</param>
 	public MainWindow(ComfyLoot plugin, LootManager loot)
 		: base("ComfyLoot###comfyloot_ui", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
 	{
@@ -87,6 +87,7 @@ public class MainWindow : Window, IDisposable {
 			IconOffset = new(2, 1),
 			ShowTooltip = () => {
 				Vector4 color = ImGuiColors.ParsedGrey;
+				uint territoryId = ComfyLoot.ClientState.TerritoryType;
 
 				ImGui.BeginTooltip();
 				ImGui.Text("Debug (Click me to Populate)");
@@ -94,13 +95,14 @@ public class MainWindow : Window, IDisposable {
 				ImGui.Separator();
 
 				ImGui.TextColored(color, $"Homeworld: {Util.GetHomeWorld()}");
+				ImGui.TextColored(color, $"Current_zone: {Util.GetZoneName(territoryId)} ({territoryId})");
 				ImGui.TextColored(color, $"Is_Target_Mail: {Util.IsTargetMail()}");
 				ImGui.TextColored(color, $"Is_Target_Marketboard: {Util.IsTargetMarketboard()}");
 
 				ImGui.EndTooltip();
 			}
 		});
-#endif
+#endif //* DEBUG */
 
 		this.plugin = plugin;
 		this.loot = loot;
@@ -109,6 +111,9 @@ public class MainWindow : Window, IDisposable {
 		hidenZones = new List<uint>();
 	}
 
+	/// <summary>
+	/// Renders the main UI window.
+	/// </summary>
 	public override void 
 	Draw()
 	{
@@ -242,6 +247,10 @@ public class MainWindow : Window, IDisposable {
 		ImGui.EndChild();
 	}
 
+	/// <summary>
+	/// Draws the game icon for the specified item, if valid.
+	/// </summary>
+	/// <param name="itemId">The item ID to draw an icon for.</param>
 	private static void
 	DrawIcon(uint itemId)
 	{
@@ -262,6 +271,9 @@ public class MainWindow : Window, IDisposable {
 		}
 	}
 
+	/// <summary>
+	/// Draws the total item counter.
+	/// </summary>
 	private void
 	DrawItemCounter()
 	{
@@ -281,13 +293,17 @@ public class MainWindow : Window, IDisposable {
 		}
 	}
 
+	/// <summary>
+	/// Draws a single loot item row inside a zone table:
+	/// </summary>
+	/// <param name="item">The loot item to draw.</param>
 	private void 
 	DrawItem(LootItem item)
 	{
 		ReadOnlySeString itemName;
 		ImGui.TableNextRow();
 		ImGui.TableSetColumnIndex(0);
-		DrawIcon(Util.GetBaseId(item.ItemId));
+		DrawIcon(Util.GetItemBaseId(item.ItemId));
 
 		ImGui.TableNextColumn();
 		itemName = ItemUtil.GetItemName(item.ItemId, true);
@@ -303,6 +319,11 @@ public class MainWindow : Window, IDisposable {
 		ImGui.TextUnformatted(item.Value == 0 ? "N/A" : Util.FormatGil(item.Value * item.Quantity));
 	}
 
+	/// <summary>
+	/// Draws the right-click context menu for a loot item.
+	/// </summary>
+	/// <param name="item">The loot item the context applies to.</param>
+	/// <param name="itemName">The resolved item name.</param>
 	private void 
 	DrawItemContext(LootItem item, ReadOnlySeString itemName)
 	{
@@ -319,6 +340,11 @@ public class MainWindow : Window, IDisposable {
 		}
 	}
 
+	/// <summary>
+	/// Draws a tooltip for the hovered loot item.
+	/// </summary>
+	/// <param name="item">The loot item being hovered.</param>
+	/// <param name="itemName">The readable name of the item.</param>
 	private static void 
 	DrawItemTooltip(LootItem item, ReadOnlySeString itemName)
 	{
@@ -348,7 +374,7 @@ public class MainWindow : Window, IDisposable {
 #if DEBUG
 		ImGui.Separator();
 		ImGui.TextUnformatted($"Id: {item.ItemId}");
-		ImGui.TextUnformatted($"BaseId: {Util.GetBaseId(item.ItemId)}");
+		ImGui.TextUnformatted($"BaseId: {Util.GetItemBaseId(item.ItemId)}");
 		ImGui.TextUnformatted($"Rarity: {item.Rarity}");
 		ImGui.TextUnformatted($"Tradable: {Util.IsTradable(item.ItemId)}");
 		ImGui.TextUnformatted($"IsCurrency: {Util.IsCurrency(item.ItemId)}");
@@ -359,6 +385,12 @@ public class MainWindow : Window, IDisposable {
 		ImGui.EndTooltip();
 	}
 
+	/// <summary>
+	/// Draws a collapsible table representing all items obtained in a specific zone.
+	/// Supports sorting and hiding behavior.
+	/// </summary>
+	/// <param name="zone">The territory ID for the zone.</param>
+	/// <param name="items">The list of loot items in that zone.</param>
 	private void 
 	DrawItemList(uint zone, List<LootItem> items)
 	{
@@ -367,7 +399,7 @@ public class MainWindow : Window, IDisposable {
 		bool zoneOpen;
 		string tableId;
 		string label;
-		SortState sort;
+		SortState? sort;
 		Vector2 cursorPos;
 		Vector2 labelSize;
 		ImGuiTableFlags tableFlags;
@@ -465,6 +497,10 @@ public class MainWindow : Window, IDisposable {
 		ImGui.EndTable();
 	}
 
+	/// <summary>
+	/// Draws the right-click context menu for a zone entry.
+	/// </summary>
+	/// <param name="zone">The territory ID of the zone being interacted with.</param>
 	private void 
 	DrawItemListContext(uint zone)
 	{
@@ -489,6 +525,10 @@ public class MainWindow : Window, IDisposable {
 		}
 	}
 
+	/// <summary>
+	/// Draws a small arrow (▲ / ▼) indicating sorting direction.
+	/// </summary>
+	/// <param name="asc">If true, a down arrow is drawn; otherwise an up arrow.</param>
 	private static void
 	DrawSortingArrow(bool asc)
 	{
@@ -521,9 +561,9 @@ public class MainWindow : Window, IDisposable {
 	}
 
 	/// <summary>
-	/// Draws a meter indicating the accumutated value of all items
+	/// Draws a meter indicating total accumulated value (gil).
 	/// </summary>
-	/// <param name="totalValue"></param>
+	/// <param name="totalValue">The accumulated total value across all loot items.</param>
 	private static void
 	DrawValueDisplay(int totalValue)
 	{
@@ -542,6 +582,12 @@ public class MainWindow : Window, IDisposable {
 		}
 	}
 
+	/// <summary>
+	/// Retrieves the icon texture for the given item ID.
+	/// Returns <c>null</c> if the icon cannot be resolved.
+	/// </summary>
+	/// <param name="itemId">The item ID whose icon should be loaded.</param>
+	/// <returns>A shared texture containing the icon, or <c>null</c> on failure.</returns>
 	private static ISharedImmediateTexture?
 	GetIcon(uint itemId)
 	{
@@ -559,6 +605,11 @@ public class MainWindow : Window, IDisposable {
 		return sharedTexture;
 	}
 
+	/// <summary>
+	/// Returns the UI color associated with an item's rarity level.
+	/// </summary>
+	/// <param name="rarity">The rarity rank of the item.</param>
+	/// <returns>An <see cref="Vector4"/> representing the color.</returns>
 	private static Vector4 
 	GetRarityColor(int rarity)
 	{
@@ -579,6 +630,12 @@ public class MainWindow : Window, IDisposable {
 	}
 
 #if DEBUG
+	/// <summary>
+	/// Populates the loot manager with a set of predefined debug items,
+	/// useful for UI testing without having to play content.
+	/// </summary>
+	/// <param name="loot">The loot manager instance to populate.</param>
+	/// <returns>A task representing the asynchronous operation.</returns>
 	private static async Task
 	Populate(LootManager loot)
 	{

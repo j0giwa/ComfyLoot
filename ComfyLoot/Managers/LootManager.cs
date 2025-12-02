@@ -161,7 +161,7 @@ public class LootManager : IDisposable {
 		|| CheckIgnoredZone(zone))
 			return;
 
-		itemValue = await GetItemGilValue(Util.GetBaseId(id), hq);
+		itemValue = await GetItemGilValue(Util.GetItemBaseId(id), hq);
 		item = new LootItem(
 		    id,
 		    Util.GetRarity(id),
