@@ -23,7 +23,7 @@ public class InventoryWatcher : IDisposable {
 	private readonly List<InventoryEventArgs> eventBuffer;
 	private readonly HashSet<uint> seenItems;
 
-	private CancellationTokenSource debounceCts;
+	private CancellationTokenSource? debounceCts;
 
 	/// <summary>
 	/// InventoryWatcher:ctor
@@ -42,38 +42,6 @@ public class InventoryWatcher : IDisposable {
 
 		_ = DelayedSubscribe(); /* HACK: delay prevents issues with serverhoppin/logon */
 		loot.Clear(); /* HACK: forcefully reset after login*/
-	}
-
-	private static bool
-	IsRelevantInventory(GameInventoryType type)
-	{
-		switch (type) {
-		case GameInventoryType.Inventory1: /* FALLTHROUGH */
-		case GameInventoryType.Inventory2:
-		case GameInventoryType.Inventory3:
-		case GameInventoryType.Inventory4:
-		case GameInventoryType.Crystals:
-		case GameInventoryType.Currency:
-			return true;
-		default:
-			return false;
-		}
-	}
-
-	/// <summary>
-	/// Delays subcription to events
-	/// </summary>
-	private async Task
-	DelayedSubscribe()
-	{
-		const int delay = 2000; /* adjust if needed, delay might depend on client */
-
-		await Task.Delay(delay);
-
-		if (ComfyLoot.ClientState.IsLoggedIn)
-			ComfyLoot.GameInventory.InventoryChanged += OnInventoryChanged;
-
-		ComfyLoot.Log.Debug("[InventoryWatcher] InventoryChanged-event registered");
 	}
 
 	/// <summary>
@@ -115,6 +83,43 @@ public class InventoryWatcher : IDisposable {
 	}
 
 	/// <summary>
+	/// Delays subcription to events
+	/// </summary>
+	private async Task
+	DelayedSubscribe()
+	{
+		const int delay = 2000; /* adjust if needed, delay might depend on client */
+
+		await Task.Delay(delay);
+
+		if (ComfyLoot.ClientState.IsLoggedIn)
+			ComfyLoot.GameInventory.InventoryChanged += OnInventoryChanged;
+
+		ComfyLoot.Log.Debug("[InventoryWatcher] InventoryChanged-event registered");
+	}
+
+	/// <summary>
+	/// Checks if the Inventory is relevant for proccessing
+	/// </summary>
+	/// <param name="type">Inventory to check</param>
+	/// <returns>If the inventory is relevant, aka. if there is loot to expect</returns>
+	private static bool
+	IsRelevantInventory(GameInventoryType type)
+	{
+		switch (type) {
+		case GameInventoryType.Inventory1: /* FALLTHROUGH */
+		case GameInventoryType.Inventory2:
+		case GameInventoryType.Inventory3:
+		case GameInventoryType.Inventory4:
+		case GameInventoryType.Crystals:
+		case GameInventoryType.Currency:
+			return true;
+		default:
+			return false;
+		}
+	}
+
+	/// <summary>
 	/// Handle inventory change event
 	/// </summary>
 	private void
@@ -136,6 +141,11 @@ public class InventoryWatcher : IDisposable {
 		}
 	}
 
+	/// <summary>
+	/// Processes a queue of events
+	/// </summary>
+	/// <param name="events">events to process</param>
+	/// <param name="zone">identifyer of the zone the events occured</param>
 	private void
 	ProcessEvents(Queue<InventoryEventArgs> events, uint zone)
 	{
@@ -200,7 +210,6 @@ public class InventoryWatcher : IDisposable {
 				zone,
 				addedArgs.Item.IsHq
 			));
-
 			break;
 		case InventoryItemChangedArgs changedArgs:
 			quantity = changedArgs.OldItemState.Quantity;
@@ -227,7 +236,6 @@ public class InventoryWatcher : IDisposable {
 				zone,
 				changedArgs.Item.IsHq
 			));
-
 			break;
 		default:
 			ComfyLoot.Log.Warning(

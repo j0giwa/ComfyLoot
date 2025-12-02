@@ -34,6 +34,7 @@ These references come from C, but the spirit applies to minimalist and maintaina
 7. Internal/private methods
 8. Public methods
 9. Main (if any)
+10. Disposers/Finalizsers
 ```
 
 - Avoid multiple classes per file unless **trivial** or **strongly related.**
