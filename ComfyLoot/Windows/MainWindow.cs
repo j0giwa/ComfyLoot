@@ -30,11 +30,15 @@ public class SortState {
 /// </summary>
 public class MainWindow : Window, IDisposable {
 
+	private bool hideItems = true;
 	private SortState globalSort = null;
 	private Dictionary<uint, SortState> sortStates = new();
 
 	private readonly ComfyLoot plugin;
 	private readonly LootManager loot;
+
+	private readonly List<uint> hidenItems;
+	private readonly List<uint> hidenZones;
 
 	public MainWindow(ComfyLoot plugin, LootManager loot)
 		: base("ComfyLoot###comfyloot_ui", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
@@ -44,20 +48,32 @@ public class MainWindow : Window, IDisposable {
 			MaximumSize = new Vector2(float.MaxValue, float.MaxValue)
 		};
 
-		this.plugin = plugin;
-		this.loot = loot;
-
 		TitleBarButtons = [
 			new TitleBarButton() {
 				Icon = FontAwesomeIcon.Cog,
 				Click = (msg) => { this.plugin.ToggleConfigUI(); },
 				IconOffset = new(2,1),
-	    			ShowTooltip = () => {
+				ShowTooltip = () => {
 					ImGui.BeginTooltip();
 					ImGui.Text("Open Settings");
 					ImGui.EndTooltip();
-	    			}
-			}
+				}
+			},
+			new TitleBarButton() {
+				Icon = FontAwesomeIcon.Eye,
+				Click = (msg) => {
+					hideItems = !hideItems;
+				},
+				IconOffset = new(2,1),
+				ShowTooltip = () => {
+	    				ImGui.BeginTooltip();
+					if (hideItems)
+						ImGui.Text("Unhide Items");
+					else
+						ImGui.Text("Hide Items");
+	    				ImGui.EndTooltip();
+				}
+    			}
 		];
 #if DEBUG
 		TitleBarButtons.Add(new TitleBarButton() {
@@ -71,6 +87,12 @@ public class MainWindow : Window, IDisposable {
 			}
 		});
 #endif
+
+		this.plugin = plugin;
+		this.loot = loot;
+
+		hidenItems = new List<uint>();
+		hidenZones = new List<uint>();
 	}
 
 	public override void 
@@ -198,10 +220,10 @@ public class MainWindow : Window, IDisposable {
 			if (items == null)
 				continue;
 
-			DrawItemList(kvp.Key, items);
+			if (!(hideItems && hidenZones.Contains(kvp.Key)))
+				DrawItemList(kvp.Key, items);
 		}
 	}
-
 
 	private static void
 	DrawIcon(uint itemId)
@@ -272,6 +294,8 @@ public class MainWindow : Window, IDisposable {
 				plugin.Configuration.IgnoredItemIds.Add(item.ItemId);
 				plugin.Configuration.Save();
 			}
+			if (ImGui.MenuItem("Hide Item"))
+				hidenItems.Add(item.ItemId);
 			if (ImGui.MenuItem("Copy Name"))
 				ImGui.SetClipboardText(itemName.ToString());
 			ImGui.EndPopup();
@@ -413,8 +437,10 @@ public class MainWindow : Window, IDisposable {
 		items.Sort(sort.Ascending ? comparison : (a, b) => comparison(b, a));
 
 		if (zoneOpen) {
-			foreach (var item in items)
-				DrawItem(item);
+			foreach (LootItem item in items) {
+				if (!(hideItems && hidenItems.Contains(item.ItemId)))
+					DrawItem(item);
+			}
 			ImGui.TreePop();
 		}
 
@@ -429,12 +455,18 @@ public class MainWindow : Window, IDisposable {
 				plugin.Configuration.IgnoredZoneIds.Add(zone);
 				plugin.Configuration.Save();
 			}
-			if (ImGui.MenuItem("Copy Name"))
-				ImGui.SetClipboardText(Util.GetZoneName(zone));
+			if (ImGui.MenuItem("Hide Loot")) {
+				hidenZones.Add(zone);
+				/* NOTE: Hide all Items in other zones */
+				foreach (LootItem item in loot.Loot[zone])
+					hidenItems.Add(item.ItemId);
+			}
 			if (ImGui.MenuItem("Reset")) {
 				loot.ClearZone(zone);
 				plugin.UpdateDtrBar();
 			}
+			if (ImGui.MenuItem("Copy Name"))
+				ImGui.SetClipboardText(Util.GetZoneName(zone));
 			ImGui.EndPopup();
 		}
 	}
