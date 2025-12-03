@@ -288,6 +288,11 @@ public static class Util {
 	/// </summary>
 	/// <param name="itemId">The item ID.</param>
 	/// <returns><c>true</c> if the item is a currency; otherwise, <c>false</c>.</returns>
+	/// <summary>
+	/// Determines whether the specified item is classified as a currency.
+	/// </summary>
+	/// <param name="itemId">The item ID.</param>
+	/// <returns><c>true</c> if the item is a currency; otherwise, <c>false</c>.</returns>
 	public static bool
 	IsCurrency(uint itemId)
 	{
@@ -309,18 +314,33 @@ public static class Util {
 
 		/* FIXME: There might be some missing here */
 		switch (item.Value.FilterGroup) {
-		case 16: /* FALLTHOUGH */
+		case 16: /* FALLTHROUGH */
 		case 29:
 		case 47:
 		case 54:
 		case 56:
 		case 57:
-			result = true;
+			/* HACK: stop pieces from getting flagged as currency */
+			switch (itemId) {
+			case (uint)SpecialItems.ALLAGAN_TIN_PIECE:
+			case (uint)SpecialItems.ALLAGAN_BRONZE_PIECE:
+			case (uint)SpecialItems.ALLAGAN_SILVER_PIECE:
+			case (uint)SpecialItems.ALLAGAN_GOLD_PIECE:
+			case (uint)SpecialItems.ALLAGAN_PLATINUM_PIECE:
+			case (uint)SpecialItems.NIGHTWORLD_BRONZE_PIECE:
+			case (uint)SpecialItems.NIGHTWORLD_SILVER_PIECE:
+				result = false;
+				break;
+			default:
+				result = true;
+				break;
+			}
 			break;
 		default:
 			result = false;
 			break;
 		}
+
 		return result;
 	}
 

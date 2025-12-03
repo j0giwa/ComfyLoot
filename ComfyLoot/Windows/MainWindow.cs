@@ -22,7 +22,7 @@ namespace ComfyLoot.Windows;
 
 public class SortState {
 	public int Column = 1;
-	public bool Ascending = true;
+	public bool Ascending = false;
 }
 
 /// <summary>
@@ -114,40 +114,40 @@ public class MainWindow : Window, IDisposable {
 	/// <summary>
 	/// Renders the main UI window.
 	/// </summary>
-	public override void Draw()
+	public override void
+	Draw()
 	{
 		const float HeaderHeightMultiplier = 1.1f;
 
-		/* TODO: maybe reduce the amount of vars needed */
 		uint headerBg;
 		float headerHeight;
 		float minHeaderHeight;
 		float scrollY;
-		string label;
-		Vector2 cur;
+		string text;
+		Vector2 cursorPos;
 		Vector2 childPos;
-		Vector2 headerPos;
 		Vector2 childSize;
-		Vector2 labelSize;
-		Vector2 windowSize;
+		Vector2 headerPos;
 		Vector2 textSize;
 		ImGuiTableFlags tableFlags;
 		IEnumerable<KeyValuePair<uint, List<LootItem>>> zones;
 
 		/* NOTE: if no loot at all, we can skip the render */
 		if (plugin.LootManager.Loot.Count == 0) {
+			Vector2 windowSize; /* NOTE: only used in this specific case*/
+
 			ImGui.Spacing();
 
-			label = "You have not received any loot yet";
+			text = "You have not received any loot yet";
+			textSize = ImGui.CalcTextSize(text); // reused labelSize instead of textSize
 			windowSize = ImGui.GetWindowSize();
-			textSize = ImGui.CalcTextSize(label);
 
 			ImGui.SetCursorPos(new Vector2(
 			    (windowSize.X - textSize.X) * 0.5f,
 			    (windowSize.Y - textSize.Y) * 0.5f
 			));
 
-			ImGui.TextColored(ImGuiColors.DalamudGrey, label);
+			ImGui.TextColored(ImGuiColors.DalamudGrey, text);
 			return;
 		}
 
@@ -188,17 +188,17 @@ public class MainWindow : Window, IDisposable {
 				ImGui.TableSetColumnIndex(col);
 				ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, headerBg);
 
-				label = col switch {
+				text = col switch {
 					1 => "Item",
 					2 => "Amount",
 					3 => "Value",
 					_ => "#"
 				};
 
-				labelSize = ImGui.CalcTextSize(label);
-				cur = ImGui.GetCursorPos();
+				textSize = ImGui.CalcTextSize(text);
+				cursorPos = ImGui.GetCursorPos();
 
-				if (ImGui.InvisibleButton($"##HeaderBtn{col}", labelSize)) {
+				if (ImGui.InvisibleButton($"##HeaderBtn{col}", textSize)) {
 					globalSort ??= new SortState();
 					if (globalSort.Column == col)
 						globalSort.Ascending = !globalSort.Ascending;
@@ -208,8 +208,8 @@ public class MainWindow : Window, IDisposable {
 					}
 				}
 
-				ImGui.SetCursorPos(cur);
-				ImGui.TextUnformatted(label);
+				ImGui.SetCursorPos(cursorPos);
+				ImGui.TextUnformatted(text);
 
 				if (globalSort != null && globalSort.Column == col) {
 					ImGui.SameLine();
@@ -237,43 +237,19 @@ public class MainWindow : Window, IDisposable {
 		    childPos.Y + headerHeight - scrollY
 		));
 
-		zones = plugin.LootManager.Loot;
-		if (globalSort != null) {
-			switch (globalSort.Column) {
-			case 1:
-				if (globalSort.Ascending)
-					zones = zones.OrderBy(z => Util.GetZoneName(z.Key)).ToList();
-				else
-					zones = zones.OrderByDescending(z => Util.GetZoneName(z.Key)).ToList();
-				break;
-			case 2:
-				if (globalSort.Ascending)
-					zones = zones.OrderBy(z => loot.GetZoneItemQuantity(z.Key)).ToList();
-				else
-					zones = zones.OrderByDescending(z => loot.GetZoneItemQuantity(z.Key)).ToList();
-				break;
-			case 3:
-				if (globalSort.Ascending)
-					zones = zones.OrderBy(z => loot.GetZoneItemValue(z.Key)).ToList();
-				else
-					zones = zones.OrderByDescending(z => loot.GetZoneItemValue(z.Key)).ToList();
-				break;
-			}
-		}
+		zones = SortZones(plugin.LootManager.Loot, globalSort);
 
-		foreach (var kvp in zones) {
-			var items = kvp.Value;
-			if (items == null)
+		foreach (KeyValuePair<uint, List<LootItem>> kvp in zones) {
+			if (kvp.Value == null)
 				continue;
 
 			if (!(hideItems && hidenZones.Contains(kvp.Key)))
-				DrawItemList(kvp.Key, items);
+				DrawItemList(kvp.Key, kvp.Value);
 		}
 
 		ImGui.PopClipRect();
 		ImGui.EndChild();
 	}
-
 
 	/// <summary>
 	/// Draws the game icon for the specified item, if valid.
@@ -503,16 +479,7 @@ public class MainWindow : Window, IDisposable {
 			ImGui.PopID();
 		}
 
-		comparison = sort.Column switch {
-			1 => (a, b) => string.Compare(
-			    ItemUtil.GetItemName(a.ItemId, true).ToString(),
-			    ItemUtil.GetItemName(b.ItemId, true).ToString(),
-			    StringComparison.OrdinalIgnoreCase),
-			2 => (a, b) => a.Quantity.CompareTo(b.Quantity),
-			3 => (a, b) => ((long)a.Value * a.Quantity).CompareTo((long)b.Value * b.Quantity),
-			_ => (a, b) => 0
-		};
-		items.Sort(sort.Ascending ? comparison : (a, b) => comparison(b, a));
+		SortLootItems(items, sort);
 
 		if (zoneOpen) {
 			foreach (LootItem item in items) {
@@ -575,9 +542,9 @@ public class MainWindow : Window, IDisposable {
 		position.Y += offsetY;
 
 		if (asc)
-			glyph = "▼";
-		else
 			glyph = "▲";
+		else
+			glyph = "▼";
 
 		drawList.AddText(
 			ImGui.GetFont(),
@@ -759,6 +726,82 @@ public class MainWindow : Window, IDisposable {
 		);
 	}
 #endif //* DEBUG*/
+
+	/// <summary>
+	/// Sorts a list of <see cref="LootItem"/> based on the given <see cref="SortState"/>.
+	/// </summary>
+	/// <param name="items">The list of loot items to sort.</param>
+	/// <param name="sort">The sort state specifying the column and direction.</param>
+	private void SortLootItems(List<LootItem> items, SortState sort)
+	{
+		bool ascending;
+		Comparison<LootItem> comparison;
+
+		switch (sort.Column) {
+		case 1: // Name
+			comparison = (a, b) => {
+				string nameA = ItemUtil.GetItemName(a.ItemId, true).ToString() ?? string.Empty;
+				string nameB = ItemUtil.GetItemName(b.ItemId, true).ToString() ?? string.Empty;
+				return string.Compare(nameA, nameB, StringComparison.OrdinalIgnoreCase);
+			};
+			break;
+		case 2: // Quantity
+			comparison = (a, b) => a.Quantity.CompareTo(b.Quantity);
+			break;
+		case 3: // Total value
+			comparison = (a, b) => ((long)a.Value * a.Quantity).CompareTo((long)b.Value * b.Quantity);
+			break;
+		default:
+			comparison = (a, b) => 0;
+			break;
+		}
+
+		/* HACK: for some reason it gets flipped in the UI, unflipping */
+		ascending = sort.Ascending;
+		if (sort.Ascending)
+			ascending = sort.Ascending;
+		if (sort.Column == 1)
+			ascending = !ascending;
+
+		if (ascending)
+			items.Sort(comparison);
+		else
+			items.Sort((a, b) => comparison(b, a));
+	}
+
+
+	/// <summary>
+	/// Sorts zones (each a key-value pair of zone ID and loot list) based on the given <see cref="SortState"/>.
+	/// </summary>
+	/// <param name="zones">The zones to sort.</param>
+	/// <param name="sort">The sort state specifying the column and direction.</param>
+	/// <returns>The sorted zones.</returns>
+	private IEnumerable<KeyValuePair<uint, List<LootItem>>> SortZones(
+	    IEnumerable<KeyValuePair<uint, List<LootItem>>> zones, SortState? sort)
+	{
+		if (sort == null)
+			return zones;
+
+		switch (sort.Column) {
+		case 1: /* HACK: for some reason it gets flipped in the UI, so we do the opposite here */
+			if (sort.Ascending)
+				return zones.OrderByDescending(z => Util.GetZoneName(z.Key)).ToList();
+			else
+				return zones.OrderBy(z => Util.GetZoneName(z.Key)).ToList();
+		case 2:
+			if (sort.Ascending)
+				return zones.OrderBy(z => loot.GetZoneItemQuantity(z.Key)).ToList();
+			else
+				return zones.OrderByDescending(z => loot.GetZoneItemQuantity(z.Key)).ToList();
+		case 3:
+			if (sort.Ascending)
+				return zones.OrderBy(z => loot.GetZoneItemValue(z.Key)).ToList();
+			else
+				return zones.OrderByDescending(z => loot.GetZoneItemValue(z.Key)).ToList();
+		default:
+			return zones;
+		}
+	}
 
 	public void 
 	Dispose()
