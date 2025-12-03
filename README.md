@@ -1,7 +1,6 @@
-# Comfy Loot
+# ComfyLoot
 
 ![ComfyLoot Logo](https://raw.githubusercontent.com/j0giwa/ComfyLoot/refs/heads/master/Data/icon.png)
-> Icon by our beloved Ireina
 
 Tracks the contents and market value of items dropped while killing monsters. 
 And drops from some other activities such as dungeons, raids, gathering, and maps.
@@ -11,32 +10,17 @@ Inspired by [RuneLite](https://github.com/runelite/runelite/wiki/Loot-Tracker).
 ## Features
 ![ComfyLoot UI](https://raw.githubusercontent.com/j0giwa/ComfyLoot/refs/heads/master/Data/image1.png)
 
-* Tracks items dropped from enemies and other loot sources
-* Displays total loot value (based on market prices, optionally)
-* Display metrics in Server Info Bar (optional)
-* Works offline by default—API features are **opt-in.**
-* Lightweight: minimal memory footprint, no background bloat
-
-## Setup
-
-1. Install via Dalamud / XIVLauncher
-2. Enable the plugin in-game.
-3. (Optional) Enable market price fetching under Settings → Enable Universalis.
-4. (Optional) Enable quick access in the server info bar under Settings → Enable Server Info Bar Entry.
-
-ComfyLoot will automatically begin tracking drops once active.
+- Tracks items dropped from enemies and other loot sources
+- Displays total loot value (based on market prices, optionally)
+- Display metrics in Server Info Bar (optional)
+- Works offline by default—API features are **opt-in.**
+- Lightweight: minimal memory footprint, no background bloat
 
 ## Usage
 
 Upon install, Comfyloot keeps track of every item you acquire over this play session.
 `/loot` opens a simple but handy overview.
 See [FAQ](#FAQ) for 
-
-## Roadmap
-
-- Removal of unnecessary code (continuous)
-- Improve loot source classification accuracy
-- Cleaning up the UI
 
 ## Known Issues
 
@@ -48,12 +32,17 @@ See [FAQ](#FAQ) for
 Report bugs or suggestions via the Issues tab.
 Be as concise and reproducible as possible—screenshots/logs help.
 
-## Known Limitations
+## Limitations
 
-- The pickup detection relies on inventory events; they are not 100% reliable, but other methods may break Dalamud guidelines.
-- The plugin relies on game memory structures; some updates may temporarily break compatibility.
-- API lookups fail if third-party endpoints are offline.
-- UI is a mess
+- pickup detection relies on inventory events; they are not 100% reliable, but other methods may break Dalamud guidelines.
+- plugin relies on game memory structures; some updates may temporarily break compatibility.
+- API calls fail if third-party endpoints are offline.
+- ui is a mess
+
+## Roadmap
+
+- Removal of unnecessary code (continuous)
+- Improve lootsource classification accuracy
 
 ## Contribute
 
@@ -72,3 +61,21 @@ as it's by design intended to be as barebones as possible.
 > — Edsger W. Dijkstra
 
 Check the guide in GoatCorp's [SamplePlugin](https://github.com/goatcorp/SamplePlugin) to get started.
+
+## FAQ
+``` txt
+Q: What is this for?
+A: I started working on this because i wanted a way to keep track of my stuff during map runs.
+
+Q: Why is ever item valued "N/A"?
+A: The Value is N/A if the item is either untradable, or universalis can't be reached.
+   This relies on Universalis data, if this feature is disabled the value will aslo be "N/A"
+
+Q: Why is Universalis disabled by default?
+A: Even tho this is the whole point of the plugin, this has to be disbabled.
+   Im based in the EU, due to privacy laws i have to make this an opt-in feature.
+   Nothing i can do about that.
+```
+
+## Credits
+- Icon is made by our beloved Ireina
