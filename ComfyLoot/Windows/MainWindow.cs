@@ -1,6 +1,7 @@
 /* See LICENSE file for copyright and license details. */
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
 using Dalamud.Bindings.ImGui;
@@ -16,7 +17,6 @@ using Lumina.Excel.Sheets;
 using Lumina.Text.ReadOnly;
 
 using ComfyLoot.Managers;
-using System.Linq;
 
 namespace ComfyLoot.Windows;
 
@@ -30,15 +30,14 @@ public class SortState {
 /// </summary>
 public class MainWindow : Window, IDisposable {
 
-	private bool hideItems = true;
-	private SortState globalSort = null;
-	private Dictionary<uint, SortState> sortStates = new();
-
+	private bool hideItems;
+	private SortState? globalSort;
+	
 	private readonly ComfyLoot plugin;
 	private readonly LootManager loot;
-
 	private readonly List<uint> hidenItems;
 	private readonly List<uint> hidenZones;
+	private readonly Dictionary<uint, SortState> sortStates;
 
 	/// <summary>
 	/// MainWindow:ctor
@@ -56,7 +55,11 @@ public class MainWindow : Window, IDisposable {
 		TitleBarButtons = [
 			new TitleBarButton() {
 				Icon = FontAwesomeIcon.Cog,
-				Click = (msg) => { this.plugin.ToggleConfigUI(); },
+				Click = (msg) => { 
+					if(this.plugin == null)
+						return;	
+					this.plugin.ToggleConfigUI(); 
+				},
 				IconOffset = new(2,1),
 				ShowTooltip = () => {
 					ImGui.BeginTooltip();
@@ -83,7 +86,11 @@ public class MainWindow : Window, IDisposable {
 #if DEBUG
 		TitleBarButtons.Add(new TitleBarButton() {
 			Icon = FontAwesomeIcon.Code,
-			Click = async (msg) => { await Populate(this.loot); },
+			Click = async (msg) => { 
+				if (this.loot == null)
+					return;
+				await Populate(this.loot); 
+			},
 			IconOffset = new(2, 1),
 			ShowTooltip = () => {
 				Vector4 color = ImGuiColors.ParsedGrey;
@@ -107,6 +114,10 @@ public class MainWindow : Window, IDisposable {
 		this.plugin = plugin;
 		this.loot = loot;
 
+		globalSort = null;
+		sortStates = new Dictionary<uint, SortState>();
+
+		hideItems = true;
 		hidenItems = new List<uint>();
 		hidenZones = new List<uint>();
 	}
@@ -407,7 +418,6 @@ public class MainWindow : Window, IDisposable {
 		Vector2 cursorPos;
 		Vector2 labelSize;
 		ImGuiTableFlags tableFlags;
-		Comparison<LootItem> comparison;
 
 		tableId = $"LootTableZone_{zone}";
 		tableFlags = ImGuiTableFlags.RowBg |
@@ -734,21 +744,28 @@ public class MainWindow : Window, IDisposable {
 	/// <param name="sort">The sort state specifying the column and direction.</param>
 	private void SortLootItems(List<LootItem> items, SortState sort)
 	{
+		string nameA;
+		string nameB;
 		bool ascending;
 		Comparison<LootItem> comparison;
 
 		switch (sort.Column) {
-		case 1: // Name
+		case 1: /* Name */
 			comparison = (a, b) => {
-				string nameA = ItemUtil.GetItemName(a.ItemId, true).ToString() ?? string.Empty;
-				string nameB = ItemUtil.GetItemName(b.ItemId, true).ToString() ?? string.Empty;
+				nameA = ItemUtil.GetItemName(a.ItemId, true).ToString();
+				if (nameA == null)
+					nameA = string.Empty;
+				nameB = ItemUtil.GetItemName(b.ItemId, true).ToString();
+				if (nameB == null)
+					nameB = string.Empty;
+
 				return string.Compare(nameA, nameB, StringComparison.OrdinalIgnoreCase);
 			};
 			break;
-		case 2: // Quantity
+		case 2: /* Quantity */
 			comparison = (a, b) => a.Quantity.CompareTo(b.Quantity);
 			break;
-		case 3: // Total value
+		case 3: /* Total value */
 			comparison = (a, b) => ((long)a.Value * a.Quantity).CompareTo((long)b.Value * b.Quantity);
 			break;
 		default:
@@ -769,7 +786,6 @@ public class MainWindow : Window, IDisposable {
 			items.Sort((a, b) => comparison(b, a));
 	}
 
-
 	/// <summary>
 	/// Sorts zones (each a key-value pair of zone ID and loot list) based on the given <see cref="SortState"/>.
 	/// </summary>
@@ -782,18 +798,20 @@ public class MainWindow : Window, IDisposable {
 		if (sort == null)
 			return zones;
 
+		/* NOTE: would be rediculously complex without System.LINQ, acceptable use. */ 
 		switch (sort.Column) {
-		case 1: /* HACK: for some reason it gets flipped in the UI, so we do the opposite here */
+		case 1: /* Name */
+			/* HACK: for some reason it gets flipped in the UI, so we do the opposite here */
 			if (sort.Ascending)
 				return zones.OrderByDescending(z => Util.GetZoneName(z.Key)).ToList();
 			else
 				return zones.OrderBy(z => Util.GetZoneName(z.Key)).ToList();
-		case 2:
+		case 2: /* Quantity */
 			if (sort.Ascending)
 				return zones.OrderBy(z => loot.GetZoneItemQuantity(z.Key)).ToList();
 			else
 				return zones.OrderByDescending(z => loot.GetZoneItemQuantity(z.Key)).ToList();
-		case 3:
+		case 3: /* Total value */
 			if (sort.Ascending)
 				return zones.OrderBy(z => loot.GetZoneItemValue(z.Key)).ToList();
 			else
