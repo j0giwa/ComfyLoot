@@ -114,20 +114,27 @@ public class MainWindow : Window, IDisposable {
 	/// <summary>
 	/// Renders the main UI window.
 	/// </summary>
-	public override void 
-	Draw()
+	public override void Draw()
 	{
+		const float HeaderHeightMultiplier = 1.1f;
+
+		/* TODO: maybe reduce the amount of vars needed */
 		uint headerBg;
-		int col;
+		float headerHeight;
+		float minHeaderHeight;
+		float scrollY;
 		string label;
+		Vector2 cur;
+		Vector2 childPos;
+		Vector2 headerPos;
+		Vector2 childSize;
 		Vector2 labelSize;
-		Vector2 cursorPos;
 		Vector2 windowSize;
 		Vector2 textSize;
 		ImGuiTableFlags tableFlags;
-		List<LootItem> items;
 		IEnumerable<KeyValuePair<uint, List<LootItem>>> zones;
-		
+
+		/* NOTE: if no loot at all, we can skip the render */
 		if (plugin.LootManager.Loot.Count == 0) {
 			ImGui.Spacing();
 
@@ -148,12 +155,24 @@ public class MainWindow : Window, IDisposable {
 		DrawItemCounter();
 		DrawValueDisplay(plugin.LootManager.GetTotalItemValue());
 		ImGui.EndChild();
+
 		ImGui.Spacing();
 
-		tableFlags = ImGuiTableFlags.RowBg |
-			     ImGuiTableFlags.BordersOuter |
-			     ImGuiTableFlags.BordersInnerV |
-			     ImGuiTableFlags.SizingStretchProp;
+		ImGui.BeginChild("LootZonesChild", new Vector2(0, 0), false);
+
+		tableFlags =
+			ImGuiTableFlags.RowBg |
+			ImGuiTableFlags.BordersOuter |
+			ImGuiTableFlags.BordersInnerV |
+			ImGuiTableFlags.SizingStretchProp;
+
+		/* NOTE: draw at absolute positon for sticky header */
+		childPos = ImGui.GetWindowPos();
+		childSize = ImGui.GetWindowSize();
+		scrollY = ImGui.GetScrollY();
+		ImGui.SetCursorScreenPos(childPos);
+
+		headerPos = ImGui.GetCursorScreenPos();
 
 		if (ImGui.BeginTable("lootheader", 4, tableFlags)) {
 			/* NOTE: lables will get set later */
@@ -165,41 +184,31 @@ public class MainWindow : Window, IDisposable {
 			ImGui.TableNextRow();
 			headerBg = ImGui.GetColorU32(ImGuiCol.Tab);
 
-			for (col = 1; col <= 3; col++) {
+			for (int col = 1; col <= 3; col++) {
 				ImGui.TableSetColumnIndex(col);
-				ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, headerBg, ImGui.TableGetRowIndex());
+				ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, headerBg);
 
-				switch (col) {
-				case 1:
-					label = "Item";
-					break;
-				case 2:
-					label = "Amount";
-					break;
-				case 3:
-					label = "Value";
-					break;
-				default:
-					label = "#";
-					break;
-				}
+				label = col switch {
+					1 => "Item",
+					2 => "Amount",
+					3 => "Value",
+					_ => "#"
+				};
 
 				labelSize = ImGui.CalcTextSize(label);
-				cursorPos = ImGui.GetCursorPos();
+				cur = ImGui.GetCursorPos();
 
 				if (ImGui.InvisibleButton($"##HeaderBtn{col}", labelSize)) {
-					if (globalSort == null)
-						globalSort = new SortState();
-
-					if (globalSort.Column == col) {
+					globalSort ??= new SortState();
+					if (globalSort.Column == col)
 						globalSort.Ascending = !globalSort.Ascending;
-					} else {
+					else {
 						globalSort.Column = col;
 						globalSort.Ascending = true;
 					}
 				}
 
-				ImGui.SetCursorPos(cursorPos);
+				ImGui.SetCursorPos(cur);
 				ImGui.TextUnformatted(label);
 
 				if (globalSort != null && globalSort.Column == col) {
@@ -210,6 +219,23 @@ public class MainWindow : Window, IDisposable {
 
 			ImGui.EndTable();
 		}
+
+		/* NOTE: sticky header math */
+		headerHeight = ImGui.GetCursorScreenPos().Y - headerPos.Y;
+		minHeaderHeight = ImGui.GetFrameHeight() * HeaderHeightMultiplier;
+		if (headerHeight < minHeaderHeight)
+			headerHeight = minHeaderHeight;
+
+		ImGui.PushClipRect(
+		    new Vector2(childPos.X, childPos.Y + headerHeight),
+		    new Vector2(childPos.X + childSize.X, childPos.Y + childSize.Y),
+		    true
+		);
+
+		ImGui.SetCursorScreenPos(new Vector2(
+		    childPos.X,
+		    childPos.Y + headerHeight - scrollY
+		));
 
 		zones = plugin.LootManager.Loot;
 		if (globalSort != null) {
@@ -235,17 +261,19 @@ public class MainWindow : Window, IDisposable {
 			}
 		}
 
-		ImGui.BeginChild("LootZonesChild", new Vector2(0, 0), false);
 		foreach (var kvp in zones) {
-			items = kvp.Value;
+			var items = kvp.Value;
 			if (items == null)
 				continue;
 
 			if (!(hideItems && hidenZones.Contains(kvp.Key)))
 				DrawItemList(kvp.Key, items);
 		}
+
+		ImGui.PopClipRect();
 		ImGui.EndChild();
 	}
+
 
 	/// <summary>
 	/// Draws the game icon for the specified item, if valid.
