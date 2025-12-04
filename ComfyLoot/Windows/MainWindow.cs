@@ -150,7 +150,7 @@ public class MainWindow : Window, IDisposable {
 			ImGui.Spacing();
 
 			text = "You have not received any loot yet";
-			textSize = ImGui.CalcTextSize(text); // reused labelSize instead of textSize
+			textSize = ImGui.CalcTextSize(text);
 			windowSize = ImGui.GetWindowSize();
 
 			ImGui.SetCursorPos(new Vector2(
@@ -834,4 +834,5 @@ public class MainWindow : Window, IDisposable {
 		ComfyLoot.Log.Verbose("[MainWindow] Disposing UI");
 		/* nothing to clean */
 	}
+
 }
