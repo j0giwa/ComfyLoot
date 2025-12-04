@@ -18,10 +18,10 @@ namespace ComfyLoot;
 public static class Util {
 
 	/// <summary>
-	/// Formats a number to a gil value with shortened format.
+	/// Formats a numeric value as a gil amount using a shortened representation.
 	/// </summary>
-	/// <param name="number">Gil value</param>
-	/// <returns>Formatted string</returns>
+	/// <param name="number">The gil value to format.</param>
+	/// <returns>A formatted gil string.</returns>
 	public static string 
 	FormatGil(int number)
 	{
@@ -30,10 +30,10 @@ public static class Util {
 	}
 
 	/// <summary>
-	/// Formats a number in a shortened form (K for thousands, M for millions).
+	/// Formats a number into a compact readable form (e.g., K for thousands, M for millions).
 	/// </summary>
-	/// <param name="number">Number</param>
-	/// <returns>Formatted string</returns>
+	/// <param name="number">The number to format.</param>
+	/// <returns>A shortened numeric string.</returns>
 	public static string 
 	FormatNumber(int number)
 	{
@@ -49,25 +49,14 @@ public static class Util {
 			suffix = "K";
 		}
 
-		// Keep one decimal if needed, otherwise no decimal
 		format = value % 1 == 0 ? "0" : "0.#";
 		return value.ToString(format, CultureInfo.InvariantCulture) + suffix;
 	}
 
 	/// <summary>
-	/// Gets the itemid without offsets
+	/// Gets the name of the player's home world.
 	/// </summary>
-	/// <param name="itemId">itemid</param>
-	/// <returns>item baseid</returns>
-	public static uint
-	GetBaseId(uint itemId)
-	{
-		return ItemUtil.GetBaseId(itemId).ItemId;
-	}
-
-	/// <summary>
-	/// Retrieves the name of the character's homeworld.
-	/// </summary>
+	/// <returns>The home world name, or <c>"???"</c> if unresolved.</returns>
 	public static unsafe string
 	GetHomeWorld()
 	{
@@ -103,6 +92,22 @@ public static class Util {
 		return name;
 	}
 
+	/// <summary>
+	/// Retrieves the base item ID (no offsets) for the given item ID.
+	/// </summary>
+	/// <param name="itemId">The item ID.</param>
+	/// <returns>The base item ID.</returns>
+	public static uint
+	GetItemBaseId(uint itemId)
+	{
+		return ItemUtil.GetBaseId(itemId).ItemId;
+	}
+
+	/// <summary>
+	/// Resolves a string item name (exact or partial match) to its base item ID.
+	/// </summary>
+	/// <param name="name">The item name to resolve.</param>
+	/// <returns>The base item ID, or <c>0</c> if not found.</returns>
 	public static uint
 	GetItemBaseId(string name)
 	{
@@ -154,8 +159,10 @@ public static class Util {
 	}
 
 	/// <summary>
-	/// Gets the rarity of an item.
+	/// Obtains the rarity value of an item.
 	/// </summary>
+	/// <param name="itemId">The item ID.</param>
+	/// <returns>The item rarity value.</returns>
 	public static byte
 	GetRarity(uint itemId)
 	{
@@ -179,6 +186,11 @@ public static class Util {
 		return rarity;
 	}
 
+	/// <summary>
+	/// Resolves a zone name (exact or partial match) to a zone ID.
+	/// </summary>
+	/// <param name="name">The zone name.</param>
+	/// <returns>The zone ID, or <c>0</c> if not found.</returns>
 	public static uint
 	GetZoneId(string name)
 	{
@@ -232,8 +244,10 @@ public static class Util {
 	}
 
 	/// <summary>
-	/// Gets the name of the current zone (where the player currently is).
+	/// Gets the name of the zone associated with the given zone ID.
 	/// </summary>
+	/// <param name="id">The zone ID.</param>
+	/// <returns>The zone name, or <c>"???"</c> if unresolved.</returns>
 	public static string
 	GetZoneName(uint id)
 	{
@@ -270,8 +284,15 @@ public static class Util {
 	}
 
 	/// <summary>
-	/// Determines if the given item ID represents a currency.
+	/// Determines whether the specified item is classified as a currency.
 	/// </summary>
+	/// <param name="itemId">The item ID.</param>
+	/// <returns><c>true</c> if the item is a currency; otherwise, <c>false</c>.</returns>
+	/// <summary>
+	/// Determines whether the specified item is classified as a currency.
+	/// </summary>
+	/// <param name="itemId">The item ID.</param>
+	/// <returns><c>true</c> if the item is a currency; otherwise, <c>false</c>.</returns>
 	public static bool
 	IsCurrency(uint itemId)
 	{
@@ -293,21 +314,40 @@ public static class Util {
 
 		/* FIXME: There might be some missing here */
 		switch (item.Value.FilterGroup) {
-		case 16: /* FALLTHOUGH */
+		case 16: /* FALLTHROUGH */
 		case 29:
 		case 47:
 		case 54:
 		case 56:
 		case 57:
-			result = true;
+			/* HACK: stop pieces from getting flagged as currency */
+			switch (itemId) {
+			case (uint)SpecialItems.ALLAGAN_TIN_PIECE:
+			case (uint)SpecialItems.ALLAGAN_BRONZE_PIECE:
+			case (uint)SpecialItems.ALLAGAN_SILVER_PIECE:
+			case (uint)SpecialItems.ALLAGAN_GOLD_PIECE:
+			case (uint)SpecialItems.ALLAGAN_PLATINUM_PIECE:
+			case (uint)SpecialItems.NIGHTWORLD_BRONZE_PIECE:
+			case (uint)SpecialItems.NIGHTWORLD_SILVER_PIECE:
+				result = false;
+				break;
+			default:
+				result = true;
+				break;
+			}
 			break;
 		default:
 			result = false;
 			break;
 		}
+
 		return result;
 	}
 
+	/// <summary>
+	/// Determines whether the currently targeted object is a Delivery Moogle or mailbox.
+	/// </summary>
+	/// <returns><c>true</c> if the target represents mail interaction; otherwise, <c>false</c>.</returns>
 	public static bool
 	IsTargetMail()
 	{
@@ -349,6 +389,10 @@ public static class Util {
 		}
 	}
 
+	/// <summary>
+	/// Determines whether the currently targeted object is a marketboard.
+	/// </summary>
+	/// <returns><c>true</c> if the target is a marketboard; otherwise, <c>false</c>.</returns>
 	public static bool
 	IsTargetMarketboard()
 	{
@@ -386,8 +430,10 @@ public static class Util {
 	}
 
 	/// <summary>
-	/// Determines if an item is tradable.
+	/// Determines whether the specified item is tradable.
 	/// </summary>
+	/// <param name="itemId">The item ID.</param>
+	/// <returns><c>true</c> if the item can be traded; otherwise, <c>false</c>.</returns>
 	public static bool
 	IsTradable(uint itemId)
 	{

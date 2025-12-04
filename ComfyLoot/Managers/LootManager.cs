@@ -107,10 +107,6 @@ public class LootManager : IDisposable {
 		int value;
 		string worldname;
 
-		/* currencys (except gil) don't have a "value", skipping */
-		if (Util.IsCurrency(itemId) && itemId != 1)
-			return 0;
-
 		switch (itemId) {
 		case (int)SpecialItems.GIL:
 			return 1;
@@ -136,7 +132,8 @@ public class LootManager : IDisposable {
 			if (worldname == null
 			|| worldname.Equals("Dev")
 			|| worldname.Equals("???")
-			|| !Util.IsTradable(itemId))
+			|| !Util.IsTradable(itemId)
+			|| Util.IsCurrency(itemId))
 				return 0;
 
 			value = await Universalis.GetValue(
@@ -164,7 +161,7 @@ public class LootManager : IDisposable {
 		|| CheckIgnoredZone(zone))
 			return;
 
-		itemValue = await GetItemGilValue(Util.GetBaseId(id), hq);
+		itemValue = await GetItemGilValue(Util.GetItemBaseId(id), hq);
 		item = new LootItem(
 		    id,
 		    Util.GetRarity(id),

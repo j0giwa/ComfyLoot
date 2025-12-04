@@ -36,9 +36,14 @@ public class ConfigWindow : Window, IDisposable {
 		this.plugin = plugin;
 	}
 
-	///
-	///
-	///
+	/// <summary>
+	/// Draws UI elements allowing users to add new resolved numeric IDs
+	/// (item IDs or zone IDs) to an ignore list.
+	/// </summary>
+	/// <param name="widgetId">A unique ImGui widget ID.</param>
+	/// <param name="newEntry">Reference to the text buffer where user input is stored.</param>
+	/// <param name="list">The list to which the resolved ID will be added.</param>
+	/// <param name="addAction">Callback used to add the entry to the list.</param>
 	private void
 	DrawResolvedIdAdd(string widgetId, ref string newEntry,  List<uint> list, Action<List<uint>> addAction)
 	{
@@ -56,9 +61,13 @@ public class ConfigWindow : Window, IDisposable {
 		ImGui.PopID();
 	}
 
-	///
-	///
-	///
+	/// <summary>
+	/// Draws a list of resolved numeric IDs (items or zones) that can be modified or removed.
+	/// </summary>
+	/// <param name="widgetId">Unique widget identifier.</param>
+	/// <param name="idList">List of IDs to be displayed.</param>
+	/// <param name="nameResovler">Function resolving each ID to a readable name.</param>
+	/// <returns>The index of an entry flagged for removal, or -1 if none.</returns>
 	private int
 	DrawResolvedIdList(string widgetId, List<uint> idList, Func<uint, string> nameResovler)
 	{
@@ -91,6 +100,9 @@ public class ConfigWindow : Window, IDisposable {
 		return removeIndex;
 	}
 
+	/// <summary>
+	/// Renders the config UI window.
+	/// </summary>
 	public override void
 	Draw()
 	{
@@ -117,6 +129,10 @@ public class ConfigWindow : Window, IDisposable {
 		DrawDtrSection(ref serverinfo, ref serverinfoDisplayOption);
 	}
 
+	/// <summary>
+	/// Draws the Universalis settings section, including hideble concent text.
+	/// </summary>
+	/// <param name="universalis">Reference to the Universalis-enabled flag.</param>
 	private void 
 	DrawUniversalisSection(ref bool universalis)
 	{
@@ -136,15 +152,15 @@ public class ConfigWindow : Window, IDisposable {
 			ImGui.TextColored(ImGuiColors.DalamudRed, "Universalis Consent & Warning");
 
 			ImGui.TextColoredWrapped(
-			    ImGuiColors.DalamudYellow,
-			    "Ugh, another consent thingy. We hate them too, but apparently it's the law. " +
-			    "If you enable this, your IP, homeworld, and items you picked up will be sent to Universalis. " +
-			    "We don't know what they will do with this data."
+				ImGuiColors.DalamudYellow,
+				"Ugh, another consent thingy. We hate them too, but apparently it's the law. " +
+				"If you enable this, your IP, homeworld, and items you picked up will be sent to Universalis. " +
+				"We don't know what they will do with this data."
 			);
 
 			ImGui.TextColored(
-			    ImGuiColors.DalamudYellow,
-			    "Click 'Enable' so we can all pretend this mattered."
+				ImGuiColors.DalamudYellow,
+				"Click 'Enable' so we can all pretend this mattered."
 			);
 
 			ImGui.Spacing();
@@ -163,8 +179,10 @@ public class ConfigWindow : Window, IDisposable {
 	}
 
 	/// <summary>
-	/// Draws configuration options regarding the dtr bar
+	/// Draws the configuration section for the Dalamud DTR (server info) bar.
 	/// </summary>
+	/// <param name="serverinfo">Reference to the enable flag for the DTR entry.</param>
+	/// <param name="serverinfoDisplayOption">Reference to the selected display mode.</param>
 	private void
 	DrawDtrSection(ref bool serverinfo, ref int serverinfoDisplayOption)
 	{
@@ -201,8 +219,9 @@ public class ConfigWindow : Window, IDisposable {
 	}
 
 	/// <summary>
-	/// Draws an item ignorelist
+	/// Draws the UI table for the ignored item ID list.
 	/// </summary>
+	/// <param name="ignoredItemIds">The list of ignored item IDs.</param>
 	private void
 	DrawItemIgnorelist(List<uint> ignoredItemIds)
 	{
@@ -233,8 +252,9 @@ public class ConfigWindow : Window, IDisposable {
 	}
 
 	/// <summary>
-	/// Draws an item ignorelist
+	/// Draws the UI table for the ignored zone ID list.
 	/// </summary>
+	/// <param name="ignoredZoneIds">The list of ignored zone IDs.</param>
 	private void
 	DrawZoneIgnorelist(List<uint> ignoredZoneIds)
 	{
@@ -265,8 +285,10 @@ public class ConfigWindow : Window, IDisposable {
 	}
 
 	/// <summary>
-	/// removes a zone from the zone ignorelist
+	/// Removes a zone from the ignored zone list.
 	/// </summary>
+	/// <param name="zones">The list of ignored zone IDs.</param>
+	/// <param name="index">Index of the zone to remove.</param>
 	private void
 	RemoveZone(List<uint> zones, int index)
 	{
@@ -275,8 +297,10 @@ public class ConfigWindow : Window, IDisposable {
 	}
 
 	/// <summary>
-	/// removes a item from the zone ignorelist
+	/// Removes an item from the ignored item list.
 	/// </summary>
+	/// <param name="list">The ignored item list.</param>
+	/// <param name="index">Index of the item to remove.</param>
 	private void
 	RemoveItem(List<uint> list, int index)
 	{
@@ -285,8 +309,9 @@ public class ConfigWindow : Window, IDisposable {
 	}
 
 	/// <summary>
-	/// attempts to add an item to the ignorelist
+	/// Attempts to add a new item to the ignored item ID list.
 	/// </summary>
+	/// <param name="ignoredItemIds">The ignored item ID list.</param>
 	private void
 	TryAddIgnoredItem(List<uint> ignoredItemIds)
 	{
@@ -309,8 +334,9 @@ public class ConfigWindow : Window, IDisposable {
 	}
 
 	/// <summary>
-	/// attempts to add an zone to the ignorelist
+	/// Attempts to add a new zone to the ignored zone ID list.
 	/// </summary>
+	/// <param name="ignoredZoneIds">The ignored zone ID list.</param>
 	private void
 	TryAddIgnoredZone(List<uint> ignoredZoneIds)
 	{
