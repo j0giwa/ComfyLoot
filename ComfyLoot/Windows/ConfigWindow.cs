@@ -108,13 +108,13 @@ public class ConfigWindow : Window, IDisposable {
 	{
 		bool universalis;
 		bool serverinfo;
-		int serverinfoDisplayOption;
+		DtrBarOption dtrOption;
 		List<uint> ignoredItemIds;
 		List<uint> ignoredZoneIds;
 
 		universalis = Configuration.UniversalisEnabled;
 		serverinfo = Configuration.ShowDtrBar;
-		serverinfoDisplayOption = Configuration.DtrBarOption;
+		dtrOption = Configuration.DtrBarOption;
 		ignoredItemIds = Configuration.IgnoredItemIds;
 		ignoredZoneIds = Configuration.IgnoredZoneIds;
 
@@ -126,7 +126,7 @@ public class ConfigWindow : Window, IDisposable {
 		ImGui.Separator();
 
 		DrawUniversalisSection(ref universalis);
-		DrawDtrSection(ref serverinfo, ref serverinfoDisplayOption);
+		DrawDtrSection(ref serverinfo, ref dtrOption);
 	}
 
 	/// <summary>
@@ -182,9 +182,9 @@ public class ConfigWindow : Window, IDisposable {
 	/// Draws the configuration section for the Dalamud DTR (server info) bar.
 	/// </summary>
 	/// <param name="serverinfo">Reference to the enable flag for the DTR entry.</param>
-	/// <param name="serverinfoDisplayOption">Reference to the selected display mode.</param>
+	/// <param name="dtrOption">Reference to the selected display mode.</param>
 	private void
-	DrawDtrSection(ref bool serverinfo, ref int serverinfoDisplayOption)
+	DrawDtrSection(ref bool serverinfo, ref DtrBarOption dtrOption)
 	{
 		if (ImGui.Checkbox("Enable Server Info bar entry", ref serverinfo)) {
 			Configuration.ShowDtrBar = serverinfo;
@@ -198,20 +198,20 @@ public class ConfigWindow : Window, IDisposable {
 
 		bool serverinfoDisplayChanged = false;
 
-		if (ImGui.RadioButton("Total items", ref serverinfoDisplayOption, 0))
+		if (ImGui.RadioButton("Total items", ref dtrOption, DtrBarOption.TOTAL_QUANTITY))
 			serverinfoDisplayChanged = true;
-		if (ImGui.RadioButton("Items per current zone", ref serverinfoDisplayOption, 1))
+		if (ImGui.RadioButton("Items per current zone", ref dtrOption, DtrBarOption.ZONE_QUANTITY))
 			serverinfoDisplayChanged = true;
-		if (ImGui.RadioButton("Total value", ref serverinfoDisplayOption, 2))
+		if (ImGui.RadioButton("Total value", ref dtrOption, DtrBarOption.TOTAL_VALUE))
 			serverinfoDisplayChanged = true;
-		if (ImGui.RadioButton("Value per current zone", ref serverinfoDisplayOption, 3))
+		if (ImGui.RadioButton("Value per current zone", ref dtrOption, DtrBarOption.ZONE_VALUE))
 			serverinfoDisplayChanged = true;
 
 		if (serverinfoDisplayChanged) {
-			Configuration.DtrBarOption = serverinfoDisplayOption;
+			Configuration.DtrBarOption = dtrOption;
 			plugin.UpdateDtrBar();
 			Configuration.Save();
-			ComfyLoot.Log.Debug("[CONFIG) DTR setting {serverinfoDisplayOption}", serverinfoDisplayOption);
+			ComfyLoot.Log.Debug("[CONFIG) DTR setting {serverinfoDisplayOption}", dtrOption);
 		}
 
 		if (!serverinfo)

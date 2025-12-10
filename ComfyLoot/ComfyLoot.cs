@@ -10,6 +10,9 @@ using Dalamud.Plugin.Services;
 using ComfyLoot.Managers;
 using ComfyLoot.Windows;
 using Dalamud.Game.ClientState.Objects;
+using System;
+using Dalamud.Game.Text;
+using Dalamud.Game.Text.SeStringHandling;
 
 namespace ComfyLoot;
 
@@ -21,6 +24,8 @@ public sealed class ComfyLoot : IDalamudPlugin
 	private const string CommandName = "/loot";
 	public readonly WindowSystem WindowSystem = new("ComfyLoot");
 
+	[PluginService]
+	internal static IChatGui ChatGui { get; private set; } = null!;
 	[PluginService]
 	internal static IDalamudPluginInterface Dalamud { get; private set; } = null!;
 	[PluginService]
@@ -36,7 +41,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 	[PluginService]
 	internal static IGameInventory GameInventory { get; private set; } = null!;
 	[PluginService]
-	internal static IDtrBar DtrBar { get; private set; } = null!;
+	internal static IDtrBar DtrBar { get; private set; } = null!; 
 
 	[PluginService]
 	public static ITargetManager TargetManager { get; private set; } = null!;
@@ -49,6 +54,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 	public InventoryWatcher Watcher { get; set; }
 
 	public string HomeworldName { get; private set; }
+	public string TradeParterName { get; private set; }
 
 	/// <summary>
 	/// ComfyLoot:ctor
@@ -74,7 +80,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 		/* HACK: Force initalisation in case of restart 
 		   actuall save init in OnLogin() */
 		if (ClientState.IsLoggedIn) {
-			Watcher = new InventoryWatcher(LootManager);
+			Watcher = new InventoryWatcher(this, LootManager);
 			HomeworldName = Util.GetHomeWorld();
 		}
 
@@ -96,8 +102,24 @@ public sealed class ComfyLoot : IDalamudPlugin
 		ClientState.Login += OnLogin;
 		ClientState.Logout += OnLogout;
 		ClientState.TerritoryChanged += OnTerritoryChanged;
+	
+		ChatGui.ChatMessage += OnChatMessage;
 
 		InitializeDtrBar();
+	}
+
+	private void 
+	OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
+	{
+		string? name;
+
+		if (type != XivChatType.SystemMessage)
+			return;
+
+		name = Util.GetTradePartner(message.ToString());
+
+		if (name != null)
+			TradeParterName = name;
 	}
 
 	private void
@@ -130,20 +152,20 @@ public sealed class ComfyLoot : IDalamudPlugin
 		zoneName = Util.GetZoneName(zone);
 
 		switch (Configuration.DtrBarOption) {
-		case 0:
+		case DtrBarOption.TOTAL_QUANTITY:
 			number = LootManager.GetTotalItemQuantity();
 			dtrEntry.Text = $"Total: {number}";
 			break;
-		case 1:
-			number = LootManager.GetZoneItemQuantity(zone);
+		case DtrBarOption.ZONE_QUANTITY:
+			number = LootManager.GetZoneItemQuantity(zoneName);
 			dtrEntry.Text = $"{zoneName}: {number}";
 			break;
-		case 2:
+		case DtrBarOption.TOTAL_VALUE:
 			number = LootManager.GetTotalItemValue();
 			dtrEntry.Text = $"Total: {Util.FormatGil(number)}";
 			break;
-		case 3:
-			number = LootManager.GetZoneItemValue(zone);
+		case DtrBarOption.ZONE_VALUE:
+			number = LootManager.GetZoneItemValue(zoneName);
 			dtrEntry.Text = $"{zoneName}: {Util.FormatGil(number)}";
 			break;
 		default:
@@ -165,10 +187,26 @@ public sealed class ComfyLoot : IDalamudPlugin
 		}
 	}
 
-	private void
-	OnDtrBarClick(DtrInteractionEvent _)
+	private void 
+	OnDtrBarClick(DtrInteractionEvent e)
 	{
-		ToggleMainUI();
+		int index;
+		DtrBarOption[]? values;
+
+		if (e.ClickType == MouseClickType.Left)
+			ToggleMainUI();
+
+		if (e.ClickType == MouseClickType.Right) {
+			values = (DtrBarOption[])Enum.GetValues(typeof(DtrBarOption));
+
+			index = Array.IndexOf(values, Configuration.DtrBarOption);
+			index = (index + 1) % values.Length;
+
+			Configuration.DtrBarOption = values[index];
+			Configuration.Save();
+
+			UpdateDtrBar();
+		}
 	}
 
 	private void 
@@ -187,7 +225,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 		if (Watcher == null 
 		|| Watcher.IsDisposed) {
 			Watcher?.Dispose();
-			Watcher = new InventoryWatcher(LootManager);
+			Watcher = new InventoryWatcher(this, LootManager);
 		}
 
 		UpdateDtrBar();
@@ -231,5 +269,6 @@ public sealed class ComfyLoot : IDalamudPlugin
 		ClientState.Login -= OnLogin;
 		ClientState.Logout -= OnLogout;
 		ClientState.TerritoryChanged -= OnTerritoryChanged;
+		ChatGui.ChatMessage -= OnChatMessage;
 	}
 }

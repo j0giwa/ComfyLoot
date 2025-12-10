@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using ComfyLoot.Models;
 using Dalamud.Game.ClientState.Objects.Types;
+using Dalamud.Interface.Internal.UiDebug2.Browsing;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
@@ -281,6 +282,36 @@ public static class Util {
 
 			return name;
 		}
+	}
+
+	/// <summary>
+	/// If the trade window is open, returns the other player's name.
+	/// Otherwise, returns null.
+	/// </summary>
+	/// <summary>
+	/// When passed a chat message string, returns the trade partner's name
+	/// if it is a "You begin trading with X." system message.
+	/// Otherwise returns null.
+	/// </summary>
+	public static string? 
+	GetTradePartner(string chatText)
+	{
+		if (string.IsNullOrWhiteSpace(chatText))
+			return null;
+
+		const string prefix = "You begin trading with ";
+		const string suffix = ".";
+
+		if (!chatText.StartsWith(prefix, StringComparison.Ordinal))
+			return null;
+
+		if (!chatText.EndsWith(suffix, StringComparison.Ordinal))
+			return null;
+
+		var namePart = chatText.Substring(prefix.Length,
+		    chatText.Length - prefix.Length - suffix.Length);
+
+		return string.IsNullOrWhiteSpace(namePart) ? null : namePart;
 	}
 
 	/// <summary>
