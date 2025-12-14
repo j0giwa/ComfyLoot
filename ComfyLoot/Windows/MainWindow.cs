@@ -13,12 +13,12 @@ using Dalamud.Interface.Windowing;
 using Dalamud.Interface.Textures;
 using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Utility;
+using FFXIVClientStructs.FFXIV.Application.Network.WorkDefinitions;
+using Lumina.Excel;
 using Lumina.Excel.Sheets;
 using Lumina.Text.ReadOnly;
 
 using ComfyLoot.Managers;
-using Lumina.Excel;
-using FFXIVClientStructs.FFXIV.Application.Network.WorkDefinitions;
 
 namespace ComfyLoot.Windows;
 
@@ -34,7 +34,7 @@ public class MainWindow : Window, IDisposable {
 
 	private bool hideItems;
 	private SortState? globalSort;
-	
+
 	private readonly ComfyLoot plugin;
 	private readonly LootManager loot;
 	private readonly List<uint> hidenItems;
@@ -50,17 +50,17 @@ public class MainWindow : Window, IDisposable {
 		: base("ComfyLoot###comfyloot_ui", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
 	{
 		SizeConstraints = new WindowSizeConstraints {
-			MinimumSize = new Vector2(375, 330),
+			MinimumSize = new Vector2(260, 330),
 			MaximumSize = new Vector2(float.MaxValue, float.MaxValue)
 		};
 
 		TitleBarButtons = [
 			new TitleBarButton() {
 				Icon = FontAwesomeIcon.Cog,
-				Click = (msg) => { 
+				Click = (msg) => {
 					if(this.plugin == null)
-						return;	
-					this.plugin.ToggleConfigUI(); 
+						return;
+					this.plugin.ToggleConfigUI();
 				},
 				IconOffset = new(2,1),
 				ShowTooltip = () => {
@@ -88,10 +88,10 @@ public class MainWindow : Window, IDisposable {
 #if DEBUG
 		TitleBarButtons.Add(new TitleBarButton() {
 			Icon = FontAwesomeIcon.Code,
-			Click = async (msg) => { 
+			Click = async (msg) => {
 				if (this.loot == null)
 					return;
-				await Populate(this.loot); 
+				await Populate(this.loot);
 			},
 			IconOffset = new(2, 1),
 			ShowTooltip = () => {
@@ -115,7 +115,7 @@ public class MainWindow : Window, IDisposable {
 
 		this.plugin = plugin;
 		this.loot = loot;
-		
+
 		globalSort = null;
 		sortStates = new Dictionary<string, SortState>();
 
@@ -152,7 +152,7 @@ public class MainWindow : Window, IDisposable {
 			ImGui.Spacing();
 
 			text = "You have not received any loot yet";
-			textSize = ImGui.CalcTextSize(text); // reused labelSize instead of textSize
+			textSize = ImGui.CalcTextSize(text);
 			windowSize = ImGui.GetWindowSize();
 
 			ImGui.SetCursorPos(new Vector2(
@@ -191,8 +191,8 @@ public class MainWindow : Window, IDisposable {
 			/* NOTE: lables will get set later */
 			ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 20.0f);
 			ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthStretch);
-			ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 80.0f);
-			ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 80.0f);
+			ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 55.0f);
+			ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 55.0f);
 
 			ImGui.TableNextRow();
 			headerBg = ImGui.GetColorU32(ImGuiCol.Tab);
@@ -314,7 +314,7 @@ public class MainWindow : Window, IDisposable {
 	/// Draws a single loot item row inside a zone table:
 	/// </summary>
 	/// <param name="item">The loot item to draw.</param>
-	private void 
+	private void
 	DrawItem(LootItem item)
 	{
 		ReadOnlySeString itemName;
@@ -341,7 +341,7 @@ public class MainWindow : Window, IDisposable {
 	/// </summary>
 	/// <param name="item">The loot item the context applies to.</param>
 	/// <param name="itemName">The resolved item name.</param>
-	private void 
+	private void
 	DrawItemContext(LootItem item, ReadOnlySeString itemName)
 	{
 		if (ImGui.BeginPopupContextItem("##ItemContext")) {
@@ -362,7 +362,7 @@ public class MainWindow : Window, IDisposable {
 	/// </summary>
 	/// <param name="item">The loot item being hovered.</param>
 	/// <param name="itemName">The readable name of the item.</param>
-	private static void 
+	private static void
 	DrawItemTooltip(LootItem item, ReadOnlySeString itemName)
 	{
 		byte rarity;
@@ -395,7 +395,7 @@ public class MainWindow : Window, IDisposable {
 		ImGui.TextUnformatted($"Rarity: {item.Rarity}");
 		ImGui.TextUnformatted($"Tradable: {Util.IsTradable(item.ItemId)}");
 		ImGui.TextUnformatted($"IsCurrency: {Util.IsCurrency(item.ItemId)}");
-		
+
 #endif
 
 		ImGui.PopTextWrapPos();
@@ -408,7 +408,7 @@ public class MainWindow : Window, IDisposable {
 	/// </summary>
 	/// <param name="zone">The territory ID for the zone.</param>
 	/// <param name="items">The list of loot items in that zone.</param>
-	private void 
+	private void
 	DrawItemList(string zone, List<LootItem> items)
 	{
 		int col;
@@ -432,8 +432,8 @@ public class MainWindow : Window, IDisposable {
 
 		ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed, 20.0f);
 		ImGui.TableSetupColumn("Item", ImGuiTableColumnFlags.WidthStretch);
-		ImGui.TableSetupColumn("Amount", ImGuiTableColumnFlags.WidthFixed, 80.0f);
-		ImGui.TableSetupColumn("Value", ImGuiTableColumnFlags.WidthFixed, 80.0f);
+		ImGui.TableSetupColumn("Amount", ImGuiTableColumnFlags.WidthFixed, 55.0f);
+		ImGui.TableSetupColumn("Value", ImGuiTableColumnFlags.WidthFixed, 55.0f);
 
 		ImGui.TableNextRow();
 		headerBg = ImGui.GetColorU32(ImGuiCol.Tab);
@@ -508,7 +508,7 @@ public class MainWindow : Window, IDisposable {
 	/// Draws the right-click context menu for a zone entry.
 	/// </summary>
 	/// <param name="zone">The territory ID of the zone being interacted with.</param>
-	private void 
+	private void
 	DrawItemListContext(string zone)
 	{
 		uint zoneId;
@@ -600,7 +600,7 @@ public class MainWindow : Window, IDisposable {
 	/// <returns>A shared texture containing the icon, or <c>null</c> on failure.</returns>
 	private static ISharedImmediateTexture?
 	GetIcon(uint itemId)
-	{	
+	{
 		uint baseId;
 		bool hq;
 		ExcelSheet<Item>? items;
@@ -620,7 +620,7 @@ public class MainWindow : Window, IDisposable {
 
 		if (itemId >= 1000000)
 			hq = true;
-		
+
 		lookup = new GameIconLookup(item.Icon, hq);
 		if (!ComfyLoot.Textures.TryGetFromGameIcon(in lookup, out sharedTexture)
 		|| sharedTexture == null)
@@ -633,7 +633,7 @@ public class MainWindow : Window, IDisposable {
 	/// </summary>
 	/// <param name="rarity">The rarity rank of the item.</param>
 	/// <returns>An <see cref="Vector4"/> representing the color.</returns>
-	private static Vector4 
+	private static Vector4
 	GetRarityColor(int rarity)
 	{
 		switch (rarity) {
@@ -751,7 +751,7 @@ public class MainWindow : Window, IDisposable {
 	/// </summary>
 	/// <param name="items">The list of loot items to sort.</param>
 	/// <param name="sort">The sort state specifying the column and direction.</param>
-	private void 
+	private void
 	SortLootItems(List<LootItem> items, SortState sort)
 	{
 		string nameA;
@@ -808,7 +808,7 @@ public class MainWindow : Window, IDisposable {
 		if (sort == null)
 			return zones;
 
-		/* NOTE: would be rediculously complex without System.LINQ, acceptable use. */ 
+		/* NOTE: would be rediculously complex without System.LINQ, acceptable use. */
 		switch (sort.Column) {
 		case 1: /* Name */
 			/* HACK: for some reason it gets flipped in the UI, so we do the opposite here */
@@ -831,14 +831,14 @@ public class MainWindow : Window, IDisposable {
 		}
 	}
 
-	public void 
+	public void
 	Dispose()
 	{
 		Dispose(true);
 		GC.SuppressFinalize(this);
 	}
 
-	protected virtual void 
+	protected virtual void
 	Dispose(bool disposing)
 	{
 		ComfyLoot.Log.Verbose("[MainWindow] Disposing UI");

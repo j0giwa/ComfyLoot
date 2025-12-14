@@ -25,12 +25,12 @@ public record LootItem(
 /// </summay>
 public class LootManager : IDisposable {
 
-	public bool IsDisposed { get; private set; }
-
 	private readonly ComfyLoot plugin;
 	private readonly Dictionary<string, List<LootItem>> loot;
 	private readonly Lock lootLock;
 	private readonly Configuration config;
+
+	public bool IsDisposed { get; private set; }
 
 	/// <summary>
 	/// Droplist, contains everything the player collected
@@ -169,7 +169,7 @@ public class LootManager : IDisposable {
 			return;
 
 		itemValue = await GetItemGilValue(
-			Util.GetItemBaseId(id), 
+			Util.GetItemBaseId(id),
 			ItemUtil.IsHighQuality(id)
 		);
 		item = new LootItem(
@@ -226,7 +226,7 @@ public class LootManager : IDisposable {
 	}
 
 	/// <summary>
-	/// Resets the loot list 
+	/// Resets the loot list
 	/// </summary>
 	public void
 	Clear()
@@ -237,7 +237,7 @@ public class LootManager : IDisposable {
 	}
 
 	/// <summary>
-	/// Resets the loot list 
+	/// Resets the loot list
 	/// </summary>
 	public void
 	ClearZone(string zone)

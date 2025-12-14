@@ -41,7 +41,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 	[PluginService]
 	internal static IGameInventory GameInventory { get; private set; } = null!;
 	[PluginService]
-	internal static IDtrBar DtrBar { get; private set; } = null!; 
+	internal static IDtrBar DtrBar { get; private set; } = null!;
 
 	[PluginService]
 	public static ITargetManager TargetManager { get; private set; } = null!;
@@ -71,13 +71,13 @@ public sealed class ComfyLoot : IDalamudPlugin
 			config = new Configuration();
 		Configuration = config;
 
-#if DEBUG 
+#if DEBUG
 		HomeworldName = "Balmung";
 #endif //* DEBUG */
 
 		LootManager = new LootManager(this);
 
-		/* HACK: Force initalisation in case of restart 
+		/* HACK: Force initalisation in case of restart
 		   actuall save init in OnLogin() */
 		if (ClientState.IsLoggedIn) {
 			Watcher = new InventoryWatcher(this, LootManager);
@@ -102,13 +102,13 @@ public sealed class ComfyLoot : IDalamudPlugin
 		ClientState.Login += OnLogin;
 		ClientState.Logout += OnLogout;
 		ClientState.TerritoryChanged += OnTerritoryChanged;
-	
+
 		ChatGui.ChatMessage += OnChatMessage;
 
 		InitializeDtrBar();
 	}
 
-	private void 
+	private void
 	OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
 	{
 		string? name;
@@ -146,7 +146,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 			return;
 
 		dtrEntry.Shown = Configuration.ShowDtrBar;
-		dtrEntry.Tooltip = "Click to toggle overlay";
+		dtrEntry.Tooltip = "Click to toggle overlay\nRightclick to cycle through options";
 
 		zone = ClientState.TerritoryType;
 		zoneName = Util.GetZoneName(zone);
@@ -187,7 +187,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 		}
 	}
 
-	private void 
+	private void
 	OnDtrBarClick(DtrInteractionEvent e)
 	{
 		int index;
@@ -209,20 +209,20 @@ public sealed class ComfyLoot : IDalamudPlugin
 		}
 	}
 
-	private void 
+	private void
 	OnLogin()
 	{
 		Log.Verbose("[ComfyLoot] Initializing");
 
 		HomeworldName = Util.GetHomeWorld();
 
-		if (LootManager == null 
+		if (LootManager == null
 		|| LootManager.IsDisposed) {
 			LootManager?.Dispose();
 			LootManager = new LootManager(this);
 		}
 
-		if (Watcher == null 
+		if (Watcher == null
 		|| Watcher.IsDisposed) {
 			Watcher?.Dispose();
 			Watcher = new InventoryWatcher(this, LootManager);

@@ -1,4 +1,4 @@
-﻿/* See LICENSE file for copyright and license details. */
+/* See LICENSE file for copyright and license details. */
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -26,8 +26,8 @@ public class ConfigWindow : Window, IDisposable {
 		: base("ComfyLoot config###comfyloot_config_ui")
 	{
 		SizeConstraints = new WindowSizeConstraints {
-			MinimumSize = new Vector2(600, 500),
-			MaximumSize = new Vector2(600, 2000),
+			MinimumSize = new Vector2(260, 400),
+			MaximumSize = new Vector2(float.MaxValue, float.MaxValue),
 		};
 
 		SizeCondition = ImGuiCond.Always;
@@ -133,7 +133,7 @@ public class ConfigWindow : Window, IDisposable {
 	/// Draws the Universalis settings section, including hideble concent text.
 	/// </summary>
 	/// <param name="universalis">Reference to the Universalis-enabled flag.</param>
-	private void 
+	private void
 	DrawUniversalisSection(ref bool universalis)
 	{
 		bool opened;
