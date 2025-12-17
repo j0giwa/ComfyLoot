@@ -22,7 +22,6 @@ namespace ComfyLoot;
 public sealed class ComfyLoot : IDalamudPlugin
 {
 	private const string CommandName = "/loot";
-	public readonly WindowSystem WindowSystem = new("ComfyLoot");
 
 	[PluginService]
 	internal static IChatGui ChatGui { get; private set; } = null!;
@@ -43,17 +42,18 @@ public sealed class ComfyLoot : IDalamudPlugin
 	[PluginService]
 	internal static IDtrBar DtrBar { get; private set; } = null!;
 	[PluginService]
-	public static ITargetManager TargetManager { get; private set; } = null!;
+	internal static ITargetManager TargetManager { get; private set; } = null!;
 
-	private IDtrBarEntry? dtrEntry;
-	private ConfigWindow ConfigWindow { get; init; }
+	private readonly WindowSystem WindowSystem ;
 	private MainWindow MainWindow { get; init; }
-	public Configuration Configuration { get; init; }
-	public LootManager LootManager { get; set; }
-	public InventoryWatcher Watcher { get; set; }
+	private ConfigWindow ConfigWindow { get; init; }
+	private IDtrBarEntry? dtrEntry;
 
 	public string HomeworldName { get; private set; }
 	public string? TradeParterName { get; private set; }
+	public Configuration Configuration { get; init; }
+	public LootManager LootManager { get; set; }
+	public InventoryWatcher Watcher { get; set; }
 
 	/// <summary>
 	/// ComfyLoot:ctor
@@ -83,6 +83,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 			HomeworldName = Util.GetHomeWorld();
 		}
 
+		WindowSystem = new WindowSystem("ComfyLoot");
 		ConfigWindow = new ConfigWindow(this);
 		MainWindow = new MainWindow(this, LootManager);
 
@@ -159,6 +160,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 		}
 	}
 
+	/* TODO: test this */
 	/* HACK: Chatbased TradeParter recognition
 	 * NOTE: May break Dalamud plugin guidelienes ^*/
 	private void

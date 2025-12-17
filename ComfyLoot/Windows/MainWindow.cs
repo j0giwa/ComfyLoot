@@ -395,8 +395,7 @@ public class MainWindow : Window, IDisposable {
 		ImGui.TextUnformatted($"Rarity: {item.Rarity}");
 		ImGui.TextUnformatted($"Tradable: {Util.IsTradable(item.ItemId)}");
 		ImGui.TextUnformatted($"IsCurrency: {Util.IsCurrency(item.ItemId)}");
-
-#endif
+#endif //* DEBUG */
 
 		ImGui.PopTextWrapPos();
 		ImGui.EndTooltip();
@@ -662,67 +661,74 @@ public class MainWindow : Window, IDisposable {
 	private static async Task
 	Populate(LootManager loot)
 	{
-		const uint marketboard = 1;
-		const uint delivery = 2;
 		const uint aurum_vale = 172;
 
 		await loot.AddItem(
 			id: 1, /* gil */
 			amount: 1000000,
-			zone: delivery
+			zone: 0,
+			zoneName: "Delivery"
 		);
 		await loot.AddItem(
 			id: 5823, /* allagan tin */
 			amount: 20,
-			zone: delivery
+			zone: 0,
+			zoneName: "Delivery"
 		);
 		await loot.AddItem(
 			id: 5824, /* allagan bronze */
 			amount: 20,
-			zone: delivery
+			zone: 0,
+			zoneName: "Delivery"
 		);
 		await loot.AddItem(
 			id: 27994, /* nightworld bronce */
 			amount: 20,
-			zone: delivery
+			zone: 0,
+			zoneName: "Delivery"
 		);
 		await loot.AddItem(
 			id: 5825, /* allagan silver */
 			amount: 20,
-			zone: delivery
+			zone: 0,
+			zoneName: "Delivery"
 		);
 		await loot.AddItem(
 			id: 28062, /* nightworld silver */
 			amount: 20,
-			zone: delivery
+			zone: 0,
+			zoneName: "Delivery"
 		);
 		await loot.AddItem(
 			id: 5826, /* allagan gold */
 			amount: 20,
-			zone: delivery
+			zone: 0,
+			zoneName: "Delivery"
 		);
 		await loot.AddItem(
 			id: 5827, /* allagan platinum */
 			amount: 20,
-			zone: delivery
+			zone: 0,
+			zoneName: "Delivery"
 		);
-
 		await loot.AddItem(
 			id: 14, /* fire cluster */
 			amount: 999,
-			zone: marketboard
+			zone: 0,
+			zoneName: "Delivery"
 		);
 		await loot.AddItem(
 			id: 1046003, /* mate cookie (hq) */
 			amount: 99,
-			zone: marketboard
+			zone: 0,
+			zoneName: "Marketboard"
 		);
 		await loot.AddItem(
 			id: 46003, /* mate cookie (sq) */
 			amount: 99,
-			zone: marketboard
+			zone: 0,
+			zoneName: "Marketboard"
 		);
-
 		await loot.AddItem(
 			id: 2791, /* aetherial mythril circlet (rubellite) */
 			amount: 1,
@@ -802,6 +808,7 @@ public class MainWindow : Window, IDisposable {
 	/// <param name="zones">The zones to sort.</param>
 	/// <param name="sort">The sort state specifying the column and direction.</param>
 	/// <returns>The sorted zones.</returns>
+	/* TODO: oof */
 	private IEnumerable<KeyValuePair<string, List<LootItem>>>
 	SortZones(IEnumerable<KeyValuePair<string, List<LootItem>>> zones, SortState? sort)
 	{
