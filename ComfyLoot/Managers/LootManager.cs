@@ -3,10 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Dalamud.Utility;
 
 using ComfyLoot.Models;
-using Dalamud.Utility;
-using Microsoft.Win32.SafeHandles;
 
 namespace ComfyLoot.Managers;
 

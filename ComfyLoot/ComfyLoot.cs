@@ -42,7 +42,6 @@ public sealed class ComfyLoot : IDalamudPlugin
 	internal static IGameInventory GameInventory { get; private set; } = null!;
 	[PluginService]
 	internal static IDtrBar DtrBar { get; private set; } = null!;
-
 	[PluginService]
 	public static ITargetManager TargetManager { get; private set; } = null!;
 
@@ -54,7 +53,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 	public InventoryWatcher Watcher { get; set; }
 
 	public string HomeworldName { get; private set; }
-	public string TradeParterName { get; private set; }
+	public string? TradeParterName { get; private set; }
 
 	/// <summary>
 	/// ComfyLoot:ctor
@@ -109,20 +108,6 @@ public sealed class ComfyLoot : IDalamudPlugin
 	}
 
 	private void
-	OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
-	{
-		string? name;
-
-		if (type != XivChatType.SystemMessage)
-			return;
-
-		name = Util.GetTradePartner(message.ToString());
-
-		if (name != null)
-			TradeParterName = name;
-	}
-
-	private void
 	InitializeDtrBar()
 	{
 		dtrEntry = DtrBar.Get("ComfyLoot");
@@ -172,6 +157,26 @@ public sealed class ComfyLoot : IDalamudPlugin
 			dtrEntry.Text = "ComfyLoot: N/A";
 			break;
 		}
+	}
+
+	/* HACK: Chatbased TradeParter recognition
+	 * NOTE: May break Dalamud plugin guidelienes ^*/
+	private void
+	OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
+	{
+		string? name;
+
+		if (type != XivChatType.SystemMessage)
+			return;
+
+		if (message.ToString().Equals("Trade complete")) {
+			TradeParterName = null;
+			return;
+		}
+
+		name = Util.GetTradePartner(message.ToString());
+		if (name != null)
+			TradeParterName = name;
 	}
 
 	private void

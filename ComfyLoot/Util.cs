@@ -2,7 +2,6 @@ using System;
 using System.Globalization;
 using ComfyLoot.Models;
 using Dalamud.Game.ClientState.Objects.Types;
-using Dalamud.Interface.Internal.UiDebug2.Browsing;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
@@ -23,7 +22,7 @@ public static class Util {
 	/// </summary>
 	/// <param name="number">The gil value to format.</param>
 	/// <returns>A formatted gil string.</returns>
-	public static string 
+	public static string
 	FormatGil(int number)
 	{
 		const char gil = (char)Dalamud.Game.Text.SeIconChar.Gil;
@@ -35,7 +34,7 @@ public static class Util {
 	/// </summary>
 	/// <param name="number">The number to format.</param>
 	/// <returns>A shortened numeric string.</returns>
-	public static string 
+	public static string
 	FormatNumber(int number)
 	{
 		double value = number;
@@ -202,14 +201,6 @@ public static class Util {
 		if (string.IsNullOrWhiteSpace(name))
 			return 0;
 
-		name = name.Trim();
-		if (name.Equals("Marketboard", StringComparison.OrdinalIgnoreCase))
-			return (uint)Zones.MARKETBOARD;
-
-		if (name.Equals("Delivery", StringComparison.OrdinalIgnoreCase) ||
-		    name.Equals("Mail", StringComparison.OrdinalIgnoreCase))
-			return (uint)Zones.MAIL;
-
 		sheet = ComfyLoot.DataManager.GetExcelSheet<TerritoryType>();
 		if (sheet == null) {
 			ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: TerritoryType");
@@ -236,7 +227,7 @@ public static class Util {
 		}
 
 		if (found == null) {
-			ComfyLoot.Log.Warning("[Lumina] Zone not found: {Zone}", 
+			ComfyLoot.Log.Warning("[Lumina] Zone not found: {Zone}",
 				name);
 			return 0;
 		}
@@ -258,60 +249,46 @@ public static class Util {
 
 		name = "???"; /* fallback */
 
-		switch (id) {
-		case (uint)Zones.MARKETBOARD:
-			return "Marketboard";
-		case (uint)Zones.MAIL:
-			return "Delivery";
-		default:
-			sheet = ComfyLoot.DataManager.GetExcelSheet<TerritoryType>();
-			if (sheet == null) {
-				ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: TerritoryType");
-				return name;
-			}
-
-			if (!sheet.TryGetRow(id, out zone))
-				return name;
-
-			if (zone.PlaceName.Value.Name.IsEmpty)
-				return name;
-
-			name = zone.PlaceName.Value.Name.ToString();
-			if (name.IsNullOrWhitespace())
-				return "???";
-
+		sheet = ComfyLoot.DataManager.GetExcelSheet<TerritoryType>();
+		if (sheet == null) {
+			ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: TerritoryType");
 			return name;
 		}
+
+		if (!sheet.TryGetRow(id, out zone))
+			return name;
+
+		if (zone.PlaceName.Value.Name.IsEmpty)
+			return name;
+
+		name = zone.PlaceName.Value.Name.ToString();
+		if (name.IsNullOrWhitespace())
+			return "???";
+
+		return name;
 	}
 
-	/// <summary>
-	/// If the trade window is open, returns the other player's name.
-	/// Otherwise, returns null.
+	/// <summar>
+	/// Extracts a playername form a trading message
 	/// </summary>
-	/// <summary>
-	/// When passed a chat message string, returns the trade partner's name
-	/// if it is a "You begin trading with X." system message.
-	/// Otherwise returns null.
-	/// </summary>
-	public static string? 
+	public static string?
 	GetTradePartner(string chatText)
 	{
+		const string suffix = " wishes to trade with you.";
+		string namePart;
+
 		if (string.IsNullOrWhiteSpace(chatText))
-			return null;
-
-		const string prefix = "You begin trading with ";
-		const string suffix = ".";
-
-		if (!chatText.StartsWith(prefix, StringComparison.Ordinal))
 			return null;
 
 		if (!chatText.EndsWith(suffix, StringComparison.Ordinal))
 			return null;
 
-		var namePart = chatText.Substring(prefix.Length,
-		    chatText.Length - prefix.Length - suffix.Length);
+		namePart = chatText.Substring(0, chatText.Length - suffix.Length);
 
-		return string.IsNullOrWhiteSpace(namePart) ? null : namePart;
+		if (string.IsNullOrWhiteSpace(namePart))
+			return null;
+
+		return namePart;
 	}
 
 	/// <summary>
@@ -345,12 +322,12 @@ public static class Util {
 
 		/* FIXME: There might be some missing here */
 		switch (item.Value.FilterGroup) {
-		case 16: /* FALLTHROUGH */
-		case 29:
+		case 29: /* FALLTHROUGH */
 		case 47:
 		case 54:
 		case 56:
 		case 57:
+		//case 16: /* ERROR: this might be overly agressive  */
 			/* HACK: stop pieces from getting flagged as currency */
 			switch (itemId) {
 			case (uint)SpecialItems.ALLAGAN_TIN_PIECE:
@@ -404,12 +381,6 @@ public static class Util {
 			switch (target.Name.TextValue) {
 			case "Delivery Moogle": /* FALLTHROUGH */
 			case "Mailbox":
-			case "Kupo-Kurier":
-			case "Briefkasten":
-			case "Mog postier":
-			case "Boîte aux lettres":
-			case "レターモーグリ":
-			case "メールボックス":
 				return true;
 			default:
 				return false;
@@ -445,15 +416,10 @@ public static class Util {
 				return true;
 
 			/* fallback: identification over name */
-			switch (target.Name.TextValue) {
-			case "Market Board": /* FALLTHROUGH */
-			case "Schwarzes Brett":
-			case "Panneau des ventes":
-			case "マーケットボード":
+			if (target.Name.TextValue.Equals("Market Board"))
 				return true;
-			default:
-				return false;
-			}
+
+			return false;
 		} catch (Exception e) {
 			ComfyLoot.Log.Error(e, "WTF");
 			return false;

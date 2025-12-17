@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using ComfyLoot.Models;
 using Dalamud.Game.Inventory;
 using Dalamud.Game.Inventory.InventoryEventArgTypes;
 
@@ -130,13 +129,14 @@ public class InventoryWatcher : IDisposable {
 		uint zone;
 		string? overrideName;
 
+		/* NOTE: Items gained outside of content should be handled differently */
 		overrideName = null;
 		zone = ComfyLoot.ClientState.TerritoryType;
 		if (Util.IsTargetMarketboard()) {
 			zone = 0;
 			overrideName = "MarketBoard";
 		}
-			
+
 		if (Util.IsTargetMail()) {
 			zone = 0;
 			overrideName = "Delivery";
