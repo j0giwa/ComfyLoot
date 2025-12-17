@@ -53,7 +53,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 	public string? TradeParterName { get; private set; }
 	public Configuration Configuration { get; init; }
 	public LootManager LootManager { get; set; }
-	public InventoryWatcher Watcher { get; set; }
+	public required InventoryWatcher Watcher { get; set; }
 
 	/// <summary>
 	/// ComfyLoot:ctor
@@ -108,6 +108,8 @@ public sealed class ComfyLoot : IDalamudPlugin
 		InitializeDtrBar();
 	}
 
+	private void DrawUI() => WindowSystem.Draw();
+
 	private void
 	InitializeDtrBar()
 	{
@@ -117,46 +119,6 @@ public sealed class ComfyLoot : IDalamudPlugin
 			dtrEntry.OnClick = OnDtrBarClick;
 			UpdateDtrBar();
 			dtrEntry.Shown = Configuration.ShowDtrBar;
-		}
-	}
-
-	public void
-	UpdateDtrBar()
-	{
-		int number;
-		uint zone;
-		string zoneName;
-
-		if (dtrEntry == null
-		|| LootManager == null)
-			return;
-
-		dtrEntry.Shown = Configuration.ShowDtrBar;
-		dtrEntry.Tooltip = "Click to toggle overlay\nRightclick to cycle through options";
-
-		zone = ClientState.TerritoryType;
-		zoneName = Util.GetZoneName(zone);
-
-		switch (Configuration.DtrBarOption) {
-		case DtrBarOption.TOTAL_QUANTITY:
-			number = LootManager.GetTotalItemQuantity();
-			dtrEntry.Text = $"Total: {number}";
-			break;
-		case DtrBarOption.ZONE_QUANTITY:
-			number = LootManager.GetZoneItemQuantity(zoneName);
-			dtrEntry.Text = $"{zoneName}: {number}";
-			break;
-		case DtrBarOption.TOTAL_VALUE:
-			number = LootManager.GetTotalItemValue();
-			dtrEntry.Text = $"Total: {Util.FormatGil(number)}";
-			break;
-		case DtrBarOption.ZONE_VALUE:
-			number = LootManager.GetZoneItemValue(zoneName);
-			dtrEntry.Text = $"{zoneName}: {Util.FormatGil(number)}";
-			break;
-		default:
-			dtrEntry.Text = "ComfyLoot: N/A";
-			break;
 		}
 	}
 
@@ -254,10 +216,48 @@ public sealed class ComfyLoot : IDalamudPlugin
 		UpdateDtrBar();
 	}
 
-	private void DrawUI() => WindowSystem.Draw();
-
 	public void ToggleConfigUI() => ConfigWindow.Toggle();
 	public void ToggleMainUI() => MainWindow.Toggle();
+
+	public void
+	UpdateDtrBar()
+	{
+		int number;
+		uint zone;
+		string zoneName;
+
+		if (dtrEntry == null
+		|| LootManager == null)
+			return;
+
+		dtrEntry.Shown = Configuration.ShowDtrBar;
+		dtrEntry.Tooltip = "Click to toggle overlay\nRightclick to cycle through options";
+
+		zone = ClientState.TerritoryType;
+		zoneName = Util.GetZoneName(zone);
+
+		switch (Configuration.DtrBarOption) {
+		case DtrBarOption.TOTAL_QUANTITY:
+			number = LootManager.GetTotalItemQuantity();
+			dtrEntry.Text = $"Total: {number}";
+			break;
+		case DtrBarOption.ZONE_QUANTITY:
+			number = LootManager.GetZoneItemQuantity(zoneName);
+			dtrEntry.Text = $"{zoneName}: {number}";
+			break;
+		case DtrBarOption.TOTAL_VALUE:
+			number = LootManager.GetTotalItemValue();
+			dtrEntry.Text = $"Total: {Util.FormatGil(number)}";
+			break;
+		case DtrBarOption.ZONE_VALUE:
+			number = LootManager.GetZoneItemValue(zoneName);
+			dtrEntry.Text = $"{zoneName}: {Util.FormatGil(number)}";
+			break;
+		default:
+			dtrEntry.Text = "ComfyLoot: N/A";
+			break;
+		}
+	}
 
 	public void
 	Dispose()
