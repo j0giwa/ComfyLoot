@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Dalamud.NET.Sdk/13.0.0">
+<Project Sdk="Dalamud.NET.Sdk/14.0.0">
   <PropertyGroup>
     <Version>1.0.0.1</Version>
     <Description>RuneLite inspired drop-tracker</Description>
@@ -15,5 +15,4 @@
     </Content>
   </ItemGroup>
 </Project>
-
 
