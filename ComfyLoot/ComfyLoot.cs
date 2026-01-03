@@ -1,7 +1,12 @@
 /* See LICENSE file for copyright and license details. */
+using System;
 using Dalamud.Configuration;
 using Dalamud.Game.Command;
+using Dalamud.Game.Gui.ContextMenu;
 using Dalamud.Game.Gui.Dtr;
+using Dalamud.Game.Inventory;
+using Dalamud.Game.Text;
+using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
@@ -9,10 +14,6 @@ using Dalamud.Plugin.Services;
 
 using ComfyLoot.Managers;
 using ComfyLoot.Windows;
-using Dalamud.Game.ClientState.Objects;
-using System;
-using Dalamud.Game.Text;
-using Dalamud.Game.Text.SeStringHandling;
 
 namespace ComfyLoot;
 
@@ -48,6 +49,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 	private MainWindow MainWindow { get; init; }
 	private ConfigWindow ConfigWindow { get; init; }
 	private IDtrBarEntry? dtrEntry;
+	private readonly IContextMenu contextMenu;
 
 	public string HomeworldName { get; private set; }
 	public string? TradeParterName { get; private set; }
@@ -58,7 +60,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 	/// <summary>
 	/// ComfyLoot:ctor
 	/// </summary>
-	public ComfyLoot()
+	public ComfyLoot(IContextMenu contextMenu)
 	{
 		IPluginConfiguration? rawConfig;
 		Configuration config;
@@ -82,6 +84,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 			Watcher = new InventoryWatcher(this, LootManager);
 			HomeworldName = Util.GetHomeWorld();
 		}
+		this.contextMenu = contextMenu;
 
 		WindowSystem = new WindowSystem("ComfyLoot");
 		ConfigWindow = new ConfigWindow(this);
@@ -103,6 +106,8 @@ public sealed class ComfyLoot : IDalamudPlugin
 		ClientState.Logout += OnLogout;
 		ClientState.TerritoryChanged += OnTerritoryChanged;
 
+		this.contextMenu.OnMenuOpened += OnMenuOpened;
+
 		ChatGui.ChatMessage += OnChatMessage;
 
 		InitializeDtrBar();
@@ -122,25 +127,34 @@ public sealed class ComfyLoot : IDalamudPlugin
 		}
 	}
 
-	/* TODO: test this */
-	/* HACK: Chatbased TradeParter recognition
-	 * NOTE: May break Dalamud plugin guidelienes ^*/
+	/* HACK: Abusing chat event as a trade event */
 	private void
 	OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
 	{
+		/* Trademessagess are on unamed channels (Id's may break on patch) */
+		const int tradeChannelOut = 569;
+		const int tradeChannelIn = 313;
+		string text;
 		string? name;
 
-		if (type != XivChatType.SystemMessage)
+		/* We only care about trade messages */
+		if (!((int)type == tradeChannelIn
+		|| (int)type == tradeChannelOut
+		|| type == XivChatType.SystemMessage))
 			return;
 
-		if (message.ToString().Equals("Trade complete")) {
-			TradeParterName = null;
-			return;
+		text = message.ToString();
+
+		if (text.Contains("wishes to trade with you.")
+		|| text.Contains("Trade request sent to")) {
+			name = Util.GetTradePartner();
+			Log.Debug($"[TRADE] message=\"{message}\" partner=\"{name}\"");
+			if (name != null)
+				TradeParterName = name;
 		}
 
-		name = Util.GetTradePartner(message.ToString());
-		if (name != null)
-			TradeParterName = name;
+		if (text.Equals("Trade complete."))
+			TradeParterName = null;
 	}
 
 	private void
@@ -211,6 +225,39 @@ public sealed class ComfyLoot : IDalamudPlugin
 	}
 
 	private void
+	OnMenuOpened(IMenuOpenedArgs args)
+	{
+		if (!Configuration.ItemContextMenu)
+			return;
+
+		if (args.MenuType != ContextMenuType.Inventory)
+			return;
+
+		if (args.Target is not MenuTargetInventory target)
+			return;
+
+		args.AddMenuItem(new MenuItem {
+			Name = "Ignore Item",
+			PrefixChar = 'C',
+			PrefixColor = 0,
+			OnClicked = _ => OnItemClicked(target)
+		});
+	}
+
+	private void
+	OnItemClicked(MenuTargetInventory target)
+	{
+		GameInventoryItem? item;
+
+		item = target.TargetItem;
+
+		if (item == null)
+			return;
+
+		Configuration.IgnoredItemIds.Add(item.Value.ItemId);
+	}
+
+	private void
 	OnTerritoryChanged(ushort obj)
 	{
 		UpdateDtrBar();
@@ -277,5 +324,6 @@ public sealed class ComfyLoot : IDalamudPlugin
 		ClientState.Logout -= OnLogout;
 		ClientState.TerritoryChanged -= OnTerritoryChanged;
 		ChatGui.ChatMessage -= OnChatMessage;
+		contextMenu.OnMenuOpened -= OnMenuOpened;
 	}
 }

@@ -107,12 +107,14 @@ public class ConfigWindow : Window, IDisposable {
 	Draw()
 	{
 		bool universalis;
+		bool contextMenu;
 		bool serverinfo;
 		DtrBarOption dtrOption;
 		List<uint> ignoredItemIds;
 		List<uint> ignoredZoneIds;
 
 		universalis = Configuration.UniversalisEnabled;
+		contextMenu = Configuration.ItemContextMenu;
 		serverinfo = Configuration.ShowDtrBar;
 		dtrOption = Configuration.DtrBarOption;
 		ignoredItemIds = Configuration.IgnoredItemIds;
@@ -126,6 +128,11 @@ public class ConfigWindow : Window, IDisposable {
 		ImGui.Separator();
 
 		DrawUniversalisSection(ref universalis);
+		if (ImGui.Checkbox("Enable item context menu", ref contextMenu)) {
+			Configuration.ItemContextMenu = contextMenu;
+			Configuration.Save();
+			ComfyLoot.Log.Debug("[CONFIG) ContextMenu enabled {serverinfo}", serverinfo);
+		}
 		DrawDtrSection(ref serverinfo, ref dtrOption);
 	}
 

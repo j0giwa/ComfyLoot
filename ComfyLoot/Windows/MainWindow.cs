@@ -13,7 +13,6 @@ using Dalamud.Interface.Windowing;
 using Dalamud.Interface.Textures;
 using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Utility;
-using FFXIVClientStructs.FFXIV.Application.Network.WorkDefinitions;
 using Lumina.Excel;
 using Lumina.Excel.Sheets;
 using Lumina.Text.ReadOnly;
@@ -107,6 +106,7 @@ public class MainWindow : Window, IDisposable {
 				ImGui.TextColored(color, $"Current_zone: {Util.GetZoneName(territoryId)} ({territoryId})");
 				ImGui.TextColored(color, $"Is_Target_Mail: {Util.IsTargetMail()}");
 				ImGui.TextColored(color, $"Is_Target_Marketboard: {Util.IsTargetMarketboard()}");
+				ImGui.TextColored(color, $"Last Tradepartner: {Util.GetTradePartner()}");
 
 				ImGui.EndTooltip();
 			}

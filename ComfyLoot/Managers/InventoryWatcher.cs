@@ -144,7 +144,7 @@ public class InventoryWatcher : IDisposable {
 
 		if (plugin.TradeParterName != null) {
 			zone = 0;
-			overrideName = plugin.TradeParterName;
+			overrideName = $"{plugin.TradeParterName} (Trade)";
 		}
 
 		lock (debounceLock) {

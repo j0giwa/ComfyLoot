@@ -1,8 +1,13 @@
 using System;
 using System.Globalization;
+using System.Text;
 using ComfyLoot.Models;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Utility;
+using Dalamud.Game.Text.SeStringHandling;
+using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.UI;
+using FFXIVClientStructs.FFXIV.Component.GUI;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
@@ -268,27 +273,21 @@ public static class Util {
 		return name;
 	}
 
-	/// <summar>
-	/// Extracts a playername form a trading message
-	/// </summary>
-	public static string?
-	GetTradePartner(string chatText)
+	public static unsafe string
+	GetTradePartner()
 	{
-		const string suffix = " wishes to trade with you.";
-		string namePart;
+		const int tradeArrayIndex = 10;
+		const int tradeParnerIndex = 11;
 
-		if (string.IsNullOrWhiteSpace(chatText))
-			return null;
+		string result;
+		AtkArrayDataHolder atk;
+		StringArrayData* tradeArray;
 
-		if (!chatText.EndsWith(suffix, StringComparison.Ordinal))
-			return null;
+		atk = RaptureAtkModule.Instance()->AtkArrayDataHolder;
+		tradeArray = atk._StringArrays[tradeArrayIndex];
+		result = tradeArray->StringArray[tradeParnerIndex].ToString();
 
-		namePart = chatText.Substring(0, chatText.Length - suffix.Length);
-
-		if (string.IsNullOrWhiteSpace(namePart))
-			return null;
-
-		return namePart;
+		return result;
 	}
 
 	/// <summary>
@@ -327,7 +326,7 @@ public static class Util {
 		case 54:
 		case 56:
 		case 57:
-		//case 16: /* ERROR: this might be overly agressive  */
+		case 16: /* ERROR: this makes the function overly agressive */
 			/* HACK: stop pieces from getting flagged as currency */
 			switch (itemId) {
 			case (uint)SpecialItems.ALLAGAN_TIN_PIECE:
