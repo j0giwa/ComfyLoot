@@ -25,9 +25,9 @@ public record LootItem(
 public class LootManager : IDisposable {
 
 	private readonly ComfyLoot plugin;
-	private readonly Dictionary<string, List<LootItem>> loot;
-	private readonly Lock lootLock;
 	private readonly Configuration config;
+	private readonly Lock lootLock;
+	private readonly Dictionary<string, List<LootItem>> loot;
 
 	public bool IsDisposed { get; private set; }
 

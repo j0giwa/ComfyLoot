@@ -29,6 +29,7 @@ public class SortState {
 /// <summary>
 /// Mainplugin UI
 /// </summary>
+/* TODO: Need rework */
 public class MainWindow : Window, IDisposable {
 
 	private bool hideItems;
