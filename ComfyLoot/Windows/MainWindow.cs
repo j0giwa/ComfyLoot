@@ -13,6 +13,7 @@ using Dalamud.Interface.Windowing;
 using Dalamud.Interface.Textures;
 using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Utility;
+using Lumina.Excel;
 using Lumina.Excel.Sheets;
 using Lumina.Text.ReadOnly;
 
@@ -28,16 +29,17 @@ public class SortState {
 /// <summary>
 /// Mainplugin UI
 /// </summary>
+/* TODO: Need rework */
 public class MainWindow : Window, IDisposable {
 
 	private bool hideItems;
 	private SortState? globalSort;
-	
+
 	private readonly ComfyLoot plugin;
 	private readonly LootManager loot;
 	private readonly List<uint> hidenItems;
-	private readonly List<uint> hidenZones;
-	private readonly Dictionary<uint, SortState> sortStates;
+	private readonly List<string> hidenZones;
+	private readonly Dictionary<string, SortState> sortStates;
 
 	/// <summary>
 	/// MainWindow:ctor
@@ -48,17 +50,17 @@ public class MainWindow : Window, IDisposable {
 		: base("ComfyLoot###comfyloot_ui", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
 	{
 		SizeConstraints = new WindowSizeConstraints {
-			MinimumSize = new Vector2(375, 330),
+			MinimumSize = new Vector2(260, 330),
 			MaximumSize = new Vector2(float.MaxValue, float.MaxValue)
 		};
 
 		TitleBarButtons = [
 			new TitleBarButton() {
 				Icon = FontAwesomeIcon.Cog,
-				Click = (msg) => { 
+				Click = (msg) => {
 					if(this.plugin == null)
-						return;	
-					this.plugin.ToggleConfigUI(); 
+						return;
+					this.plugin.ToggleConfigUI();
 				},
 				IconOffset = new(2,1),
 				ShowTooltip = () => {
@@ -86,10 +88,10 @@ public class MainWindow : Window, IDisposable {
 #if DEBUG
 		TitleBarButtons.Add(new TitleBarButton() {
 			Icon = FontAwesomeIcon.Code,
-			Click = async (msg) => { 
+			Click = async (msg) => {
 				if (this.loot == null)
 					return;
-				await Populate(this.loot); 
+				await Populate(this.loot);
 			},
 			IconOffset = new(2, 1),
 			ShowTooltip = () => {
@@ -105,6 +107,7 @@ public class MainWindow : Window, IDisposable {
 				ImGui.TextColored(color, $"Current_zone: {Util.GetZoneName(territoryId)} ({territoryId})");
 				ImGui.TextColored(color, $"Is_Target_Mail: {Util.IsTargetMail()}");
 				ImGui.TextColored(color, $"Is_Target_Marketboard: {Util.IsTargetMarketboard()}");
+				ImGui.TextColored(color, $"Last Tradepartner: {Util.GetTradePartner()}");
 
 				ImGui.EndTooltip();
 			}
@@ -115,11 +118,11 @@ public class MainWindow : Window, IDisposable {
 		this.loot = loot;
 
 		globalSort = null;
-		sortStates = new Dictionary<uint, SortState>();
+		sortStates = new Dictionary<string, SortState>();
 
 		hideItems = true;
 		hidenItems = new List<uint>();
-		hidenZones = new List<uint>();
+		hidenZones = new List<string>();
 	}
 
 	/// <summary>
@@ -141,7 +144,7 @@ public class MainWindow : Window, IDisposable {
 		Vector2 headerPos;
 		Vector2 textSize;
 		ImGuiTableFlags tableFlags;
-		IEnumerable<KeyValuePair<uint, List<LootItem>>> zones;
+		IEnumerable<KeyValuePair<string, List<LootItem>>> zones;
 
 		/* NOTE: if no loot at all, we can skip the render */
 		if (plugin.LootManager.Loot.Count == 0) {
@@ -189,8 +192,8 @@ public class MainWindow : Window, IDisposable {
 			/* NOTE: lables will get set later */
 			ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 20.0f);
 			ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthStretch);
-			ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 80.0f);
-			ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 80.0f);
+			ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 55.0f);
+			ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 55.0f);
 
 			ImGui.TableNextRow();
 			headerBg = ImGui.GetColorU32(ImGuiCol.Tab);
@@ -250,7 +253,7 @@ public class MainWindow : Window, IDisposable {
 
 		zones = SortZones(plugin.LootManager.Loot, globalSort);
 
-		foreach (KeyValuePair<uint, List<LootItem>> kvp in zones) {
+		foreach (KeyValuePair<string, List<LootItem>> kvp in zones) {
 			if (kvp.Value == null)
 				continue;
 
@@ -312,13 +315,13 @@ public class MainWindow : Window, IDisposable {
 	/// Draws a single loot item row inside a zone table:
 	/// </summary>
 	/// <param name="item">The loot item to draw.</param>
-	private void 
+	private void
 	DrawItem(LootItem item)
 	{
 		ReadOnlySeString itemName;
 		ImGui.TableNextRow();
 		ImGui.TableSetColumnIndex(0);
-		DrawIcon(Util.GetItemBaseId(item.ItemId));
+		DrawIcon(item.ItemId);
 
 		ImGui.TableNextColumn();
 		itemName = ItemUtil.GetItemName(item.ItemId, true);
@@ -339,7 +342,7 @@ public class MainWindow : Window, IDisposable {
 	/// </summary>
 	/// <param name="item">The loot item the context applies to.</param>
 	/// <param name="itemName">The resolved item name.</param>
-	private void 
+	private void
 	DrawItemContext(LootItem item, ReadOnlySeString itemName)
 	{
 		if (ImGui.BeginPopupContextItem("##ItemContext")) {
@@ -360,7 +363,7 @@ public class MainWindow : Window, IDisposable {
 	/// </summary>
 	/// <param name="item">The loot item being hovered.</param>
 	/// <param name="itemName">The readable name of the item.</param>
-	private static void 
+	private static void
 	DrawItemTooltip(LootItem item, ReadOnlySeString itemName)
 	{
 		byte rarity;
@@ -393,8 +396,7 @@ public class MainWindow : Window, IDisposable {
 		ImGui.TextUnformatted($"Rarity: {item.Rarity}");
 		ImGui.TextUnformatted($"Tradable: {Util.IsTradable(item.ItemId)}");
 		ImGui.TextUnformatted($"IsCurrency: {Util.IsCurrency(item.ItemId)}");
-		
-#endif
+#endif //* DEBUG */
 
 		ImGui.PopTextWrapPos();
 		ImGui.EndTooltip();
@@ -406,8 +408,8 @@ public class MainWindow : Window, IDisposable {
 	/// </summary>
 	/// <param name="zone">The territory ID for the zone.</param>
 	/// <param name="items">The list of loot items in that zone.</param>
-	private void 
-	DrawItemList(uint zone, List<LootItem> items)
+	private void
+	DrawItemList(string zone, List<LootItem> items)
 	{
 		int col;
 		uint headerBg;
@@ -430,8 +432,8 @@ public class MainWindow : Window, IDisposable {
 
 		ImGui.TableSetupColumn("#", ImGuiTableColumnFlags.WidthFixed, 20.0f);
 		ImGui.TableSetupColumn("Item", ImGuiTableColumnFlags.WidthStretch);
-		ImGui.TableSetupColumn("Amount", ImGuiTableColumnFlags.WidthFixed, 80.0f);
-		ImGui.TableSetupColumn("Value", ImGuiTableColumnFlags.WidthFixed, 80.0f);
+		ImGui.TableSetupColumn("Amount", ImGuiTableColumnFlags.WidthFixed, 55.0f);
+		ImGui.TableSetupColumn("Value", ImGuiTableColumnFlags.WidthFixed, 55.0f);
 
 		ImGui.TableNextRow();
 		headerBg = ImGui.GetColorU32(ImGuiCol.Tab);
@@ -447,14 +449,14 @@ public class MainWindow : Window, IDisposable {
 			ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, headerBg, ImGui.TableGetRowIndex());
 			switch (col) {
 			case 0: /* List collapser */
-				ImGui.PushID((int)zone);
+				ImGui.PushID(zone);
 				zoneOpen = ImGui.TreeNodeEx("##zone", ImGuiTreeNodeFlags.DefaultOpen);
 				DrawItemListContext(zone); // right-click menu
 				ImGui.PopID();
 				continue; // skip the rest of the loop for this column
 			case 1: /* Zone Name */
 				ImGui.PushID("HeaderZoneName");
-				label = Util.GetZoneName(zone);
+				label = zone;
 				break;
 			case 2: /* Item Amount */
 				ImGui.PushID("HeaderAmount");
@@ -506,12 +508,15 @@ public class MainWindow : Window, IDisposable {
 	/// Draws the right-click context menu for a zone entry.
 	/// </summary>
 	/// <param name="zone">The territory ID of the zone being interacted with.</param>
-	private void 
-	DrawItemListContext(uint zone)
+	private void
+	DrawItemListContext(string zone)
 	{
+		uint zoneId;
+
 		if (ImGui.BeginPopupContextItem($"##ZoneContextName_{zone}")) {
 			if (ImGui.MenuItem("Ignore Zone")) {
-				plugin.Configuration.IgnoredZoneIds.Add(zone);
+				zoneId = Util.GetZoneId(zone);
+				plugin.Configuration.IgnoredZoneIds.Add(zoneId);
 				plugin.Configuration.Save();
 			}
 			if (ImGui.MenuItem("Hide Loot")) {
@@ -525,7 +530,7 @@ public class MainWindow : Window, IDisposable {
 				plugin.UpdateDtrBar();
 			}
 			if (ImGui.MenuItem("Copy Name"))
-				ImGui.SetClipboardText(Util.GetZoneName(zone));
+				ImGui.SetClipboardText(zone);
 			ImGui.EndPopup();
 		}
 	}
@@ -596,16 +601,29 @@ public class MainWindow : Window, IDisposable {
 	private static ISharedImmediateTexture?
 	GetIcon(uint itemId)
 	{
-		var items = ComfyLoot.DataManager.GetExcelSheet<Item>();
+		uint baseId;
+		bool hq;
+		ExcelSheet<Item>? items;
+		GameIconLookup lookup;
+		ISharedImmediateTexture? sharedTexture;
+
+		hq = false;
+		items = ComfyLoot.DataManager.GetExcelSheet<Item>();
 		if (items == null) {
 			ComfyLoot.Log.Fatal("[Lumina] Cannot determine Icon, Item-sheet cannot be resolved");
 			return null;
 		}
-		if (!items.TryGetRow(itemId, out var item))
+
+		baseId = Util.GetItemBaseId(itemId);
+		if (!items.TryGetRow(baseId, out var item))
 			return null;
 
-		var lookup = new GameIconLookup(item.Icon);
-		if (!ComfyLoot.Textures.TryGetFromGameIcon(in lookup, out var sharedTexture) || sharedTexture == null)
+		if (itemId >= 1000000)
+			hq = true;
+
+		lookup = new GameIconLookup(item.Icon, hq);
+		if (!ComfyLoot.Textures.TryGetFromGameIcon(in lookup, out sharedTexture)
+		|| sharedTexture == null)
 			return null;
 		return sharedTexture;
 	}
@@ -615,7 +633,7 @@ public class MainWindow : Window, IDisposable {
 	/// </summary>
 	/// <param name="rarity">The rarity rank of the item.</param>
 	/// <returns>An <see cref="Vector4"/> representing the color.</returns>
-	private static Vector4 
+	private static Vector4
 	GetRarityColor(int rarity)
 	{
 		switch (rarity) {
@@ -644,95 +662,93 @@ public class MainWindow : Window, IDisposable {
 	private static async Task
 	Populate(LootManager loot)
 	{
-		const uint marketboard = 1;
-		const uint delivery = 2;
 		const uint aurum_vale = 172;
 
 		await loot.AddItem(
 			id: 1, /* gil */
 			amount: 1000000,
-			zone: delivery,
-			hq: false
+			zone: 0,
+			zoneName: "Delivery"
 		);
 		await loot.AddItem(
 			id: 5823, /* allagan tin */
 			amount: 20,
-			zone: delivery,
-			hq: false
+			zone: 0,
+			zoneName: "Delivery"
 		);
 		await loot.AddItem(
 			id: 5824, /* allagan bronze */
 			amount: 20,
-			zone: delivery,
-			hq: false
+			zone: 0,
+			zoneName: "Delivery"
 		);
 		await loot.AddItem(
 			id: 27994, /* nightworld bronce */
 			amount: 20,
-			zone: delivery,
-			hq: false
+			zone: 0,
+			zoneName: "Delivery"
 		);
 		await loot.AddItem(
 			id: 5825, /* allagan silver */
 			amount: 20,
-			zone: delivery,
-			hq: false
+			zone: 0,
+			zoneName: "Delivery"
 		);
 		await loot.AddItem(
 			id: 28062, /* nightworld silver */
 			amount: 20,
-			zone: delivery,
-			hq: false
+			zone: 0,
+			zoneName: "Delivery"
 		);
 		await loot.AddItem(
 			id: 5826, /* allagan gold */
 			amount: 20,
-			zone: delivery,
-			hq: false
+			zone: 0,
+			zoneName: "Delivery"
 		);
 		await loot.AddItem(
 			id: 5827, /* allagan platinum */
 			amount: 20,
-			zone: delivery,
-			hq: false
+			zone: 0,
+			zoneName: "Delivery"
 		);
-
 		await loot.AddItem(
 			id: 14, /* fire cluster */
 			amount: 999,
-			zone: marketboard,
-			hq: false
+			zone: 0,
+			zoneName: "Delivery"
 		);
 		await loot.AddItem(
 			id: 1046003, /* mate cookie (hq) */
 			amount: 99,
-			zone: marketboard,
-			hq: true
+			zone: 0,
+			zoneName: "Marketboard"
 		);
-
+		await loot.AddItem(
+			id: 46003, /* mate cookie (sq) */
+			amount: 99,
+			zone: 0,
+			zoneName: "Marketboard"
+		);
 		await loot.AddItem(
 			id: 2791, /* aetherial mythril circlet (rubellite) */
 			amount: 1,
-			zone: aurum_vale,
-			hq: false
+			zone: aurum_vale
 		);
 		await loot.AddItem(
 			id: 3035, /* acolyte's robe */
 			amount: 1,
-			zone: aurum_vale,
-			hq: true
+			zone: aurum_vale
 		);
 		await loot.AddItem(
 			id: 32418,/* cryptlurker sword */
 			amount: 1,
-			zone: aurum_vale,
-			hq: false
+			zone: aurum_vale
 		);
 		await loot.AddItem(
 			id: 33475, /* blade's fealty */
 			amount: 1,
-			zone: aurum_vale,
-			hq: false
+			zone: aurum_vale
 		);
 	}
 #endif //* DEBUG*/
@@ -742,7 +758,8 @@ public class MainWindow : Window, IDisposable {
 	/// </summary>
 	/// <param name="items">The list of loot items to sort.</param>
 	/// <param name="sort">The sort state specifying the column and direction.</param>
-	private void SortLootItems(List<LootItem> items, SortState sort)
+	private void
+	SortLootItems(List<LootItem> items, SortState sort)
 	{
 		string nameA;
 		string nameB;
@@ -792,20 +809,21 @@ public class MainWindow : Window, IDisposable {
 	/// <param name="zones">The zones to sort.</param>
 	/// <param name="sort">The sort state specifying the column and direction.</param>
 	/// <returns>The sorted zones.</returns>
-	private IEnumerable<KeyValuePair<uint, List<LootItem>>> SortZones(
-	    IEnumerable<KeyValuePair<uint, List<LootItem>>> zones, SortState? sort)
+	/* TODO: oof */
+	private IEnumerable<KeyValuePair<string, List<LootItem>>>
+	SortZones(IEnumerable<KeyValuePair<string, List<LootItem>>> zones, SortState? sort)
 	{
 		if (sort == null)
 			return zones;
 
-		/* NOTE: would be rediculously complex without System.LINQ, acceptable use. */ 
+		/* NOTE: would be rediculously complex without System.LINQ, acceptable use. */
 		switch (sort.Column) {
 		case 1: /* Name */
 			/* HACK: for some reason it gets flipped in the UI, so we do the opposite here */
 			if (sort.Ascending)
-				return zones.OrderByDescending(z => Util.GetZoneName(z.Key)).ToList();
+				return zones.OrderByDescending(z => z.Key).ToList();
 			else
-				return zones.OrderBy(z => Util.GetZoneName(z.Key)).ToList();
+				return zones.OrderBy(z => z.Key).ToList();
 		case 2: /* Quantity */
 			if (sort.Ascending)
 				return zones.OrderBy(z => loot.GetZoneItemQuantity(z.Key)).ToList();
@@ -821,14 +839,14 @@ public class MainWindow : Window, IDisposable {
 		}
 	}
 
-	public void 
+	public void
 	Dispose()
 	{
 		Dispose(true);
 		GC.SuppressFinalize(this);
 	}
 
-	protected virtual void 
+	protected virtual void
 	Dispose(bool disposing)
 	{
 		ComfyLoot.Log.Verbose("[MainWindow] Disposing UI");

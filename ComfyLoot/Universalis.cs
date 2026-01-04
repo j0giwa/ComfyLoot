@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 
 using ComfyLoot.Models;
 
-namespace ComfyLoot; 
+namespace ComfyLoot;
 
 /// <summary>
 /// Deals with universalis.app api
@@ -87,6 +87,7 @@ public static class Universalis {
 				ComfyLoot.Log.Error(
 				"[Universalis] Cannot recieve data for ItemId: {itemId}.",
 				itemId);
+				return 0;
 			}
 
 			result = await response.Content.ReadAsStringAsync();

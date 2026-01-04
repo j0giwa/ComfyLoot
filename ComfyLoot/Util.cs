@@ -1,8 +1,13 @@
 using System;
 using System.Globalization;
+using System.Text;
 using ComfyLoot.Models;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Utility;
+using Dalamud.Game.Text.SeStringHandling;
+using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.UI;
+using FFXIVClientStructs.FFXIV.Component.GUI;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
@@ -22,7 +27,7 @@ public static class Util {
 	/// </summary>
 	/// <param name="number">The gil value to format.</param>
 	/// <returns>A formatted gil string.</returns>
-	public static string 
+	public static string
 	FormatGil(int number)
 	{
 		const char gil = (char)Dalamud.Game.Text.SeIconChar.Gil;
@@ -34,7 +39,7 @@ public static class Util {
 	/// </summary>
 	/// <param name="number">The number to format.</param>
 	/// <returns>A shortened numeric string.</returns>
-	public static string 
+	public static string
 	FormatNumber(int number)
 	{
 		double value = number;
@@ -201,14 +206,6 @@ public static class Util {
 		if (string.IsNullOrWhiteSpace(name))
 			return 0;
 
-		name = name.Trim();
-		if (name.Equals("Marketboard", StringComparison.OrdinalIgnoreCase))
-			return (uint)Zones.MARKETBOARD;
-
-		if (name.Equals("Delivery", StringComparison.OrdinalIgnoreCase) ||
-		    name.Equals("Mail", StringComparison.OrdinalIgnoreCase))
-			return (uint)Zones.MAIL;
-
 		sheet = ComfyLoot.DataManager.GetExcelSheet<TerritoryType>();
 		if (sheet == null) {
 			ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: TerritoryType");
@@ -235,7 +232,7 @@ public static class Util {
 		}
 
 		if (found == null) {
-			ComfyLoot.Log.Warning("[Lumina] Zone not found: {Zone}", 
+			ComfyLoot.Log.Warning("[Lumina] Zone not found: {Zone}",
 				name);
 			return 0;
 		}
@@ -257,30 +254,40 @@ public static class Util {
 
 		name = "???"; /* fallback */
 
-		switch (id) {
-		case (uint)Zones.MARKETBOARD:
-			return "Marketboard";
-		case (uint)Zones.MAIL:
-			return "Delivery";
-		default:
-			sheet = ComfyLoot.DataManager.GetExcelSheet<TerritoryType>();
-			if (sheet == null) {
-				ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: TerritoryType");
-				return name;
-			}
-
-			if (!sheet.TryGetRow(id, out zone))
-				return name;
-
-			if (zone.PlaceName.Value.Name.IsEmpty)
-				return name;
-
-			name = zone.PlaceName.Value.Name.ToString();
-			if (name.IsNullOrWhitespace())
-				return "???";
-
+		sheet = ComfyLoot.DataManager.GetExcelSheet<TerritoryType>();
+		if (sheet == null) {
+			ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: TerritoryType");
 			return name;
 		}
+
+		if (!sheet.TryGetRow(id, out zone))
+			return name;
+
+		if (zone.PlaceName.Value.Name.IsEmpty)
+			return name;
+
+		name = zone.PlaceName.Value.Name.ToString();
+		if (name.IsNullOrWhitespace())
+			return "???";
+
+		return name;
+	}
+
+	public static unsafe string
+	GetTradePartner()
+	{
+		const int tradeArrayIndex = 10;
+		const int tradeParnerIndex = 11;
+
+		string result;
+		AtkArrayDataHolder atk;
+		StringArrayData* tradeArray;
+
+		atk = RaptureAtkModule.Instance()->AtkArrayDataHolder;
+		tradeArray = atk._StringArrays[tradeArrayIndex];
+		result = tradeArray->StringArray[tradeParnerIndex].ToString();
+
+		return result;
 	}
 
 	/// <summary>
@@ -314,12 +321,12 @@ public static class Util {
 
 		/* FIXME: There might be some missing here */
 		switch (item.Value.FilterGroup) {
-		case 16: /* FALLTHROUGH */
-		case 29:
+		case 29: /* FALLTHROUGH */
 		case 47:
 		case 54:
 		case 56:
 		case 57:
+		case 16: /* ERROR: this makes the function overly agressive */
 			/* HACK: stop pieces from getting flagged as currency */
 			switch (itemId) {
 			case (uint)SpecialItems.ALLAGAN_TIN_PIECE:
@@ -373,12 +380,6 @@ public static class Util {
 			switch (target.Name.TextValue) {
 			case "Delivery Moogle": /* FALLTHROUGH */
 			case "Mailbox":
-			case "Kupo-Kurier":
-			case "Briefkasten":
-			case "Mog postier":
-			case "Boîte aux lettres":
-			case "レターモーグリ":
-			case "メールボックス":
 				return true;
 			default:
 				return false;
@@ -414,15 +415,10 @@ public static class Util {
 				return true;
 
 			/* fallback: identification over name */
-			switch (target.Name.TextValue) {
-			case "Market Board": /* FALLTHROUGH */
-			case "Schwarzes Brett":
-			case "Panneau des ventes":
-			case "マーケットボード":
+			if (target.Name.TextValue.Equals("Market Board"))
 				return true;
-			default:
-				return false;
-			}
+
+			return false;
 		} catch (Exception e) {
 			ComfyLoot.Log.Error(e, "WTF");
 			return false;

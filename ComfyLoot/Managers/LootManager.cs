@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Dalamud.Utility;
 
 using ComfyLoot.Models;
 
@@ -23,23 +24,23 @@ public record LootItem(
 /// </summay>
 public class LootManager : IDisposable {
 
-	public bool IsDisposed { get; private set; }
-
 	private readonly ComfyLoot plugin;
-	private readonly Dictionary<uint, List<LootItem>> loot;
-	private readonly Lock lootLock;
 	private readonly Configuration config;
+	private readonly Lock lootLock;
+	private readonly Dictionary<string, List<LootItem>> loot;
+
+	public bool IsDisposed { get; private set; }
 
 	/// <summary>
 	/// Droplist, contains everything the player collected
 	/// </summary>
-	public IReadOnlyDictionary<uint, List<LootItem>> Loot {
+	public IReadOnlyDictionary<string, List<LootItem>> Loot {
 		get {
-			Dictionary<uint, List<LootItem>> snapshot;
+			Dictionary<string, List<LootItem>> snapshot;
 
 			lock (lootLock) {
-				snapshot = new Dictionary<uint, List<LootItem>>();
-				foreach (KeyValuePair<uint, List<LootItem>> kvp in loot)
+				snapshot = new Dictionary<string, List<LootItem>>();
+				foreach (KeyValuePair<string, List<LootItem>> kvp in loot)
 					snapshot[kvp.Key] = new List<LootItem>(kvp.Value);
 				return snapshot;
 			}
@@ -55,7 +56,7 @@ public class LootManager : IDisposable {
 
 		this.plugin = plugin;
 		config = plugin.Configuration;
-		loot = new Dictionary<uint, List<LootItem>>();
+		loot = new Dictionary<string, List<LootItem>>();
 		lootLock = new Lock();
 	}
 
@@ -148,11 +149,16 @@ public class LootManager : IDisposable {
 	/// <summary>
 	/// Add or update an item in the droplist.
 	/// </summary>
+	/// <param name="id"> Item identifyer</summary>
+	/// <param name="ammout">Ammount gainedr</summary>
+	/// <param name="zone">Zone identifyer (igoneored if zoneName is set)</summary>
+	/// <param name="zoneName">Zonename override</summary>
 	public async Task
-	AddItem(uint id, int amount, uint zone, bool hq)
+	AddItem(uint id, int amount, uint zone, string zoneName = "")
 	{
 		int itemValue;
 		int quantity;
+		string name;
 		LootItem item;
 		LootItem? existing;
 		List<LootItem>? items;
@@ -161,7 +167,10 @@ public class LootManager : IDisposable {
 		|| CheckIgnoredZone(zone))
 			return;
 
-		itemValue = await GetItemGilValue(Util.GetItemBaseId(id), hq);
+		itemValue = await GetItemGilValue(
+			Util.GetItemBaseId(id),
+			ItemUtil.IsHighQuality(id)
+		);
 		item = new LootItem(
 		    id,
 		    Util.GetRarity(id),
@@ -169,8 +178,12 @@ public class LootManager : IDisposable {
 		    itemValue
 		);
 
+		name = zoneName;
+		if (name == "")
+			name = Util.GetZoneName(zone);
+
 		lock (lootLock) {
-			if (!loot.TryGetValue(zone, out items))
+			if (!loot.TryGetValue(name, out items))
 				items = new List<LootItem>();
 
 			existing = items.Find(x => x.ItemId == id);
@@ -186,31 +199,33 @@ public class LootManager : IDisposable {
 					existing.Value
 				));
 
-				loot[zone] = items;
+				loot[name] = items;
 
 				plugin.UpdateDtrBar();
 				ComfyLoot.Log.Information(
-					"[TRACK] {Quantity}x {ItemId} in zone: {Zone}",
+					"[TRACK] {Quantity}x {ItemId} in zone: {zoneName} ({zone})",
 					quantity,
 					id,
+					name,
 					zone);
 				return;
 			}
 
 			items.Add(item);
-			loot[zone] = items;
+			loot[name] = items;
 			plugin.UpdateDtrBar();
 
 			ComfyLoot.Log.Information(
-				"[TRACK] {Quantity}x {ItemId} in zone: {Zone}",
+				"[TRACK] {Quantity}x {ItemId} in zone: {zoneName} ({zone})",
 				amount,
 				id,
+				name,
 				zone);
 		}
 	}
 
 	/// <summary>
-	/// Resets the loot list 
+	/// Resets the loot list
 	/// </summary>
 	public void
 	Clear()
@@ -221,13 +236,13 @@ public class LootManager : IDisposable {
 	}
 
 	/// <summary>
-	/// Resets the loot list 
+	/// Resets the loot list
 	/// </summary>
 	public void
-	ClearZone(uint zoneId)
+	ClearZone(string zone)
 	{
 		lock (lootLock) {
-			loot.Remove(zoneId);
+			loot.Remove(zone);
 		}
 	}
 
@@ -240,11 +255,11 @@ public class LootManager : IDisposable {
 	GetTotalItemValue()
 	{
 		int totalValue = 0;
-		List<uint> zones;
+		List<string> zones;
 
 		lock (lootLock) {
-			zones = new List<uint>(loot.Keys);
-			foreach (uint zone in zones)
+			zones = new List<string>(loot.Keys);
+			foreach (string zone in zones)
 				totalValue += GetZoneItemValue(zone);
 
 			return totalValue;
@@ -259,11 +274,11 @@ public class LootManager : IDisposable {
 	GetTotalItemQuantity()
 	{
 		int totalQuantity = 0;
-		List<uint> zones;
+		List<string> zones;
 
 		lock (lootLock) {
-			zones = new List<uint>(loot.Keys);
-			foreach (uint zone in zones)
+			zones = new List<string>(loot.Keys);
+			foreach (string zone in zones)
 				totalQuantity += GetZoneItemQuantity(zone);
 
 			return totalQuantity;
@@ -276,7 +291,7 @@ public class LootManager : IDisposable {
 	/// <param name="zoneItems">The list of items in the zone</param>
 	/// <returns>Total number of non-currency items in this zone</returns>
 	public int
-	GetZoneItemQuantity(uint zone)
+	GetZoneItemQuantity(string zone)
 	{
 		int zoneTotal = 0;
 		List<LootItem>? items;
@@ -308,7 +323,7 @@ public class LootManager : IDisposable {
 	/// <param name="zone">zonename</param>
 	/// <returns>Total number of non-currency items in this zone</returns>
 	public int
-	GetZoneItemValue(uint zone)
+	GetZoneItemValue(string zone)
 	{
 		int zoneTotal = 0;
 		List<LootItem>? items;

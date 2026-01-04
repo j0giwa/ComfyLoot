@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using ComfyLoot.Models;
 using Dalamud.Game.Inventory;
 using Dalamud.Game.Inventory.InventoryEventArgTypes;
 
@@ -18,6 +17,7 @@ public class InventoryWatcher : IDisposable {
 
 	private readonly Lock debounceLock;
 	private readonly Lock seenLock;
+	private readonly ComfyLoot plugin;
 	private readonly LootManager loot;
 
 	private readonly List<InventoryEventArgs> eventBuffer;
@@ -28,12 +28,13 @@ public class InventoryWatcher : IDisposable {
 	/// <summary>
 	/// InventoryWatcher:ctor
 	/// </summary>
-	public InventoryWatcher(LootManager loot)
+	public InventoryWatcher(ComfyLoot plugin, LootManager loot)
 	{
 		IsDisposed = false;
 
 		debounceLock = new Lock();
 		seenLock = new Lock();
+		this.plugin = plugin;
 		this.loot = loot;
 
 		eventBuffer = new List<InventoryEventArgs>();
@@ -50,7 +51,7 @@ public class InventoryWatcher : IDisposable {
 	/// <param name="token"></param>
 	/// <returns>A queue containing the queued events.</returns>
 	private async Task
-	DebounceEvents(CancellationToken token, uint zone)
+	DebounceEvents(CancellationToken token, uint zone, string? name)
 	{
 		const int delay = 250; /* adjust if needed, gatherers boon might break it */
 
@@ -79,7 +80,7 @@ public class InventoryWatcher : IDisposable {
 		if (eventQueue.Count == 0)
 			return;
 
-		ProcessEvents(eventQueue, zone);
+		ProcessEvents(eventQueue, zone, name);
 	}
 
 	/// <summary>
@@ -126,18 +127,31 @@ public class InventoryWatcher : IDisposable {
 	OnInventoryChanged(IReadOnlyCollection<InventoryEventArgs> events)
 	{
 		uint zone;
+		string? overrideName;
 
+		/* NOTE: Items gained outside of content should be handled differently */
+		overrideName = null;
 		zone = ComfyLoot.ClientState.TerritoryType;
-		if (Util.IsTargetMarketboard())
-			zone = (uint) Zones.MARKETBOARD;
-		if (Util.IsTargetMail())
-			zone = (uint)Zones.MAIL;
+		if (Util.IsTargetMarketboard()) {
+			zone = 0;
+			overrideName = "MarketBoard";
+		}
+
+		if (Util.IsTargetMail()) {
+			zone = 0;
+			overrideName = "Delivery";
+		}
+
+		if (plugin.TradeParterName != null) {
+			zone = 0;
+			overrideName = $"{plugin.TradeParterName} (Trade)";
+		}
 
 		lock (debounceLock) {
 			eventBuffer.AddRange(events);
 			debounceCts?.Cancel();
 			debounceCts = new CancellationTokenSource();
-			_ = Task.Run(() => DebounceEvents(debounceCts.Token, zone));
+			_ = Task.Run(() => DebounceEvents(debounceCts.Token, zone, overrideName));
 		}
 	}
 
@@ -147,7 +161,7 @@ public class InventoryWatcher : IDisposable {
 	/// <param name="events">events to process</param>
 	/// <param name="zone">identifyer of the zone the events occured</param>
 	private void
-	ProcessEvents(Queue<InventoryEventArgs> events, uint zone)
+	ProcessEvents(Queue<InventoryEventArgs> events, uint zone, string? name)
 	{
 		int eventnumber;
 		int totalEvents;
@@ -173,7 +187,7 @@ public class InventoryWatcher : IDisposable {
 
 			if (evt.Type == GameInventoryEvent.Added
 			|| evt.Type == GameInventoryEvent.Changed)
-				ProccessEventItem(evt, zone);
+				ProccessEventItem(evt, zone, name);
 
 			eventnumber++;
 		}
@@ -188,10 +202,13 @@ public class InventoryWatcher : IDisposable {
 	/// Handle inventory item events (add or change)
 	/// </summary>
 	private void
-	ProccessEventItem(object argsObj, uint zone)
+	ProccessEventItem(object argsObj, uint zone, string? name)
 	{
 		int quantity;
 		int addedAmount;
+
+		if (name == null)
+			name = "";
 
 		switch (argsObj) {
 		case InventoryItemAddedArgs addedArgs:
@@ -208,7 +225,7 @@ public class InventoryWatcher : IDisposable {
 				addedArgs.Item.ItemId,
 				quantity,
 				zone,
-				addedArgs.Item.IsHq
+				name
 			));
 			break;
 		case InventoryItemChangedArgs changedArgs:
@@ -234,7 +251,7 @@ public class InventoryWatcher : IDisposable {
 				changedArgs.Item.ItemId,
 				addedAmount,
 				zone,
-				changedArgs.Item.IsHq
+				name
 			));
 			break;
 		default:

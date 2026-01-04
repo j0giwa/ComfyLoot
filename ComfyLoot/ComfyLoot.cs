@@ -1,7 +1,12 @@
 /* See LICENSE file for copyright and license details. */
+using System;
 using Dalamud.Configuration;
 using Dalamud.Game.Command;
+using Dalamud.Game.Gui.ContextMenu;
 using Dalamud.Game.Gui.Dtr;
+using Dalamud.Game.Inventory;
+using Dalamud.Game.Text;
+using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
@@ -9,7 +14,6 @@ using Dalamud.Plugin.Services;
 
 using ComfyLoot.Managers;
 using ComfyLoot.Windows;
-using Dalamud.Game.ClientState.Objects;
 
 namespace ComfyLoot;
 
@@ -19,8 +23,9 @@ namespace ComfyLoot;
 public sealed class ComfyLoot : IDalamudPlugin
 {
 	private const string CommandName = "/loot";
-	public readonly WindowSystem WindowSystem = new("ComfyLoot");
 
+	[PluginService]
+	internal static IChatGui ChatGui { get; private set; } = null!;
 	[PluginService]
 	internal static IDalamudPluginInterface Dalamud { get; private set; } = null!;
 	[PluginService]
@@ -37,23 +42,25 @@ public sealed class ComfyLoot : IDalamudPlugin
 	internal static IGameInventory GameInventory { get; private set; } = null!;
 	[PluginService]
 	internal static IDtrBar DtrBar { get; private set; } = null!;
-
 	[PluginService]
-	public static ITargetManager TargetManager { get; private set; } = null!;
+	internal static ITargetManager TargetManager { get; private set; } = null!;
 
-	private IDtrBarEntry? dtrEntry;
-	private ConfigWindow ConfigWindow { get; init; }
+	private readonly WindowSystem WindowSystem ;
 	private MainWindow MainWindow { get; init; }
-	public Configuration Configuration { get; init; }
-	public LootManager LootManager { get; set; }
-	public InventoryWatcher Watcher { get; set; }
+	private ConfigWindow ConfigWindow { get; init; }
+	private IDtrBarEntry? dtrEntry;
+	private readonly IContextMenu contextMenu;
 
 	public string HomeworldName { get; private set; }
+	public string? TradeParterName { get; private set; }
+	public Configuration Configuration { get; init; }
+	public LootManager LootManager { get; set; }
+	public required InventoryWatcher Watcher { get; set; }
 
 	/// <summary>
 	/// ComfyLoot:ctor
 	/// </summary>
-	public ComfyLoot()
+	public ComfyLoot(IContextMenu contextMenu)
 	{
 		IPluginConfiguration? rawConfig;
 		Configuration config;
@@ -65,19 +72,21 @@ public sealed class ComfyLoot : IDalamudPlugin
 			config = new Configuration();
 		Configuration = config;
 
-#if DEBUG 
+#if DEBUG
 		HomeworldName = "Balmung";
 #endif //* DEBUG */
 
 		LootManager = new LootManager(this);
 
-		/* HACK: Force initalisation in case of restart 
+		/* HACK: Force initalisation in case of restart
 		   actuall save init in OnLogin() */
 		if (ClientState.IsLoggedIn) {
-			Watcher = new InventoryWatcher(LootManager);
+			Watcher = new InventoryWatcher(this, LootManager);
 			HomeworldName = Util.GetHomeWorld();
 		}
+		this.contextMenu = contextMenu;
 
+		WindowSystem = new WindowSystem("ComfyLoot");
 		ConfigWindow = new ConfigWindow(this);
 		MainWindow = new MainWindow(this, LootManager);
 
@@ -97,8 +106,14 @@ public sealed class ComfyLoot : IDalamudPlugin
 		ClientState.Logout += OnLogout;
 		ClientState.TerritoryChanged += OnTerritoryChanged;
 
+		this.contextMenu.OnMenuOpened += OnMenuOpened;
+
+		ChatGui.ChatMessage += OnChatMessage;
+
 		InitializeDtrBar();
 	}
+
+	private void DrawUI() => WindowSystem.Draw();
 
 	private void
 	InitializeDtrBar()
@@ -112,44 +127,34 @@ public sealed class ComfyLoot : IDalamudPlugin
 		}
 	}
 
-	public void
-	UpdateDtrBar()
+	/* HACK: Abusing chat event as a trade event */
+	private void
+	OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
 	{
-		int number;
-		uint zone;
-		string zoneName;
+		/* Trademessagess are on unamed channels (Id's may break on patch) */
+		const int tradeChannelOut = 569;
+		const int tradeChannelIn = 313;
+		string text;
+		string? name;
 
-		if (dtrEntry == null
-		|| LootManager == null)
+		/* We only care about trade messages */
+		if (!((int)type == tradeChannelIn
+		|| (int)type == tradeChannelOut
+		|| type == XivChatType.SystemMessage))
 			return;
 
-		dtrEntry.Shown = Configuration.ShowDtrBar;
-		dtrEntry.Tooltip = "Click to toggle overlay";
+		text = message.ToString();
 
-		zone = ClientState.TerritoryType;
-		zoneName = Util.GetZoneName(zone);
-
-		switch (Configuration.DtrBarOption) {
-		case 0:
-			number = LootManager.GetTotalItemQuantity();
-			dtrEntry.Text = $"Total: {number}";
-			break;
-		case 1:
-			number = LootManager.GetZoneItemQuantity(zone);
-			dtrEntry.Text = $"{zoneName}: {number}";
-			break;
-		case 2:
-			number = LootManager.GetTotalItemValue();
-			dtrEntry.Text = $"Total: {Util.FormatGil(number)}";
-			break;
-		case 3:
-			number = LootManager.GetZoneItemValue(zone);
-			dtrEntry.Text = $"{zoneName}: {Util.FormatGil(number)}";
-			break;
-		default:
-			dtrEntry.Text = "ComfyLoot: N/A";
-			break;
+		if (text.Contains("wishes to trade with you.")
+		|| text.Contains("Trade request sent to")) {
+			name = Util.GetTradePartner();
+			Log.Debug($"[TRADE] message=\"{message}\" partner=\"{name}\"");
+			if (name != null)
+				TradeParterName = name;
 		}
+
+		if (text.Equals("Trade complete."))
+			TradeParterName = null;
 	}
 
 	private void
@@ -166,28 +171,44 @@ public sealed class ComfyLoot : IDalamudPlugin
 	}
 
 	private void
-	OnDtrBarClick(DtrInteractionEvent _)
+	OnDtrBarClick(DtrInteractionEvent e)
 	{
-		ToggleMainUI();
+		int index;
+		DtrBarOption[]? values;
+
+		if (e.ClickType == MouseClickType.Left)
+			ToggleMainUI();
+
+		if (e.ClickType == MouseClickType.Right) {
+			values = (DtrBarOption[])Enum.GetValues(typeof(DtrBarOption));
+
+			index = Array.IndexOf(values, Configuration.DtrBarOption);
+			index = (index + 1) % values.Length;
+
+			Configuration.DtrBarOption = values[index];
+			Configuration.Save();
+
+			UpdateDtrBar();
+		}
 	}
 
-	private void 
+	private void
 	OnLogin()
 	{
 		Log.Verbose("[ComfyLoot] Initializing");
 
 		HomeworldName = Util.GetHomeWorld();
 
-		if (LootManager == null 
+		if (LootManager == null
 		|| LootManager.IsDisposed) {
 			LootManager?.Dispose();
 			LootManager = new LootManager(this);
 		}
 
-		if (Watcher == null 
+		if (Watcher == null
 		|| Watcher.IsDisposed) {
 			Watcher?.Dispose();
-			Watcher = new InventoryWatcher(LootManager);
+			Watcher = new InventoryWatcher(this, LootManager);
 		}
 
 		UpdateDtrBar();
@@ -204,15 +225,86 @@ public sealed class ComfyLoot : IDalamudPlugin
 	}
 
 	private void
+	OnMenuOpened(IMenuOpenedArgs args)
+	{
+		if (!Configuration.ItemContextMenu)
+			return;
+
+		if (args.MenuType != ContextMenuType.Inventory)
+			return;
+
+		if (args.Target is not MenuTargetInventory target)
+			return;
+
+		args.AddMenuItem(new MenuItem {
+			Name = "Ignore Item",
+			PrefixChar = 'C',
+			PrefixColor = 0,
+			OnClicked = _ => OnItemClicked(target)
+		});
+	}
+
+	private void
+	OnItemClicked(MenuTargetInventory target)
+	{
+		GameInventoryItem? item;
+
+		item = target.TargetItem;
+
+		if (item == null)
+			return;
+
+		Configuration.IgnoredItemIds.Add(item.Value.ItemId);
+	}
+
+	private void
 	OnTerritoryChanged(ushort obj)
 	{
 		UpdateDtrBar();
 	}
 
-	private void DrawUI() => WindowSystem.Draw();
-
 	public void ToggleConfigUI() => ConfigWindow.Toggle();
 	public void ToggleMainUI() => MainWindow.Toggle();
+
+	public void
+	UpdateDtrBar()
+	{
+		int number;
+		uint zone;
+		string zoneName;
+
+		if (dtrEntry == null
+		|| LootManager == null)
+			return;
+
+		dtrEntry.Shown = Configuration.ShowDtrBar;
+		dtrEntry.Tooltip = "Click to toggle overlay\nRightclick to cycle through options";
+
+		zone = ClientState.TerritoryType;
+		zoneName = Util.GetZoneName(zone);
+
+		switch (Configuration.DtrBarOption) {
+		case DtrBarOption.TOTAL_QUANTITY:
+			number = LootManager.GetTotalItemQuantity();
+			dtrEntry.Text = $"Total: {number}";
+			break;
+		case DtrBarOption.ZONE_QUANTITY:
+			number = LootManager.GetZoneItemQuantity(zoneName);
+			dtrEntry.Text = $"{zoneName}: {number}";
+			break;
+		case DtrBarOption.TOTAL_VALUE:
+			number = LootManager.GetTotalItemValue();
+			dtrEntry.Text = $"Total: {Util.FormatGil(number)}";
+			break;
+		case DtrBarOption.ZONE_VALUE:
+			number = LootManager.GetZoneItemValue(zoneName);
+			dtrEntry.Text = $"{zoneName}: {Util.FormatGil(number)}";
+			break;
+		default:
+			dtrEntry.Text = "ComfyLoot: N/A";
+			break;
+		}
+	}
 
 	public void
 	Dispose()
@@ -231,5 +323,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 		ClientState.Login -= OnLogin;
 		ClientState.Logout -= OnLogout;
 		ClientState.TerritoryChanged -= OnTerritoryChanged;
+		ChatGui.ChatMessage -= OnChatMessage;
+		contextMenu.OnMenuOpened -= OnMenuOpened;
 	}
 }

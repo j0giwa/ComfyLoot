@@ -2,7 +2,7 @@
 
 ![ComfyLoot Logo](https://raw.githubusercontent.com/j0giwa/ComfyLoot/refs/heads/master/Data/icon.png)
 
-Tracks the contents and market value of items dropped while killing monsters. 
+Tracks the contents and market value of items dropped while killing monsters.
 And drops from some other activities such as dungeons, raids, gathering, and maps.
 
 Inspired by [RuneLite](https://github.com/runelite/runelite/wiki/Loot-Tracker).
@@ -20,29 +20,27 @@ Inspired by [RuneLite](https://github.com/runelite/runelite/wiki/Loot-Tracker).
 
 Upon install, Comfyloot keeps track of every item you acquire over this play session.
 `/loot` opens a simple but handy overview.
-See [FAQ](#FAQ) for 
+See [FAQ](#FAQ) for
 
 ## Known Issues
 
 - Spelling: I'm dyslexic, so there might be a lot of errors
-- The plugin tracking needs a second to kick in: that's on purpose to prevent login issues.
-- Items gained from Delivery Moogles may count as drops and therefore will get tracked (partially fixed).
-- Items gained from Trades won't get a their Marketboard-values asingned.
 
 Report bugs or suggestions via the Issues tab.
 Be as concise and reproducible as possible—screenshots/logs help.
 
 ## Limitations
 
-- pickup detection relies on inventory events; they are not 100% reliable, but other methods may break Dalamud guidelines.
-- plugin relies on game memory structures; some updates may temporarily break compatibility.
-- API calls fail if third-party endpoints are offline.
-- ui is a mess
+- The plugin tracking needs a second to kick in: that's on purpose to prevent login issues (This could resolve after some extensive testing).
+- Pickup detection relies on inventory events; they are not 100% reliable.
+   - Other methods might break guidelines or are frankly just not acceptable.
+- Some functions rely on game memory structures that may or may not break on game patches.
+- third-party integrations will fail if endpoints are offline.
 
 ## Roadmap
 
 - Removal of unnecessary code (continuous)
-- Improve lootsource classification accuracy
+- fixing reported issues
 
 ## Contribute
 
@@ -55,7 +53,7 @@ For patches that fit your personal taste and you want to share with the communit
 
 For patches that should be included in main, feel free to submit a pull request.
 Most of the time this will be patches that increase reliability and improve the codebase.
-New features are very likely to be out of scope for this project, 
+New features are very likely to be out of scope for this project,
 as it's by design intended to be as barebones as possible.
 > Simplicity is prerequisite for reliability.
 > — Edsger W. Dijkstra
@@ -64,6 +62,10 @@ Check the guide in GoatCorp's [SamplePlugin](https://github.com/goatcorp/SampleP
 
 ## FAQ
 ``` txt
+Q: When will the full version be released?
+A: The plugin version will release on the stable branch as soon as it gets classified as "stable".
+   This means the plugin has 0 known bugs, and passes one full week of real world testing without any reported issues.
+
 Q: What is this for?
 A: I started working on this because i wanted a way to keep track of my stuff during map runs.
 
