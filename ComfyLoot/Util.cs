@@ -368,10 +368,6 @@ public static class Util {
 			if (target == null)
 				return false;
 
-			ComfyLoot.Log.Debug("Mail Target Check: BaseId={baseId}, Name={textValue}",
-				target.BaseId,
-				target.Name.TextValue);
-
 			if (target.BaseId == 1003567 /* Delivery Moogle NPC */
 			|| target.BaseId == 1969) /* housing mailbox */
 				return true;

@@ -85,8 +85,9 @@ public static class Universalis {
 
 			if (!response.IsSuccessStatusCode) {
 				ComfyLoot.Log.Error(
-				"[Universalis] Cannot recieve data for ItemId: {itemId}.",
-				itemId);
+				"[Universalis] Cannot recieve data for ItemId: {itemId}. Reposne: {response}",
+				itemId,
+				response.ToString());
 				return 0;
 			}
 
