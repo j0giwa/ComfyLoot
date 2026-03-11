@@ -213,7 +213,9 @@ public class LootManager : IDisposable {
 
 			items.Add(item);
 			loot[name] = items;
-			plugin.UpdateDtrBar();
+
+			if (!config.STABLE)
+				plugin.UpdateDtrBar();
 
 			ComfyLoot.Log.Information(
 				"[TRACK] {Quantity}x {ItemId} in zone: {zoneName} ({zone})",

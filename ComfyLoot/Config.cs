@@ -15,12 +15,16 @@ public enum DtrBarOption {
 [Serializable]
 public class Configuration : IPluginConfiguration
 {
+	public bool STABLE { get; } = false;
+
 	public int Version { get; set; } = 0; /* TODO: figure out the point of this */
 
-	/* NOTE: all features should be opt in */
+	/* all features should be opt in */
 	public List<uint> IgnoredItemIds { get; set; } = new List<uint>();
 	public List<uint> IgnoredZoneIds { get; set; } = new List<uint>();
 	public bool UniversalisEnabled { get; set; } = false; /* NOTE: disabled for legal reasons */
+
+	/* NOTE: Exprerimantal, might get removed */
 	public bool ItemContextMenu { get; set; } = false;
 	public bool ShowDtrBar { get; set; } = false;
 	public DtrBarOption DtrBarOption { get; set; } = DtrBarOption.TOTAL_QUANTITY;

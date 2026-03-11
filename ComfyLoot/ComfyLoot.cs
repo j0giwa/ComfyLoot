@@ -84,7 +84,6 @@ public sealed class ComfyLoot : IDalamudPlugin
 			Watcher = new InventoryWatcher(this, LootManager);
 			HomeworldName = Util.GetHomeWorld();
 		}
-		this.contextMenu = contextMenu;
 
 		WindowSystem = new WindowSystem("ComfyLoot");
 		ConfigWindow = new ConfigWindow(this);
@@ -106,11 +105,14 @@ public sealed class ComfyLoot : IDalamudPlugin
 		ClientState.Logout += OnLogout;
 		ClientState.TerritoryChanged += OnTerritoryChanged;
 
-		this.contextMenu.OnMenuOpened += OnMenuOpened;
-
 		ChatGui.ChatMessage += OnChatMessage;
 
-		InitializeDtrBar();
+		if (!config.STABLE) {
+			this.contextMenu = contextMenu;
+			this.contextMenu.OnMenuOpened += OnMenuOpened;
+
+			InitializeDtrBar();
+		}
 	}
 
 	private void DrawUI() => WindowSystem.Draw();
@@ -260,7 +262,8 @@ public sealed class ComfyLoot : IDalamudPlugin
 	private void
 	OnTerritoryChanged(ushort obj)
 	{
-		UpdateDtrBar();
+		if (!Configuration.STABLE)
+			UpdateDtrBar();
 	}
 
 	public void ToggleConfigUI() => ConfigWindow.Toggle();
@@ -324,6 +327,8 @@ public sealed class ComfyLoot : IDalamudPlugin
 		ClientState.Logout -= OnLogout;
 		ClientState.TerritoryChanged -= OnTerritoryChanged;
 		ChatGui.ChatMessage -= OnChatMessage;
-		contextMenu.OnMenuOpened -= OnMenuOpened;
+
+		if (!Configuration.STABLE)
+			contextMenu.OnMenuOpened -= OnMenuOpened;
 	}
 }

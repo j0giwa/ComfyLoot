@@ -6,6 +6,7 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Components;
+using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using Dalamud.Utility;
 
@@ -34,6 +35,157 @@ public class ConfigWindow : Window, IDisposable {
 		Configuration = plugin.Configuration;
 
 		this.plugin = plugin;
+	}
+
+	/// <summary>
+	/// Renders the config UI window.
+	/// </summary>
+	public override void
+	Draw()
+	{
+		bool universalis;
+		bool contextMenu;
+		bool serverinfo;
+		DtrBarOption dtrOption;
+		List<uint> ignoredItemIds;
+		List<uint> ignoredZoneIds;
+
+		universalis = Configuration.UniversalisEnabled;
+		contextMenu = Configuration.ItemContextMenu;
+		serverinfo = Configuration.ShowDtrBar;
+		dtrOption = Configuration.DtrBarOption;
+		ignoredItemIds = Configuration.IgnoredItemIds;
+		ignoredZoneIds = Configuration.IgnoredZoneIds;
+
+		if (ImGui.TreeNodeEx("Ignored Entrys")) {
+			DrawZoneIgnorelist(ignoredZoneIds);
+			DrawItemIgnorelist(ignoredItemIds);
+		}
+
+		ImGui.Separator();
+
+		DrawUniversalisSection(ref universalis);
+
+		if (!Configuration.STABLE) {
+			if (ImGui.Checkbox("Enable item context menu", ref contextMenu)) {
+				Configuration.ItemContextMenu = contextMenu;
+				Configuration.Save();
+				ComfyLoot.Log.Debug("[CONFIG) ContextMenu enabled {serverinfo}", serverinfo);
+			}
+			ImGui.SameLine();
+			DrawExperimentalTooltip();
+
+			DrawDtrSection(ref serverinfo);
+			ImGui.SameLine();
+			DrawExperimentalTooltip();
+			DrawDtrSubsection(ref serverinfo, ref dtrOption);
+		}
+	}
+
+	/// <summary>
+	/// Draws the configuration section for the Dalamud DTR (server info) bar.
+	/// </summary>
+	/// <param name="serverinfo">Reference to the enable flag for the DTR entry.</param>
+	/// <param name="dtrOption">Reference to the selected display mode.</param>
+	private void
+	DrawDtrSection(ref bool serverinfo)
+	{
+		if (ImGui.Checkbox("Enable Server Info bar entry", ref serverinfo)) {
+			Configuration.ShowDtrBar = serverinfo;
+			plugin.UpdateDtrBar();
+			Configuration.Save();
+			ComfyLoot.Log.Debug("[CONFIG) DTR enabled {serverinfo}", serverinfo);
+		}
+	}
+
+	private void
+	DrawDtrSubsection(ref bool serverinfo, ref DtrBarOption dtrOption)
+	{
+		bool serverinfoDisplayChanged;
+
+		if (!serverinfo)
+			ImGui.BeginDisabled();
+
+		serverinfoDisplayChanged = false;
+
+		ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 25);
+
+		if (ImGui.RadioButton("Total items", ref dtrOption, DtrBarOption.TOTAL_QUANTITY))
+			serverinfoDisplayChanged = true;
+
+		ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 25);
+		if (ImGui.RadioButton("Items per current zone", ref dtrOption, DtrBarOption.ZONE_QUANTITY))
+			serverinfoDisplayChanged = true;
+
+		ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 25);
+		if (ImGui.RadioButton("Total value", ref dtrOption, DtrBarOption.TOTAL_VALUE))
+			serverinfoDisplayChanged = true;
+
+		ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 25);
+		if (ImGui.RadioButton("Value per current zone", ref dtrOption, DtrBarOption.ZONE_VALUE))
+			serverinfoDisplayChanged = true;
+
+		if (serverinfoDisplayChanged) {
+			Configuration.DtrBarOption = dtrOption;
+			plugin.UpdateDtrBar();
+			Configuration.Save();
+			ComfyLoot.Log.Debug("[CONFIG] DTR setting {serverinfoDisplayOption}", dtrOption);
+		}
+
+		if (!serverinfo)
+			ImGui.EndDisabled();
+	}
+
+	private void
+	DrawExperimentalTooltip()
+	{
+		Vector4 color = ImGuiColors.DalamudYellow;
+
+		using (ImRaii.PushFont(UiBuilder.IconFont))
+			ImGui.TextColored(color, $"{FontAwesomeIcon.ExclamationTriangle.ToIconString()}");
+
+		if (ImGui.IsItemHovered()) {
+			ImGui.BeginTooltip();
+			ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
+
+			ImGui.TextUnformatted("Experimental Feature");
+			ImGui.TextUnformatted("May get changed drasticly or removed");
+			ImGui.PopTextWrapPos();
+			ImGui.EndTooltip();
+		}
+	}
+
+	/// <summary>
+	/// Draws the UI table for the ignored item ID list.
+	/// </summary>
+	/// <param name="ignoredItemIds">The list of ignored item IDs.</param>
+	private void
+	DrawItemIgnorelist(List<uint> ignoredItemIds)
+	{
+		ImGui.TextUnformatted("Ignored items");
+		if (!ImGui.BeginTable("IgnoredItemIdsTable", 2, ImGuiTableFlags.SizingStretchProp))
+			return;
+
+		ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthStretch);
+		ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 25.0f);
+
+		int removeIndex = DrawResolvedIdList(
+			"##ItemId",
+			ignoredItemIds,
+			id => ItemUtil.GetItemName(id).ToString()
+		);
+
+		if (removeIndex >= 0)
+			RemoveItem(ignoredItemIds, removeIndex);
+
+		DrawResolvedIdAdd(
+			"##AddNewItem",
+			ref ignoredItemNewEntry,
+			ignoredItemIds,
+			TryAddIgnoredItem
+		);
+
+		ImGui.EndTable();
 	}
 
 	/// <summary>
@@ -101,42 +253,6 @@ public class ConfigWindow : Window, IDisposable {
 	}
 
 	/// <summary>
-	/// Renders the config UI window.
-	/// </summary>
-	public override void
-	Draw()
-	{
-		bool universalis;
-		bool contextMenu;
-		bool serverinfo;
-		DtrBarOption dtrOption;
-		List<uint> ignoredItemIds;
-		List<uint> ignoredZoneIds;
-
-		universalis = Configuration.UniversalisEnabled;
-		contextMenu = Configuration.ItemContextMenu;
-		serverinfo = Configuration.ShowDtrBar;
-		dtrOption = Configuration.DtrBarOption;
-		ignoredItemIds = Configuration.IgnoredItemIds;
-		ignoredZoneIds = Configuration.IgnoredZoneIds;
-
-		if (ImGui.TreeNodeEx("Ignored Entrys")) {
-			DrawZoneIgnorelist(ignoredZoneIds);
-			DrawItemIgnorelist(ignoredItemIds);
-		}
-
-		ImGui.Separator();
-
-		DrawUniversalisSection(ref universalis);
-		if (ImGui.Checkbox("Enable item context menu", ref contextMenu)) {
-			Configuration.ItemContextMenu = contextMenu;
-			Configuration.Save();
-			ComfyLoot.Log.Debug("[CONFIG) ContextMenu enabled {serverinfo}", serverinfo);
-		}
-		DrawDtrSection(ref serverinfo, ref dtrOption);
-	}
-
-	/// <summary>
 	/// Draws the Universalis settings section, including hideble concent text.
 	/// </summary>
 	/// <param name="universalis">Reference to the Universalis-enabled flag.</param>
@@ -183,79 +299,6 @@ public class ConfigWindow : Window, IDisposable {
 		}
 
 		ImGui.EndDisabled();
-	}
-
-	/// <summary>
-	/// Draws the configuration section for the Dalamud DTR (server info) bar.
-	/// </summary>
-	/// <param name="serverinfo">Reference to the enable flag for the DTR entry.</param>
-	/// <param name="dtrOption">Reference to the selected display mode.</param>
-	private void
-	DrawDtrSection(ref bool serverinfo, ref DtrBarOption dtrOption)
-	{
-		if (ImGui.Checkbox("Enable Server Info bar entry", ref serverinfo)) {
-			Configuration.ShowDtrBar = serverinfo;
-			plugin.UpdateDtrBar();
-			Configuration.Save();
-			ComfyLoot.Log.Debug("[CONFIG) DTR enabled {serverinfo}", serverinfo);
-		}
-
-		if (!serverinfo)
-			ImGui.BeginDisabled();
-
-		bool serverinfoDisplayChanged = false;
-
-		if (ImGui.RadioButton("Total items", ref dtrOption, DtrBarOption.TOTAL_QUANTITY))
-			serverinfoDisplayChanged = true;
-		if (ImGui.RadioButton("Items per current zone", ref dtrOption, DtrBarOption.ZONE_QUANTITY))
-			serverinfoDisplayChanged = true;
-		if (ImGui.RadioButton("Total value", ref dtrOption, DtrBarOption.TOTAL_VALUE))
-			serverinfoDisplayChanged = true;
-		if (ImGui.RadioButton("Value per current zone", ref dtrOption, DtrBarOption.ZONE_VALUE))
-			serverinfoDisplayChanged = true;
-
-		if (serverinfoDisplayChanged) {
-			Configuration.DtrBarOption = dtrOption;
-			plugin.UpdateDtrBar();
-			Configuration.Save();
-			ComfyLoot.Log.Debug("[CONFIG) DTR setting {serverinfoDisplayOption}", dtrOption);
-		}
-
-		if (!serverinfo)
-			ImGui.EndDisabled();
-	}
-
-	/// <summary>
-	/// Draws the UI table for the ignored item ID list.
-	/// </summary>
-	/// <param name="ignoredItemIds">The list of ignored item IDs.</param>
-	private void
-	DrawItemIgnorelist(List<uint> ignoredItemIds)
-	{
-		ImGui.TextUnformatted("Ignored items");
-		if (!ImGui.BeginTable("IgnoredItemIdsTable", 2, ImGuiTableFlags.SizingStretchProp))
-			return;
-
-		ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthStretch);
-		ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 25.0f);
-
-		int removeIndex = DrawResolvedIdList(
-			"##ItemId",
-			ignoredItemIds,
-			id => ItemUtil.GetItemName(id).ToString()
-		);
-
-		if (removeIndex >= 0)
-			RemoveItem(ignoredItemIds, removeIndex);
-
-		DrawResolvedIdAdd(
-			"##AddNewItem",
-			ref ignoredItemNewEntry,
-			ignoredItemIds,
-			TryAddIgnoredItem
-		);
-
-		ImGui.EndTable();
 	}
 
 	/// <summary>

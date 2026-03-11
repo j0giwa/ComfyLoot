@@ -7,6 +7,11 @@ And drops from some other activities such as dungeons, raids, gathering, and map
 
 Inspired by [RuneLite](https://github.com/runelite/runelite/wiki/Loot-Tracker).
 
+> [!WARNING]
+> AI Generated Content Disclosure <br><br>
+> I follow a strict anti AI policy, however as there are currently no checks to proove this, just assume this project is 100% AI slop for the time beeing.
+> I'm looking into an automated ai detection for this project
+
 ## Features
 ![ComfyLoot UI](https://raw.githubusercontent.com/j0giwa/ComfyLoot/refs/heads/master/Data/image1.png)
 

@@ -47,7 +47,7 @@ public class MainWindow : Window, IDisposable {
 	/// <param name="plugin">Reference to the parent <see cref="ComfyLoot"/> plugin.</param>
 	/// <param name="loot">Reference the active loot manager instance.</param>
 	public MainWindow(ComfyLoot plugin, LootManager loot)
-		: base("ComfyLoot###comfyloot_ui", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
+		: base("Loottracker###comfyloot_ui", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
 	{
 		SizeConstraints = new WindowSizeConstraints {
 			MinimumSize = new Vector2(260, 330),
