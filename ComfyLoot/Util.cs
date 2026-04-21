@@ -1,7 +1,6 @@
 using System;
 using System.Globalization;
 using System.Text;
-using ComfyLoot.Models;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Utility;
 using Dalamud.Game.Text.SeStringHandling;
@@ -13,6 +12,8 @@ using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Lumina.Excel;
 using Lumina.Excel.Sheets;
+
+using ComfyLoot.Models;
 
 namespace ComfyLoot;
 
@@ -369,12 +370,14 @@ public static class Util {
 				return false;
 
 			if (target.BaseId == 1003567 /* Delivery Moogle NPC */
+			|| target.BaseId == 131113 /* Regal mailbox */
 			|| target.BaseId == 1969) /* housing mailbox */
 				return true;
 
 			/* fallback: identification over name */
 			switch (target.Name.TextValue) {
 			case "Delivery Moogle": /* FALLTHROUGH */
+			case "Regal Letter Box":
 			case "Mailbox":
 				return true;
 			default:
