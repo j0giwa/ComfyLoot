@@ -14,6 +14,7 @@ However for the Users reading this: as there are currently no reliable checks to
 > I'm looking into an automated AI detection, or idaly another form of reliable testimony for this project.
 
 ## Features
+
 ![ComfyLoot UI](https://raw.githubusercontent.com/j0giwa/ComfyLoot/refs/heads/master/Data/image1.png)
 
 - Tracks items dropped from enemies and other loot sources
@@ -30,6 +31,7 @@ See [FAQ](#FAQ) for
 
 ## Known Issues
 
+- Counters in inventory view may show 0.
 - Spelling: I'm dyslexic, so there might be a lot of errors
 
 Report bugs or suggestions via the Issues tab.
@@ -38,10 +40,10 @@ Be as concise and reproducible as possible—screenshots/logs help.
 ## Limitations
 
 - The plugin tracking needs a second to kick in: that's on purpose to prevent login issues (This could resolve after some extensive testing).
-- Pickup detection relies on inventory events; they are not 100% reliable.
+- Pickup detection relys on inventory events; they are not 100% reliable.
    - Other methods might break guidelines or are frankly just not acceptable.
 - Some functions rely on game memory structures that may or may not break on game patches.
-- third-party integrations will fail if endpoints are offline.
+- third-party integrations might fail if endpoints are offline (durr) or busy.
 
 ## Roadmap
 
@@ -67,6 +69,7 @@ as it's by design intended to be as barebones as possible.
 Check the guide in GoatCorp's [SamplePlugin](https://github.com/goatcorp/SamplePlugin) to get started.
 
 ## FAQ
+
 ``` txt
 Q: When will the full version be released?
 A: The plugin version will release on the stable branch as soon as it gets classified as "stable".

@@ -63,6 +63,7 @@ public class LootManager : IDisposable {
 	}
 
 	/// <summary>
+<<<<<<< HEAD
 	/// LootManager:ctor for testing
 	/// </summary>
 	/// <param name="config">Hotloaded Config</param>
@@ -178,10 +179,12 @@ public class LootManager : IDisposable {
 	}
 
 	/// <summary>
+=======
+>>>>>>> 226da65 (setup testing)
 	/// Add or update an item in the droplist.
 	/// </summary>
 	/// <param name="id"> Item identifyer</summary>
-	/// <param name="ammout">Ammount gainedr</summary>
+	/// <param name="amount">Ammount gained</summary>
 	/// <param name="zone">Zone identifyer (igoneored if zoneName is set)</summary>
 	/// <param name="zoneName">Zonename override</summary>
 	public async Task
@@ -245,9 +248,51 @@ public class LootManager : IDisposable {
 			items.Add(item);
 			loot[name] = items;
 
+<<<<<<< HEAD
 			if (!Config.STABLE)
 				plugin?.UpdateDtrBar();
+=======
+			if (!Configuration.STABLE)
+				plugin.UpdateDtrBar();
+
+			ComfyLoot.Log.Information(
+				"[TRACK] {Quantity}x {ItemId} in zone: {zoneName} ({zone})",
+				amount,
+				id,
+				name,
+				zone);
+>>>>>>> 226da65 (setup testing)
 		}
+	}
+
+	/// <summary>
+	/// Check if an Item already exists in a given zone
+	/// </summary>
+	/// <param name="itemId">item id</param>
+	/// <returns>true, if the item</returns>
+	private bool
+	CheckIgnoredItem(uint itemId)
+	{
+		foreach (uint id in plugin.Configuration.IgnoredItemIds)
+			if (id == itemId)
+				return true;
+
+		return false;
+	}
+
+	/// <summary>
+	/// Check if an Item already exists in a given zone
+	/// </summary>
+	/// <param name="zoneId">item id</param>
+	/// <returns>true, if the item</returns>
+	private bool
+	CheckIgnoredZone(uint zoneId)
+	{
+		foreach (uint id in plugin.Configuration.IgnoredZoneIds)
+			if (id == zoneId)
+				return true;
+
+		return false;
 	}
 
 	/// <summary>
@@ -262,13 +307,67 @@ public class LootManager : IDisposable {
 	}
 
 	/// <summary>
-	/// Resets the loot list
+	/// Resets the loot list for a given zone.
 	/// </summary>
 	public void
 	ClearZone(string zone)
 	{
 		lock (lootLock) {
 			loot.Remove(zone);
+		}
+	}
+
+	/// <summary>
+	/// Gets the gil value of the given item
+	/// </summary>
+	/// <param name="itemId">Item identyfier</param>
+	/// <returns>
+	/// Item count, if the item is gil;
+	/// Vendor value, if the item is meant to be sold to vendors;
+	/// Univesalis value, if the item can be sold on the marketboard;
+	/// 0, if none of the above applies
+	/// </returns>
+	private async Task<int>
+	GetItemGilValue(uint itemId, bool hq)
+	{
+		int value;
+		string worldname;
+
+		switch (itemId) {
+		case (int)SpecialItems.GIL:
+			return 1;
+		case (int)SpecialItems.ALLAGAN_TIN_PIECE:
+			return 25;
+		case (int)SpecialItems.ALLAGAN_BRONZE_PIECE:
+		case (int)SpecialItems.NIGHTWORLD_BRONZE_PIECE:
+			return 100;
+		case (int)SpecialItems.ALLAGAN_SILVER_PIECE:
+		case (int)SpecialItems.NIGHTWORLD_SILVER_PIECE:
+			return 500;
+		case (int)SpecialItems.ALLAGAN_GOLD_PIECE:
+			return 2500;
+		case (int)SpecialItems.ALLAGAN_PLATINUM_PIECE:
+			return 10000;
+		default: /* marketboard value (if eligible) */
+			if (!config.UniversalisEnabled)
+				return 0;
+
+			worldname = plugin.HomeworldName;
+
+			/* prevent unnessary api calls that will fail anyway */
+			if (worldname == null
+			|| worldname.Equals("Dev")
+			|| worldname.Equals("???")
+			|| !Util.IsTradable(itemId)
+			|| Util.IsCurrency(itemId))
+				return 0;
+
+			value = await Universalis.GetValue(
+				itemId,
+				worldname,
+				hq);
+
+			return value;
 		}
 	}
 
@@ -345,7 +444,6 @@ public class LootManager : IDisposable {
 	/// <summary>
 	/// Counts the total quantity of valid (non-currency) items within a single zone.
 	/// </summary>
-	/// <param name="Loot">Lootmanager Instance</param>
 	/// <param name="zone">zonename</param>
 	/// <returns>Total number of non-currency items in this zone</returns>
 	public int

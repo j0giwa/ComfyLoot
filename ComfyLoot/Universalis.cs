@@ -68,9 +68,9 @@ public static class Universalis {
 		const string endpoint = "https://universalis.app/api/v2";
 
 		string uri;
+		string result;
 		HttpRequestMessage request;
 		HttpResponseMessage response;
-		string result;
 		MarketBoardData? data;
 
 		ComfyLoot.Log.Verbose(

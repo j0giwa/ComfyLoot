@@ -128,6 +128,7 @@ public class MainWindow : Window, IDisposable {
 	/// <summary>
 	/// Renders the main UI window.
 	/// </summary>
+	/* TODO: Item list list should be moved to its own function */
 	public override void
 	Draw()
 	{

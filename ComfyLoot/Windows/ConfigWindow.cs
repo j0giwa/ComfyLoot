@@ -45,6 +45,7 @@ public class ConfigWindow : Window, IDisposable {
 	{
 		bool universalis;
 		bool contextMenu;
+		bool crystals;
 		bool serverinfo;
 		DtrBarOption dtrOption;
 		List<uint> ignoredItemIds;
@@ -52,6 +53,7 @@ public class ConfigWindow : Window, IDisposable {
 
 		universalis = Configuration.UniversalisEnabled;
 		contextMenu = Configuration.ItemContextMenu;
+		crystals = Configuration.IgnoreCrystals;
 		serverinfo = Configuration.ShowDtrBar;
 		dtrOption = Configuration.DtrBarOption;
 		ignoredItemIds = Configuration.IgnoredItemIds;
@@ -67,6 +69,7 @@ public class ConfigWindow : Window, IDisposable {
 		DrawUniversalisSection(ref universalis);
 
 		if (!Config.STABLE) {
+
 			if (ImGui.Checkbox("Enable item context menu", ref contextMenu)) {
 				Configuration.ItemContextMenu = contextMenu;
 				Configuration.Save();
@@ -338,6 +341,7 @@ public class ConfigWindow : Window, IDisposable {
 	/// <summary>
 	/// Draws UI elements allowing users to add new string entries.
 	/// </summary>
+	/// <param name="ignoredZoneIds">The list of ignored zone IDs.</param>
 	private void
 	DrawStringAdd(string widgetId, ref string newEntry, List<string> list)
 	{
