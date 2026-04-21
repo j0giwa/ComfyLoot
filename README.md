@@ -9,8 +9,9 @@ Inspired by [RuneLite](https://github.com/runelite/runelite/wiki/Loot-Tracker).
 
 > [!WARNING]
 > AI Generated Content Disclosure <br><br>
-> I follow a strict anti AI policy, however as there are currently no checks to proove this, just assume this project is 100% AI slop for the time beeing.
-> I'm looking into an automated ai detection for this project
+> This project follows a anti AI policy, no AI generated line should ever make it into stable. 
+However for the Users reading this: as there are currently no reliable checks to proove this, just assume this project is 100% AI slop for the time beeing.
+> I'm looking into an automated AI detection, or idaly another form of reliable testimony for this project.
 
 ## Features
 ![ComfyLoot UI](https://raw.githubusercontent.com/j0giwa/ComfyLoot/refs/heads/master/Data/image1.png)
@@ -84,5 +85,8 @@ A: Even tho this is the whole point of the plugin, this has to be disbabled.
    Nothing i can do about that.
 ```
 
-## Credits
-- Icon is made by our beloved Ireina
+## Acknowledgments
+- Thanks to the [Dalamud](https://github.com/goatcorp/Dalamud) peeps to make this project possible
+- Thanks to the Runelite developers for inspiration
+- Universalis API for marketboard data
+- Thanks to our beloved Ireina for the cute icon

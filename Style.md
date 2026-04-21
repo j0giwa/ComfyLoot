@@ -10,7 +10,7 @@ Project maintainers have discretion to interpret these rules as appropriate.
 ## Recommended Reading
 
 The following contain good information, some of which is repeated below, some of which is contradicted below.
-These references come from C, but the spirit applies to minimalist and maintainable C# code
+These references come from C, but the spirit applies to minimalist and maintainable C# code.
 
 - https://man.openbsd.org/style
 - http://doc.cat-v.org/bell_labs/pikestyle
@@ -18,6 +18,20 @@ These references come from C, but the spirit applies to minimalist and maintaina
 - https://suckless.org/coding_style/
 
 ---
+
+## About AI generated content.
+
+TL;DR: don't
+
+Lets get the elephant out of the room: Code written without understanding is just bloat with extra steps. 
+AI-slopware compiles, passes tests it accidentally satisfies and fails the ones that matter in production.
+You get layers of abstractions nobody chose, dependencies nobody audits, and bugs nobody can reason about.
+Not to mention the blatant security liabity question.
+
+No AI generated code should make it in the stable branch of the Dalamud repository, 
+usage is, albeit barely, acceptable to outline proof of concepts for experimental features.
+(Reminder: experimental featurs will only make it into stable once users deemed them a nessecity)
+This code should however still match the style guide, this purposefully contains quirks that ai by default does not do, unless specificaly instructed.
 
 ## File Layout
 
@@ -258,5 +272,4 @@ private const int MagicNumber = 0xDEADBEEF;
 - Avoid unnecessary object orientation. Prefer **plain classes with methods** over complex hierarchies.
 - Use records/structs **only when immutability or performance demands it**.
 - Avoid auto-generated code and designer files when possible.
-    - This also aplies to AI-generated code
 - **Do not optimize prematurely**.
