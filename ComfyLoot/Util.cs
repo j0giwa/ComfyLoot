@@ -192,6 +192,11 @@ public static class Util {
 
 		rarity = 1; /* fallback */
 
+		/* HACK: Plugindata not accesble during tests, skipping */ 
+		if (Config.IsTestEnvironment
+		|| ComfyLoot.DataManager == null)
+			return 1;
+
 		sheet = ComfyLoot.DataManager.GetExcelSheet<Item>();
 		if (sheet == null) {
 			ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: Item");

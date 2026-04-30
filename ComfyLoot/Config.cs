@@ -13,9 +13,14 @@ public enum DtrBarOption {
 }
 
 [Serializable]
-public class Configuration : IPluginConfiguration
+public class Config : IPluginConfiguration
 {
-	public bool STABLE { get; } = false;
+	public static bool STABLE { get; } = false;
+
+	/// <summary>
+	/// This should never never be manipulated, this is only a unit test utility
+	/// </summary>
+	public static bool IsTestEnvironment { get; set; } = false;
 
 	public int Version { get; set; } = 0; /* TODO: figure out the point of this */
 

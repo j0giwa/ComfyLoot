@@ -6,7 +6,9 @@ using System.Threading.Tasks;
 using Dalamud.Utility;
 
 using ComfyLoot.Models;
+using System.Runtime.CompilerServices;
 
+[assembly: InternalsVisibleTo("ComfyLoot.Test")] /* helps with testing */
 namespace ComfyLoot.Managers;
 
 /// <summary>
@@ -24,8 +26,8 @@ public record LootItem(
 /// </summay>
 public class LootManager : IDisposable {
 
-	private readonly ComfyLoot plugin;
-	private readonly Configuration config;
+	private readonly ComfyLoot? plugin; /* NOTE: nullable to help with testing  */
+	private readonly Config config;
 	private readonly Lock lootLock;
 	private readonly Dictionary<string, List<LootItem>> loot;
 
@@ -61,6 +63,33 @@ public class LootManager : IDisposable {
 	}
 
 	/// <summary>
+	/// LootManager:ctor for testing
+	/// </summary>
+	/// <param name="config">Hotloaded Config</param>
+	internal LootManager(Config config)
+	{
+		IsDisposed = false;
+		plugin = null;
+		this.config = config;
+		loot = new Dictionary<string, List<LootItem>>();
+		lootLock = new Lock();
+	}
+
+	/// <summary>
+	/// LootManager:ctor for testing
+	/// </summary>
+	/// <param name="config">Hotloaded Config</param>
+	/// <param name="loot">Hotloaded loot table</param>
+	internal LootManager(Config config, Dictionary<string, List<LootItem>> loot)
+	{
+		IsDisposed = false;
+		plugin = null;
+		this.config = config;
+		this.loot = loot;
+		lootLock = new Lock();
+	}
+
+	/// <summary>
 	/// Check if an Item already exists in a given zone
 	/// </summary>
 	/// <param name="zone">Zone to check</param>
@@ -69,7 +98,7 @@ public class LootManager : IDisposable {
 	private bool
 	CheckIgnoredItem(uint itemId)
 	{
-		foreach (uint id in plugin.Configuration.IgnoredItemIds)
+		foreach (uint id in config.IgnoredItemIds)
 			if (id == itemId)
 				return true;
 
@@ -85,7 +114,7 @@ public class LootManager : IDisposable {
 	private bool
 	CheckIgnoredZone(uint zoneId)
 	{
-		foreach (uint id in plugin.Configuration.IgnoredZoneIds)
+		foreach (uint id in config.IgnoredZoneIds)
 			if (id == zoneId)
 				return true;
 
@@ -106,8 +135,9 @@ public class LootManager : IDisposable {
 	GetItemGilValue(uint itemId, bool hq)
 	{
 		int value;
-		string worldname;
+		string? worldname;
 
+		worldname = null;
 		switch (itemId) {
 		case (int)SpecialItems.GIL:
 			return 1;
@@ -127,7 +157,8 @@ public class LootManager : IDisposable {
 			if (!config.UniversalisEnabled)
 				return 0;
 
-			worldname = plugin.HomeworldName;
+			if (plugin != null)
+				worldname = plugin.HomeworldName;
 
 			/* prevent unnessary api calls that will fail anyway */
 			if (worldname == null
@@ -201,7 +232,7 @@ public class LootManager : IDisposable {
 
 				loot[name] = items;
 
-				plugin.UpdateDtrBar();
+				plugin?.UpdateDtrBar();
 				ComfyLoot.Log.Information(
 					"[TRACK] {Quantity}x {ItemId} in zone: {zoneName} ({zone})",
 					quantity,
@@ -214,15 +245,8 @@ public class LootManager : IDisposable {
 			items.Add(item);
 			loot[name] = items;
 
-			if (!config.STABLE)
-				plugin.UpdateDtrBar();
-
-			ComfyLoot.Log.Information(
-				"[TRACK] {Quantity}x {ItemId} in zone: {zoneName} ({zone})",
-				amount,
-				id,
-				name,
-				zone);
+			if (!Config.STABLE)
+				plugin?.UpdateDtrBar();
 		}
 	}
 

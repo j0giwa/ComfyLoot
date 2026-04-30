@@ -21,7 +21,7 @@ public class ConfigWindow : Window, IDisposable {
 	private string ignoredZoneNewEntry = "";
 
 	private readonly ComfyLoot plugin;
-	private readonly Configuration Configuration;
+	private readonly Config Configuration;
 
 	public ConfigWindow(ComfyLoot plugin)
 		: base("ComfyLoot config###comfyloot_config_ui")
@@ -66,7 +66,7 @@ public class ConfigWindow : Window, IDisposable {
 
 		DrawUniversalisSection(ref universalis);
 
-		if (!Configuration.STABLE) {
+		if (!Config.STABLE) {
 			if (ImGui.Checkbox("Enable item context menu", ref contextMenu)) {
 				Configuration.ItemContextMenu = contextMenu;
 				Configuration.Save();
