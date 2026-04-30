@@ -113,10 +113,10 @@ public class LootManager : IDisposable {
 			return 1;
 		case (int)SpecialItems.ALLAGAN_TIN_PIECE:
 			return 25;
-		case (int)SpecialItems.ALLAGAN_BRONZE_PIECE:
+		case (int)SpecialItems.ALLAGAN_BRONZE_PIECE: /* FALLTHROUGH */
 		case (int)SpecialItems.NIGHTWORLD_BRONZE_PIECE:
 			return 100;
-		case (int)SpecialItems.ALLAGAN_SILVER_PIECE:
+		case (int)SpecialItems.ALLAGAN_SILVER_PIECE: /* FALLTHROUGH */
 		case (int)SpecialItems.NIGHTWORLD_SILVER_PIECE:
 			return 500;
 		case (int)SpecialItems.ALLAGAN_GOLD_PIECE:

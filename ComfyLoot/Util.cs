@@ -36,27 +36,41 @@ public static class Util {
 	}
 
 	/// <summary>
-	/// Formats a number into a compact readable form (e.g., K for thousands, M for millions).
+	/// Formats a number into a compact readable form
+	/// (e.g., K for thousands, M for millions).
 	/// </summary>
-	/// <param name="number">The number to format.</param>
+	/// <param name="number">The number to format</param>
 	/// <returns>A shortened numeric string.</returns>
 	public static string
 	FormatNumber(int number)
 	{
-		double value = number;
-		string suffix = "";
+		double value;
+		string suffix;
 		string format;
+		string result;
 
-		if (Math.Abs(value) >= 1_000_000) {
+		suffix = "";
+		value = number;
+		if (Math.Abs(value) >= 1_000_000)
+		{
 			value /= 1_000_000;
 			suffix = "M";
-		} else if (Math.Abs(value) >= 1_000) {
+		}
+
+		if (Math.Abs(value) >= 1_000)
+		{
 			value /= 1_000;
 			suffix = "K";
 		}
 
-		format = value % 1 == 0 ? "0" : "0.#";
-		return value.ToString(format, CultureInfo.InvariantCulture) + suffix;
+		format = "0.#";
+		if (value % 1 == 0)
+			format = "0";
+
+		result = value.ToString(format, CultureInfo.InvariantCulture);
+		result += suffix;
+		
+		return result;
 	}
 
 	/// <summary>
@@ -330,7 +344,7 @@ public static class Util {
 		case 16: /* ERROR: this makes the function overly agressive */
 			/* HACK: stop pieces from getting flagged as currency */
 			switch (itemId) {
-			case (uint)SpecialItems.ALLAGAN_TIN_PIECE:
+			case (uint)SpecialItems.ALLAGAN_TIN_PIECE: /* FALLTHROUGH */
 			case (uint)SpecialItems.ALLAGAN_BRONZE_PIECE:
 			case (uint)SpecialItems.ALLAGAN_SILVER_PIECE:
 			case (uint)SpecialItems.ALLAGAN_GOLD_PIECE:
