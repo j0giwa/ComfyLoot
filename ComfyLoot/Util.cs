@@ -313,62 +313,41 @@ public static class Util {
 	/// <summary>
 	/// Determines whether the specified item is classified as a currency.
 	/// </summary>
-	/// <param name="itemId">The item ID.</param>
-	/// <returns><c>true</c> if the item is a currency; otherwise, <c>false</c>.</returns>
-	/// <summary>
-	/// Determines whether the specified item is classified as a currency.
-	/// </summary>
+	/// <remarks>We will only regard it as a currency, if it shows up in the currency window</remarks> 
 	/// <param name="itemId">The item ID.</param>
 	/// <returns><c>true</c> if the item is a currency; otherwise, <c>false</c>.</returns>
 	public static bool
 	IsCurrency(uint itemId)
 	{
-		ExcelSheet<Item>? sheet;
-		Item? item;
-		bool result;
+		/* NOTE: Lookup solution turned out o be overly agressive */
 
-		result = false;
-
-		sheet = ComfyLoot.DataManager.GetExcelSheet<Item>();
-		if (sheet == null) {
-			ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: Item");
+		switch (itemId) {
+		case (uint)Currency.GIL: /* FALLTHROUGH */
+		case (uint)Currency.STORM_SEAL:
+		case (uint)Currency.SERPENT_SEAL:
+		case (uint)Currency.FLAME_SEAL:
+		case (uint)Currency.ALLIED_SEALS:
+		case (uint)Currency.WOLF_MARKS:
+		case (uint)Currency.MGP:
+		case (uint)Currency.TROPHY_CRYSTALS:
+		case (uint)Currency.TOMESTONE_POETICS:
+		case (uint)Currency.TOMESTONE_AESTETICS:
+		case (uint)Currency.TOMESTONE_HELIOMETRY:
+		case (uint)Currency.TOMESTONE_MATHEMATICS:
+		case (uint)Currency.CENTURIO_SEALS:
+		case (uint)Currency.SACK_OF_NUTS:
+		case (uint)Currency.BICOLOR_GEMSTONES:
+		case (uint)Currency.WHITE_CRAFTER_SCRIPS:
+		case (uint)Currency.WHITE_GATHERER_SCRIPS:
+		case (uint)Currency.PURPLE_CRAFTER_SCRIPS:
+		case (uint)Currency.PURPLE_GATHERER_SCRIPS:
+		case (uint)Currency.ORANGE_CRAFTER_SCRIPS:
+		case (uint)Currency.ORANGE_GATHERER_SCRIPS:
+		case (uint)Currency.SKYBUILDER_SCRIPS:
 			return true;
-		}
-
-		item = sheet.GetRowOrDefault(itemId);
-		if (item == null)
-			return result;
-
-		/* FIXME: There might be some missing here */
-		switch (item.Value.FilterGroup) {
-		case 29: /* FALLTHROUGH */
-		case 47:
-		case 54:
-		case 56:
-		case 57:
-		case 16: /* ERROR: this makes the function overly agressive */
-			/* HACK: stop pieces from getting flagged as currency */
-			switch (itemId) {
-			case (uint)SpecialItems.ALLAGAN_TIN_PIECE: /* FALLTHROUGH */
-			case (uint)SpecialItems.ALLAGAN_BRONZE_PIECE:
-			case (uint)SpecialItems.ALLAGAN_SILVER_PIECE:
-			case (uint)SpecialItems.ALLAGAN_GOLD_PIECE:
-			case (uint)SpecialItems.ALLAGAN_PLATINUM_PIECE:
-			case (uint)SpecialItems.NIGHTWORLD_BRONZE_PIECE:
-			case (uint)SpecialItems.NIGHTWORLD_SILVER_PIECE:
-				result = false;
-				break;
-			default:
-				result = true;
-				break;
-			}
-			break;
 		default:
-			result = false;
-			break;
+			return false;
 		}
-
-		return result;
 	}
 
 	/// <summary>

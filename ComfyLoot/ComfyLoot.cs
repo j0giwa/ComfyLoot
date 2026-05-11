@@ -6,7 +6,6 @@ using Dalamud.Game.Gui.ContextMenu;
 using Dalamud.Game.Gui.Dtr;
 using Dalamud.Game.Inventory;
 using Dalamud.Game.Text;
-using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
@@ -49,13 +48,13 @@ public sealed class ComfyLoot : IDalamudPlugin {
 	private MainWindow MainWindow { get; init; }
 	private ConfigWindow ConfigWindow { get; init; }
 	private IDtrBarEntry? dtrEntry;
-	private readonly IContextMenu contextMenu;
-
+	
 	public string HomeworldName { get; private set; }
 	public string? TradeParterName { get; private set; }
 	public LootManager LootManager { get; set; }
 	public required InventoryWatcher Watcher { get; set; }
 	public required Config Configuration { get; init; }
+	public required IContextMenu ContextMenu { private get; set; } 
 
 	/// <summary>
 	/// ComfyLoot:ctor
@@ -108,8 +107,8 @@ public sealed class ComfyLoot : IDalamudPlugin {
 		ChatGui.ChatMessage += OnChatMessage;
 
 		if (!Config.STABLE) {
-			this.contextMenu = contextMenu;
-			this.contextMenu.OnMenuOpened += OnMenuOpened;
+			this.ContextMenu = contextMenu;
+			this.ContextMenu.OnMenuOpened += OnMenuOpened;
 
 			InitializeDtrBar();
 		}
@@ -332,6 +331,6 @@ public sealed class ComfyLoot : IDalamudPlugin {
 		ChatGui.ChatMessage -= OnChatMessage;
 
 		if (!Config.STABLE)
-			contextMenu.OnMenuOpened -= OnMenuOpened;
+			ContextMenu.OnMenuOpened -= OnMenuOpened;
 	}
 }

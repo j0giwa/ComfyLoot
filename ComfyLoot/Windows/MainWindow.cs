@@ -511,12 +511,9 @@ public class MainWindow : Window, IDisposable {
 	private void
 	DrawItemListContext(string zone)
 	{
-		uint zoneId;
-
 		if (ImGui.BeginPopupContextItem($"##ZoneContextName_{zone}")) {
 			if (ImGui.MenuItem("Ignore Zone")) {
-				zoneId = Util.GetZoneId(zone);
-				plugin.Configuration.IgnoredZoneIds.Add(zoneId);
+				plugin.Configuration.IgnoredZones.Add(zone);
 				plugin.Configuration.Save();
 			}
 			if (ImGui.MenuItem("Hide Loot")) {

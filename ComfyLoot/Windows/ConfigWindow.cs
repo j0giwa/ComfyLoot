@@ -48,17 +48,17 @@ public class ConfigWindow : Window, IDisposable {
 		bool serverinfo;
 		DtrBarOption dtrOption;
 		List<uint> ignoredItemIds;
-		List<uint> ignoredZoneIds;
+		List<string> ignoredZones;
 
 		universalis = Configuration.UniversalisEnabled;
 		contextMenu = Configuration.ItemContextMenu;
 		serverinfo = Configuration.ShowDtrBar;
 		dtrOption = Configuration.DtrBarOption;
 		ignoredItemIds = Configuration.IgnoredItemIds;
-		ignoredZoneIds = Configuration.IgnoredZoneIds;
+		ignoredZones = Configuration.IgnoredZones;
 
 		if (ImGui.TreeNodeEx("Ignored Entrys")) {
-			DrawZoneIgnorelist(ignoredZoneIds);
+			DrawZoneIgnorelist(ignoredZones);
 			DrawItemIgnorelist(ignoredItemIds);
 		}
 
@@ -302,33 +302,92 @@ public class ConfigWindow : Window, IDisposable {
 	}
 
 	/// <summary>
-	/// Draws the UI table for the ignored zone ID list.
+	/// Draws a modifiable string list.
 	/// </summary>
-	/// <param name="ignoredZoneIds">The list of ignored zone IDs.</param>
+	private int
+	DrawStringList(string widgetId, List<string> list)
+	{
+		int removeIndex = -1;
+
+		for (int i = 0; i < list.Count; i++) {
+			ImGui.PushID(i);
+
+			ImGui.TableNextRow();
+			ImGui.TableNextColumn();
+			ImGui.SetNextItemWidth(-1);
+
+			string text = list[i];
+
+			if (ImGui.InputText(widgetId, ref text, 64))
+				if (list[i] != text) {
+					list[i] = text;
+					Configuration.Save();
+				}
+
+			ImGui.TableNextColumn();
+
+			if (ImGuiComponents.IconButton(FontAwesomeIcon.Trash))
+				removeIndex = i;
+
+			ImGui.PopID();
+		}
+
+		return removeIndex;
+	}
+
+	/// <summary>
+	/// Draws UI elements allowing users to add new string entries.
+	/// </summary>
 	private void
-	DrawZoneIgnorelist(List<uint> ignoredZoneIds)
+	DrawStringAdd(string widgetId, ref string newEntry, List<string> list)
+	{
+		ImGui.PushID(widgetId);
+
+		ImGui.TableNextRow();
+		ImGui.TableNextColumn();
+		ImGui.SetNextItemWidth(-1);
+
+		ImGui.InputText("##New", ref newEntry, 64);
+
+		ImGui.TableNextColumn();
+
+		if (ImGuiComponents.IconButton(FontAwesomeIcon.Plus)) {
+			if (!string.IsNullOrWhiteSpace(newEntry)) {
+				list.Add(newEntry.Trim());
+				Configuration.Save();
+				newEntry = "";
+			}
+		}
+
+		ImGui.PopID();
+	}
+
+	/// <summary>
+	/// Draws the UI table for the ignored zone list.
+	/// </summary>
+	private void
+	DrawZoneIgnorelist(List<string> ignoredZones)
 	{
 		ImGui.TextUnformatted("Ignored zones");
+
 		if (!ImGui.BeginTable("IgnoredZonesTable", 2, ImGuiTableFlags.SizingStretchProp))
 			return;
 
 		ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthStretch);
 		ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 25.0f);
 
-		int removeIndex = DrawResolvedIdList(
+		int removeIndex = DrawStringList(
 			"##Zone",
-			ignoredZoneIds,
-			id => Util.GetZoneName(id)
+			ignoredZones
 		);
 
 		if (removeIndex >= 0)
-			RemoveZone(ignoredZoneIds, removeIndex);
+			RemoveZone(ignoredZones, removeIndex);
 
-		DrawResolvedIdAdd(
+		DrawStringAdd(
 			"##AddNewZone",
 			ref ignoredZoneNewEntry,
-			ignoredZoneIds,
-			TryAddIgnoredZone
+			ignoredZones
 		);
 
 		ImGui.EndTable();
@@ -340,7 +399,7 @@ public class ConfigWindow : Window, IDisposable {
 	/// <param name="zones">The list of ignored zone IDs.</param>
 	/// <param name="index">Index of the zone to remove.</param>
 	private void
-	RemoveZone(List<uint> zones, int index)
+	RemoveZone(List<string> zones, int index)
 	{
 		zones.RemoveAt(index);
 		Configuration.Save();
@@ -381,31 +440,6 @@ public class ConfigWindow : Window, IDisposable {
 
 		ComfyLoot.Log.Verbose("Ignoring item {Name} -> BaseId={BaseId}", ignoredItemNewEntry, baseId);
 		ignoredItemNewEntry = "";
-	}
-
-	/// <summary>
-	/// Attempts to add a new zone to the ignored zone ID list.
-	/// </summary>
-	/// <param name="ignoredZoneIds">The ignored zone ID list.</param>
-	private void
-	TryAddIgnoredZone(List<uint> ignoredZoneIds)
-	{
-		uint baseId;
-
-		if (string.IsNullOrWhiteSpace(ignoredZoneNewEntry))
-			return;
-
-		baseId = Util.GetZoneId(ignoredZoneNewEntry);
-		if (baseId == 0) {
-			ComfyLoot.Log.Warning("Unknown zone name: {Name}", ignoredZoneNewEntry);
-			return;
-		}
-
-		ignoredZoneIds.Add(baseId);
-		Configuration.Save();
-
-		ComfyLoot.Log.Verbose("Ignoring zone {Name} -> BaseId={BaseId}", ignoredZoneNewEntry, baseId);
-		ignoredZoneNewEntry = "";
 	}
 
 	public void

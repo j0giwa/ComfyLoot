@@ -26,7 +26,7 @@ public class Config : IPluginConfiguration
 
 	/* all features should be opt in */
 	public List<uint> IgnoredItemIds { get; set; } = new List<uint>();
-	public List<uint> IgnoredZoneIds { get; set; } = new List<uint>();
+	public List<string> IgnoredZones { get; set; } = new List<string>();
 	public bool UniversalisEnabled { get; set; } = false; /* NOTE: disabled for legal reasons */
 
 	/* NOTE: Exprerimantal, might get removed */

@@ -112,10 +112,10 @@ public class LootManager : IDisposable {
 	/// <param name="id">item id</param>
 	/// <returns>true, if the item</returns>
 	private bool
-	CheckIgnoredZone(uint zoneId)
+	CheckIgnoredZone(string zone)
 	{
-		foreach (uint id in config.IgnoredZoneIds)
-			if (id == zoneId)
+		foreach (string ignoredZone in config.IgnoredZones)
+			if (zone == ignoredZone)
 				return true;
 
 		return false;
@@ -193,9 +193,13 @@ public class LootManager : IDisposable {
 		LootItem item;
 		LootItem? existing;
 		List<LootItem>? items;
+		
+		name = zoneName;
+		if (name == "")
+			name = Util.GetZoneName(zone);
 
-		if(CheckIgnoredItem(id)
-		|| CheckIgnoredZone(zone))
+		if (CheckIgnoredItem(id)
+		|| CheckIgnoredZone(name))
 			return;
 
 		itemValue = await GetItemGilValue(
@@ -208,10 +212,6 @@ public class LootManager : IDisposable {
 		    amount,
 		    itemValue
 		);
-
-		name = zoneName;
-		if (name == "")
-			name = Util.GetZoneName(zone);
 
 		lock (lootLock) {
 			if (!loot.TryGetValue(name, out items))
