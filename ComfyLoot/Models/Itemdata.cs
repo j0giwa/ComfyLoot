@@ -5,7 +5,6 @@
 namespace ComfyLoot.Models;
 
 /// <summary>
-<<<<<<< HEAD
 /// Items that show up in the Currency window
 /// </summary>
 public enum Currency {
@@ -35,9 +34,6 @@ public enum Currency {
 
 /// <summary>
 /// Gil in different forms
-=======
-/// Gil with extra steps
->>>>>>> 60c34f8 (setup testing)
 /// </summary>
 public enum SpecialItems {
 	GIL = 1,
