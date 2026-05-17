@@ -24,8 +24,8 @@ public record LootItem(
 /// </summay>
 public class LootManager : IDisposable {
 
-	private readonly ComfyLoot plugin;
-	private readonly Configuration config;
+	private readonly ComfyLoot? plugin; /* NOTE: nullable to help with testing  */
+	private readonly Config config;
 	private readonly Lock lootLock;
 	private readonly Dictionary<string, List<LootItem>> loot;
 
@@ -61,6 +61,33 @@ public class LootManager : IDisposable {
 	}
 
 	/// <summary>
+	/// LootManager:ctor for testing
+	/// </summary>
+	/// <param name="config">Hotloaded Config</param>
+	internal LootManager(Config config)
+	{
+		IsDisposed = false;
+		plugin = null;
+		this.config = config;
+		loot = new Dictionary<string, List<LootItem>>();
+		lootLock = new Lock();
+	}
+
+	/// <summary>
+	/// LootManager:ctor for testing
+	/// </summary>
+	/// <param name="config">Hotloaded Config</param>
+	/// <param name="loot">Hotloaded loot table</param>
+	internal LootManager(Config config, Dictionary<string, List<LootItem>> loot)
+	{
+		IsDisposed = false;
+		plugin = null;
+		this.config = config;
+		this.loot = loot;
+		lootLock = new Lock();
+	}
+
+	/// <summary>
 	/// Check if an Item already exists in a given zone
 	/// </summary>
 	/// <param name="zone">Zone to check</param>
@@ -69,7 +96,7 @@ public class LootManager : IDisposable {
 	private bool
 	CheckIgnoredItem(uint itemId)
 	{
-		foreach (uint id in plugin.Configuration.IgnoredItemIds)
+		foreach (uint id in config.IgnoredItemIds)
 			if (id == itemId)
 				return true;
 
@@ -83,10 +110,10 @@ public class LootManager : IDisposable {
 	/// <param name="id">item id</param>
 	/// <returns>true, if the item</returns>
 	private bool
-	CheckIgnoredZone(uint zoneId)
+	CheckIgnoredZone(string zone)
 	{
-		foreach (uint id in plugin.Configuration.IgnoredZoneIds)
-			if (id == zoneId)
+		foreach (string ignoredZone in config.IgnoredZones)
+			if (zone == ignoredZone)
 				return true;
 
 		return false;
@@ -106,17 +133,18 @@ public class LootManager : IDisposable {
 	GetItemGilValue(uint itemId, bool hq)
 	{
 		int value;
-		string worldname;
+		string? worldname;
 
+		worldname = null;
 		switch (itemId) {
 		case (int)SpecialItems.GIL:
 			return 1;
 		case (int)SpecialItems.ALLAGAN_TIN_PIECE:
 			return 25;
-		case (int)SpecialItems.ALLAGAN_BRONZE_PIECE:
+		case (int)SpecialItems.ALLAGAN_BRONZE_PIECE: /* FALLTHROUGH */
 		case (int)SpecialItems.NIGHTWORLD_BRONZE_PIECE:
 			return 100;
-		case (int)SpecialItems.ALLAGAN_SILVER_PIECE:
+		case (int)SpecialItems.ALLAGAN_SILVER_PIECE: /* FALLTHROUGH */
 		case (int)SpecialItems.NIGHTWORLD_SILVER_PIECE:
 			return 500;
 		case (int)SpecialItems.ALLAGAN_GOLD_PIECE:
@@ -127,7 +155,8 @@ public class LootManager : IDisposable {
 			if (!config.UniversalisEnabled)
 				return 0;
 
-			worldname = plugin.HomeworldName;
+			if (plugin != null)
+				worldname = plugin.HomeworldName;
 
 			/* prevent unnessary api calls that will fail anyway */
 			if (worldname == null
@@ -162,9 +191,13 @@ public class LootManager : IDisposable {
 		LootItem item;
 		LootItem? existing;
 		List<LootItem>? items;
+		
+		name = zoneName;
+		if (name == "")
+			name = Util.GetZoneName(zone);
 
-		if(CheckIgnoredItem(id)
-		|| CheckIgnoredZone(zone))
+		if (CheckIgnoredItem(id)
+		|| CheckIgnoredZone(name))
 			return;
 
 		itemValue = await GetItemGilValue(
@@ -177,10 +210,6 @@ public class LootManager : IDisposable {
 		    amount,
 		    itemValue
 		);
-
-		name = zoneName;
-		if (name == "")
-			name = Util.GetZoneName(zone);
 
 		lock (lootLock) {
 			if (!loot.TryGetValue(name, out items))
@@ -201,7 +230,7 @@ public class LootManager : IDisposable {
 
 				loot[name] = items;
 
-				plugin.UpdateDtrBar();
+				plugin?.UpdateDtrBar();
 				ComfyLoot.Log.Information(
 					"[TRACK] {Quantity}x {ItemId} in zone: {zoneName} ({zone})",
 					quantity,
@@ -213,14 +242,9 @@ public class LootManager : IDisposable {
 
 			items.Add(item);
 			loot[name] = items;
-			plugin.UpdateDtrBar();
 
-			ComfyLoot.Log.Information(
-				"[TRACK] {Quantity}x {ItemId} in zone: {zoneName} ({zone})",
-				amount,
-				id,
-				name,
-				zone);
+			if (!Config.STABLE)
+				plugin?.UpdateDtrBar();
 		}
 	}
 

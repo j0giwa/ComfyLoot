@@ -6,7 +6,6 @@ using Dalamud.Game.Gui.ContextMenu;
 using Dalamud.Game.Gui.Dtr;
 using Dalamud.Game.Inventory;
 using Dalamud.Game.Text;
-using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
@@ -14,14 +13,14 @@ using Dalamud.Plugin.Services;
 
 using ComfyLoot.Managers;
 using ComfyLoot.Windows;
+using Dalamud.Game.Chat;
 
 namespace ComfyLoot;
 
 /// <summary>
 /// ComfyLoot plugin core
 /// </summary>
-public sealed class ComfyLoot : IDalamudPlugin
-{
+public sealed class ComfyLoot : IDalamudPlugin {
 	private const string CommandName = "/loot";
 
 	[PluginService]
@@ -45,17 +44,17 @@ public sealed class ComfyLoot : IDalamudPlugin
 	[PluginService]
 	internal static ITargetManager TargetManager { get; private set; } = null!;
 
-	private readonly WindowSystem WindowSystem ;
+	private readonly WindowSystem WindowSystem;
 	private MainWindow MainWindow { get; init; }
 	private ConfigWindow ConfigWindow { get; init; }
 	private IDtrBarEntry? dtrEntry;
-	private readonly IContextMenu contextMenu;
-
+	
 	public string HomeworldName { get; private set; }
 	public string? TradeParterName { get; private set; }
-	public Configuration Configuration { get; init; }
 	public LootManager LootManager { get; set; }
 	public required InventoryWatcher Watcher { get; set; }
+	public required Config Configuration { get; init; }
+	public required IContextMenu ContextMenu { private get; set; } 
 
 	/// <summary>
 	/// ComfyLoot:ctor
@@ -63,13 +62,13 @@ public sealed class ComfyLoot : IDalamudPlugin
 	public ComfyLoot(IContextMenu contextMenu)
 	{
 		IPluginConfiguration? rawConfig;
-		Configuration config;
+		Config config;
 
 		rawConfig = Dalamud.GetPluginConfig();
-		if (rawConfig is Configuration configuration)
+		if (rawConfig is Config configuration)
 			config = configuration;
 		else
-			config = new Configuration();
+			config = new Config();
 		Configuration = config;
 
 #if DEBUG
@@ -84,7 +83,6 @@ public sealed class ComfyLoot : IDalamudPlugin
 			Watcher = new InventoryWatcher(this, LootManager);
 			HomeworldName = Util.GetHomeWorld();
 		}
-		this.contextMenu = contextMenu;
 
 		WindowSystem = new WindowSystem("ComfyLoot");
 		ConfigWindow = new ConfigWindow(this);
@@ -106,11 +104,14 @@ public sealed class ComfyLoot : IDalamudPlugin
 		ClientState.Logout += OnLogout;
 		ClientState.TerritoryChanged += OnTerritoryChanged;
 
-		this.contextMenu.OnMenuOpened += OnMenuOpened;
-
 		ChatGui.ChatMessage += OnChatMessage;
 
-		InitializeDtrBar();
+		if (!Config.STABLE) {
+			this.ContextMenu = contextMenu;
+			this.ContextMenu.OnMenuOpened += OnMenuOpened;
+
+			InitializeDtrBar();
+		}
 	}
 
 	private void DrawUI() => WindowSystem.Draw();
@@ -129,7 +130,7 @@ public sealed class ComfyLoot : IDalamudPlugin
 
 	/* HACK: Abusing chat event as a trade event */
 	private void
-	OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
+	OnChatMessage(IHandleableChatMessage message)
 	{
 		/* Trademessagess are on unamed channels (Id's may break on patch) */
 		const int tradeChannelOut = 569;
@@ -138,12 +139,12 @@ public sealed class ComfyLoot : IDalamudPlugin
 		string? name;
 
 		/* We only care about trade messages */
-		if (!((int)type == tradeChannelIn
-		|| (int)type == tradeChannelOut
-		|| type == XivChatType.SystemMessage))
+		if (!((int)message.LogKind == tradeChannelIn
+		|| (int)message.LogKind == tradeChannelOut
+		|| message.LogKind == XivChatType.SystemMessage))
 			return;
 
-		text = message.ToString();
+		text = message.Message.ToString();
 
 		if (text.Contains("wishes to trade with you.")
 		|| text.Contains("Trade request sent to")) {
@@ -155,6 +156,9 @@ public sealed class ComfyLoot : IDalamudPlugin
 
 		if (text.Equals("Trade complete."))
 			TradeParterName = null;
+
+
+		throw new NotImplementedException();
 	}
 
 	private void
@@ -257,10 +261,11 @@ public sealed class ComfyLoot : IDalamudPlugin
 		Configuration.IgnoredItemIds.Add(item.Value.ItemId);
 	}
 
-	private void
-	OnTerritoryChanged(ushort obj)
+	private void 
+	OnTerritoryChanged(uint obj)
 	{
-		UpdateDtrBar();
+		if (!Config.STABLE)
+			UpdateDtrBar();
 	}
 
 	public void ToggleConfigUI() => ConfigWindow.Toggle();
@@ -324,6 +329,8 @@ public sealed class ComfyLoot : IDalamudPlugin
 		ClientState.Logout -= OnLogout;
 		ClientState.TerritoryChanged -= OnTerritoryChanged;
 		ChatGui.ChatMessage -= OnChatMessage;
-		contextMenu.OnMenuOpened -= OnMenuOpened;
+
+		if (!Config.STABLE)
+			ContextMenu.OnMenuOpened -= OnMenuOpened;
 	}
 }

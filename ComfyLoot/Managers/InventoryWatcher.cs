@@ -72,7 +72,7 @@ public class InventoryWatcher : IDisposable {
 		/* clean up noise from irrelevant Inventorys */
 		eventQueue = new Queue<InventoryEventArgs>();
 		foreach (InventoryEventArgs evt in rawEventQueue) {
-			if (!IsRelevantInventory(evt.Item.ContainerType))
+			if (!IsTrackedInventory(evt.Item.ContainerType))
 				continue;
 			eventQueue.Enqueue(evt);
 		}
@@ -104,15 +104,22 @@ public class InventoryWatcher : IDisposable {
 	/// </summary>
 	/// <param name="type">Inventory to check</param>
 	/// <returns>If the inventory is relevant, aka. if there is loot to expect</returns>
-	private static bool
-	IsRelevantInventory(GameInventoryType type)
+	private bool
+	IsTrackedInventory(GameInventoryType type)
 	{
+		if (!Configuration.STABLE) {
+			if (plugin.Configuration.IgnoreCrystals) {
+				if (type == GameInventoryType.Crystals)
+					return false;
+			}
+		}
+			
 		switch (type) {
 		case GameInventoryType.Inventory1: /* FALLTHROUGH */
 		case GameInventoryType.Inventory2:
 		case GameInventoryType.Inventory3:
 		case GameInventoryType.Inventory4:
-		case GameInventoryType.Crystals:
+		//case GameInventoryType.Crystals:
 		case GameInventoryType.Currency:
 			return true;
 		default:

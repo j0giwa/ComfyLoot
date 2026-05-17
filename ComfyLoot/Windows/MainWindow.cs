@@ -47,7 +47,7 @@ public class MainWindow : Window, IDisposable {
 	/// <param name="plugin">Reference to the parent <see cref="ComfyLoot"/> plugin.</param>
 	/// <param name="loot">Reference the active loot manager instance.</param>
 	public MainWindow(ComfyLoot plugin, LootManager loot)
-		: base("ComfyLoot###comfyloot_ui", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
+		: base("Loottracker###comfyloot_ui", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
 	{
 		SizeConstraints = new WindowSizeConstraints {
 			MinimumSize = new Vector2(260, 330),
@@ -128,6 +128,7 @@ public class MainWindow : Window, IDisposable {
 	/// <summary>
 	/// Renders the main UI window.
 	/// </summary>
+	/* TODO: Item list list should be moved to its own function */
 	public override void
 	Draw()
 	{
@@ -511,12 +512,9 @@ public class MainWindow : Window, IDisposable {
 	private void
 	DrawItemListContext(string zone)
 	{
-		uint zoneId;
-
 		if (ImGui.BeginPopupContextItem($"##ZoneContextName_{zone}")) {
 			if (ImGui.MenuItem("Ignore Zone")) {
-				zoneId = Util.GetZoneId(zone);
-				plugin.Configuration.IgnoredZoneIds.Add(zoneId);
+				plugin.Configuration.IgnoredZones.Add(zone);
 				plugin.Configuration.Save();
 			}
 			if (ImGui.MenuItem("Hide Loot")) {

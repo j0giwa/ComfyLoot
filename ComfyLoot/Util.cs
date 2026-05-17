@@ -1,7 +1,6 @@
 using System;
 using System.Globalization;
 using System.Text;
-using ComfyLoot.Models;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Utility;
 using Dalamud.Game.Text.SeStringHandling;
@@ -13,6 +12,8 @@ using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Lumina.Excel;
 using Lumina.Excel.Sheets;
+
+using ComfyLoot.Models;
 
 namespace ComfyLoot;
 
@@ -35,27 +36,41 @@ public static class Util {
 	}
 
 	/// <summary>
-	/// Formats a number into a compact readable form (e.g., K for thousands, M for millions).
+	/// Formats a number into a compact readable form
+	/// (e.g., K for thousands, M for millions).
 	/// </summary>
-	/// <param name="number">The number to format.</param>
+	/// <param name="number">The number to format</param>
 	/// <returns>A shortened numeric string.</returns>
 	public static string
 	FormatNumber(int number)
 	{
-		double value = number;
-		string suffix = "";
+		double value;
+		string suffix;
 		string format;
+		string result;
 
-		if (Math.Abs(value) >= 1_000_000) {
+		suffix = "";
+		value = number;
+		if (Math.Abs(value) >= 1_000_000)
+		{
 			value /= 1_000_000;
 			suffix = "M";
-		} else if (Math.Abs(value) >= 1_000) {
+		}
+
+		if (Math.Abs(value) >= 1_000)
+		{
 			value /= 1_000;
 			suffix = "K";
 		}
 
-		format = value % 1 == 0 ? "0" : "0.#";
-		return value.ToString(format, CultureInfo.InvariantCulture) + suffix;
+		format = "0.#";
+		if (value % 1 == 0)
+			format = "0";
+
+		result = value.ToString(format, CultureInfo.InvariantCulture);
+		result += suffix;
+		
+		return result;
 	}
 
 	/// <summary>
@@ -177,6 +192,11 @@ public static class Util {
 
 		rarity = 1; /* fallback */
 
+		/* HACK: Plugindata not accesble during tests, skipping */ 
+		if (Config.IsTestEnvironment
+		|| ComfyLoot.DataManager == null)
+			return 1;
+
 		sheet = ComfyLoot.DataManager.GetExcelSheet<Item>();
 		if (sheet == null) {
 			ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: Item");
@@ -293,62 +313,41 @@ public static class Util {
 	/// <summary>
 	/// Determines whether the specified item is classified as a currency.
 	/// </summary>
-	/// <param name="itemId">The item ID.</param>
-	/// <returns><c>true</c> if the item is a currency; otherwise, <c>false</c>.</returns>
-	/// <summary>
-	/// Determines whether the specified item is classified as a currency.
-	/// </summary>
+	/// <remarks>We will only regard it as a currency, if it shows up in the currency window</remarks> 
 	/// <param name="itemId">The item ID.</param>
 	/// <returns><c>true</c> if the item is a currency; otherwise, <c>false</c>.</returns>
 	public static bool
 	IsCurrency(uint itemId)
 	{
-		ExcelSheet<Item>? sheet;
-		Item? item;
-		bool result;
+		/* NOTE: Lookup solution turned out o be overly agressive */
 
-		result = false;
-
-		sheet = ComfyLoot.DataManager.GetExcelSheet<Item>();
-		if (sheet == null) {
-			ComfyLoot.Log.Fatal("[Lumina] Failed to resolve sheet: Item");
+		switch (itemId) {
+		case (uint)Currency.GIL: /* FALLTHROUGH */
+		case (uint)Currency.STORM_SEAL:
+		case (uint)Currency.SERPENT_SEAL:
+		case (uint)Currency.FLAME_SEAL:
+		case (uint)Currency.ALLIED_SEALS:
+		case (uint)Currency.WOLF_MARKS:
+		case (uint)Currency.MGP:
+		case (uint)Currency.TROPHY_CRYSTALS:
+		case (uint)Currency.TOMESTONE_POETICS:
+		case (uint)Currency.TOMESTONE_AESTETICS:
+		case (uint)Currency.TOMESTONE_HELIOMETRY:
+		case (uint)Currency.TOMESTONE_MATHEMATICS:
+		case (uint)Currency.CENTURIO_SEALS:
+		case (uint)Currency.SACK_OF_NUTS:
+		case (uint)Currency.BICOLOR_GEMSTONES:
+		case (uint)Currency.WHITE_CRAFTER_SCRIPS:
+		case (uint)Currency.WHITE_GATHERER_SCRIPS:
+		case (uint)Currency.PURPLE_CRAFTER_SCRIPS:
+		case (uint)Currency.PURPLE_GATHERER_SCRIPS:
+		case (uint)Currency.ORANGE_CRAFTER_SCRIPS:
+		case (uint)Currency.ORANGE_GATHERER_SCRIPS:
+		case (uint)Currency.SKYBUILDER_SCRIPS:
 			return true;
-		}
-
-		item = sheet.GetRowOrDefault(itemId);
-		if (item == null)
-			return result;
-
-		/* FIXME: There might be some missing here */
-		switch (item.Value.FilterGroup) {
-		case 29: /* FALLTHROUGH */
-		case 47:
-		case 54:
-		case 56:
-		case 57:
-		case 16: /* ERROR: this makes the function overly agressive */
-			/* HACK: stop pieces from getting flagged as currency */
-			switch (itemId) {
-			case (uint)SpecialItems.ALLAGAN_TIN_PIECE:
-			case (uint)SpecialItems.ALLAGAN_BRONZE_PIECE:
-			case (uint)SpecialItems.ALLAGAN_SILVER_PIECE:
-			case (uint)SpecialItems.ALLAGAN_GOLD_PIECE:
-			case (uint)SpecialItems.ALLAGAN_PLATINUM_PIECE:
-			case (uint)SpecialItems.NIGHTWORLD_BRONZE_PIECE:
-			case (uint)SpecialItems.NIGHTWORLD_SILVER_PIECE:
-				result = false;
-				break;
-			default:
-				result = true;
-				break;
-			}
-			break;
 		default:
-			result = false;
-			break;
+			return false;
 		}
-
-		return result;
 	}
 
 	/// <summary>
@@ -369,12 +368,14 @@ public static class Util {
 				return false;
 
 			if (target.BaseId == 1003567 /* Delivery Moogle NPC */
+			|| target.BaseId == 131113 /* Regal mailbox */
 			|| target.BaseId == 1969) /* housing mailbox */
 				return true;
 
 			/* fallback: identification over name */
 			switch (target.Name.TextValue) {
 			case "Delivery Moogle": /* FALLTHROUGH */
+			case "Regal Letter Box":
 			case "Mailbox":
 				return true;
 			default:
@@ -443,4 +444,4 @@ public static class Util {
 
 		return !item.IsUntradable;
 	}
-}
+}          

@@ -19,6 +19,7 @@ csharp_new_line_before_finally = false
 csharp_indent_switch_labels = false
 csharp_indent_labels = flush_left
 csharp_preserve_single_line_statements = false
+dotnet_code_quality.enable_platform_analyzer_on_pre_net5_target = false
 
 [*.json]
 indent_style = space
