@@ -107,7 +107,7 @@ public class InventoryWatcher : IDisposable {
 	private bool
 	IsTrackedInventory(GameInventoryType type)
 	{
-		if (!Configuration.STABLE) {
+		if (!Config.STABLE) {
 			if (plugin.Configuration.IgnoreCrystals) {
 				if (type == GameInventoryType.Crystals)
 					return false;
