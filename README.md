@@ -9,9 +9,7 @@ Inspired by [RuneLite](https://github.com/runelite/runelite/wiki/Loot-Tracker).
 
 > [!WARNING]
 > AI Generated Content Disclosure <br><br>
-> This project follows a anti AI policy, no AI generated line should ever make it into stable. 
-However for the Users reading this: as there are currently no reliable checks to proove this, just assume this project is 100% AI slop for the time beeing.
-> I'm looking into an automated AI detection, or idaly another form of reliable testimony for this project.
+> This project follows a anti AI policy, no AI generated line will ever make it into a stable build.
 
 ## Features
 
@@ -20,7 +18,7 @@ However for the Users reading this: as there are currently no reliable checks to
 - Tracks items dropped from enemies and other loot sources
 - Displays total loot value (based on market prices, optionally)
 - Display metrics in Server Info Bar (optional)
-- Works offline by default—API features are **opt-in.**
+- Works offline by default - API features are **opt-in.**
 - Lightweight: minimal memory footprint, no background bloat
 
 ## Usage
@@ -35,7 +33,7 @@ See [FAQ](#FAQ) for
 - Spelling: I'm dyslexic, so there might be a lot of errors
 
 Report bugs or suggestions via the Issues tab.
-Be as concise and reproducible as possible—screenshots/logs help.
+Be as concise and reproducible as possible - screenshots/logs help.
 
 ## Limitations
 
