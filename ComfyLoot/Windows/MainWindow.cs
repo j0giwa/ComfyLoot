@@ -29,7 +29,7 @@ public class SortState {
 /// <summary>
 /// Mainplugin UI
 /// </summary>
-/* TODO: Need rework */
+/* TODO: Needs reworking */
 public class MainWindow : Window, IDisposable {
 
 	private bool hideItems;
@@ -46,7 +46,7 @@ public class MainWindow : Window, IDisposable {
 	/// </summary>
 	/// <param name="plugin">Reference to the parent <see cref="ComfyLoot"/> plugin.</param>
 	/// <param name="loot">Reference the active loot manager instance.</param>
-	public MainWindow(ComfyLoot plugin, LootManager loot)
+	public MainWindow(ComfyLoot plugin)
 		: base("Loottracker###comfyloot_ui", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
 	{
 		SizeConstraints = new WindowSizeConstraints {
@@ -115,12 +115,12 @@ public class MainWindow : Window, IDisposable {
 #endif //* DEBUG */
 
 		this.plugin = plugin;
-		this.loot = loot;
+		loot = plugin.LootManager;
 
 		globalSort = null;
 		sortStates = new Dictionary<string, SortState>();
 
-		hideItems = true;
+		hideItems = false; /* TODO: maybe make this persistent */
 		hidenItems = new List<uint>();
 		hidenZones = new List<string>();
 	}
@@ -739,7 +739,7 @@ public class MainWindow : Window, IDisposable {
 			zone: aurum_vale
 		);
 		await loot.AddItem(
-			id: 32418,/* cryptlurker sword */
+			id: 32418, /* cryptlurker sword */
 			amount: 1,
 			zone: aurum_vale
 		);

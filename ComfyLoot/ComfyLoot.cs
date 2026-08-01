@@ -45,6 +45,7 @@ public sealed class ComfyLoot : IDalamudPlugin {
 	internal static ITargetManager TargetManager { get; private set; } = null!;
 
 	private readonly WindowSystem WindowSystem;
+	private readonly ComfyLootIPC ipc;
 	private MainWindow MainWindow { get; init; }
 	private ConfigWindow ConfigWindow { get; init; }
 	private IDtrBarEntry? dtrEntry;
@@ -72,10 +73,11 @@ public sealed class ComfyLoot : IDalamudPlugin {
 		Configuration = config;
 
 #if DEBUG
-		HomeworldName = "Balmung";
+		HomeworldName = "Dev";
 #endif //* DEBUG */
 
 		LootManager = new LootManager(this);
+		ipc = new ComfyLootIPC(Dalamud, this);
 
 		/* HACK: Force initalisation in case of restart
 		   actuall save init in OnLogin() */
@@ -86,7 +88,7 @@ public sealed class ComfyLoot : IDalamudPlugin {
 
 		WindowSystem = new WindowSystem("ComfyLoot");
 		ConfigWindow = new ConfigWindow(this);
-		MainWindow = new MainWindow(this, LootManager);
+		MainWindow = new MainWindow(this);
 
 		WindowSystem.AddWindow(ConfigWindow);
 		WindowSystem.AddWindow(MainWindow);
@@ -156,9 +158,6 @@ public sealed class ComfyLoot : IDalamudPlugin {
 
 		if (text.Equals("Trade complete."))
 			TradeParterName = null;
-
-
-		throw new NotImplementedException();
 	}
 
 	private void
@@ -231,13 +230,9 @@ public sealed class ComfyLoot : IDalamudPlugin {
 	private void
 	OnMenuOpened(IMenuOpenedArgs args)
 	{
-		if (!Configuration.ItemContextMenu)
-			return;
-
-		if (args.MenuType != ContextMenuType.Inventory)
-			return;
-
-		if (args.Target is not MenuTargetInventory target)
+		if (!Configuration.ItemContextMenu
+		|| args.MenuType != ContextMenuType.Inventory
+		|| args.Target is not MenuTargetInventory target)
 			return;
 
 		args.AddMenuItem(new MenuItem {
@@ -322,6 +317,7 @@ public sealed class ComfyLoot : IDalamudPlugin {
 		MainWindow.Dispose();
 		LootManager?.Dispose();
 		Watcher?.Dispose();
+		ipc.Dispose();
 
 		Commands.RemoveHandler(CommandName);
 
