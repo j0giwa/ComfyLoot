@@ -72,13 +72,9 @@ public sealed class ComfyLootIPC : IDisposable {
 	/// Ignored items will will no longer be tracked.
 	/// IPC: ComfyLoot.IgnoreItem
 	/// </summary>
-	/// <param name="id">
-	/// The ID of the Item to ignore.
-	/// </param>
-	/// <returns>
-	/// <code>true</code>
-	/// </returns>
-	private bool 
+	/// <param name="id">The ID of the Item to ignore.</param>
+	/// <returns><code>true</code></returns>
+	private bool
 	IgnoreItem(uint id)
 	{
 		plugin.Configuration.IgnoredItemIds.Add(id);
@@ -91,13 +87,9 @@ public sealed class ComfyLootIPC : IDisposable {
 	/// Loot from ignored sources will no longer be tracked.
 	/// IPC: ComfyLoot.IgnoreSource
 	/// </summary>
-	/// <param name="name">
-	/// The name of the source or zone to ignore.
-	/// </param>
-	/// <returns>
-	/// <code>true</code>
-	/// </returns>
-	private bool 
+	/// <param name="name">The name of the source or zone to ignore.</param>
+	/// <returns><code>true</code></returns>
+	private bool
 	IgnoreSource(string name)
 	{
 		plugin.Configuration.IgnoredZones.Add(name);
@@ -109,19 +101,15 @@ public sealed class ComfyLootIPC : IDisposable {
 	/// Removes all stored loot data for the specified key.
 	/// IPC: ComfyLoot.ResetLoot
 	/// </summary>
-	/// <param name="key">
-	/// The loot key/zone identifier to clear.
-	/// </param>
-	/// <returns>
-	/// True when the reset operation has completed.
-	/// </returns>
-	private bool 
+	/// <param name="key">The loot key/zone identifier to clear.</param>
+	/// <returns>True when the reset operation has completed.</returns>
+	private bool
 	ResetLoot(string key)
 	{
 		plugin.LootManager.ClearZone(key);
 		return true; /* HACK: ICallGateProvider doesn't seem to accept voids */
 	}
-	
+
 	public void
 	Dispose()
 	{

@@ -1,7 +1,7 @@
 /* See LICENSE file for copyright and license details. */
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Linq; /* TODO: idealy remove this dependency */
 using System.Numerics;
 using System.Threading.Tasks;
 using Dalamud.Bindings.ImGui;
@@ -128,9 +128,85 @@ public class MainWindow : Window, IDisposable {
 	/// <summary>
 	/// Renders the main UI window.
 	/// </summary>
-	/* TODO: Item list list should be moved to its own function */
 	public override void
 	Draw()
+	{
+		if (plugin.LootManager.Loot.Count == 0) {
+			DrawEmpty();
+			return;
+		}
+
+		ImGui.BeginChild("LootCountersChild", new Vector2(0, 60), true);
+		DrawHeader();
+		ImGui.EndChild();
+
+		ImGui.Spacing();
+
+		ImGui.BeginChild("LootZonesChild", new Vector2(0, 0), false);
+		DrawListOfListsOfItems();
+		ImGui.EndChild();
+	}
+
+	/// <summary>
+	/// Draws the overall loot statistics displayed in the header.
+	/// </summary>
+	private void
+	DrawHeader()
+	{
+		ImGui.TextUnformatted($"Total count: {plugin.LootManager.GetTotalItemQuantity()}");
+		ImGui.SameLine();
+
+		using (ImRaii.PushFont(UiBuilder.IconFont))
+			ImGui.TextDisabled(FontAwesomeIcon.QuestionCircle.ToIconString());
+
+		if (ImGui.IsItemHovered()) {
+			ImGui.BeginTooltip();
+			ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
+			ImGui.TextUnformatted("Only traditional items are counted.");
+			ImGui.TextUnformatted("Currencies such as Gil, Scrips, or Tomestones are ignored.");
+			ImGui.PopTextWrapPos();
+			ImGui.EndTooltip();
+		}
+
+		ImGui.TextUnformatted($"Total Value: {Util.FormatGil(plugin.LootManager.GetTotalItemValue())}");
+		ImGui.SameLine();
+
+		using (ImRaii.PushFont(UiBuilder.IconFont))
+			ImGui.TextDisabled(FontAwesomeIcon.QuestionCircle.ToIconString());
+
+		if (ImGui.IsItemHovered()) {
+			ImGui.BeginTooltip();
+			ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
+			ImGui.TextUnformatted("Rough estimate");
+			ImGui.TextUnformatted("Actual value may differ.");
+			ImGui.PopTextWrapPos();
+			ImGui.EndTooltip();
+		}
+	}
+
+	/// <summary>
+	/// Draws the fallback message when no loot has been received.
+	/// </summary>
+	private static void
+	DrawEmpty()
+	{
+		const string Text = "You have not received any loot yet";
+
+		Vector2 textSize = ImGui.CalcTextSize(Text);
+		Vector2 windowSize = ImGui.GetWindowSize();
+
+		ImGui.Spacing();
+
+		ImGui.SetCursorPos(new Vector2(
+			(windowSize.X - textSize.X) * 0.5f,
+			(windowSize.Y - textSize.Y) * 0.5f
+		));
+
+		ImGui.TextColored(ImGuiColors.DalamudGrey, Text);
+	}
+
+	private void
+	DrawListOfListsOfItems()
 	{
 		const float HeaderHeightMultiplier = 1.1f;
 
@@ -147,36 +223,7 @@ public class MainWindow : Window, IDisposable {
 		ImGuiTableFlags tableFlags;
 		IEnumerable<KeyValuePair<string, List<LootItem>>> zones;
 
-		/* NOTE: if no loot at all, we can skip the render */
-		if (plugin.LootManager.Loot.Count == 0) {
-			Vector2 windowSize; /* NOTE: only used in this specific case*/
-
-			ImGui.Spacing();
-
-			text = "You have not received any loot yet";
-			textSize = ImGui.CalcTextSize(text);
-			windowSize = ImGui.GetWindowSize();
-
-			ImGui.SetCursorPos(new Vector2(
-			    (windowSize.X - textSize.X) * 0.5f,
-			    (windowSize.Y - textSize.Y) * 0.5f
-			));
-
-			ImGui.TextColored(ImGuiColors.DalamudGrey, text);
-			return;
-		}
-
-		ImGui.BeginChild("LootCountersChild", new Vector2(0, 55), true);
-		DrawItemCounter();
-		DrawValueDisplay(plugin.LootManager.GetTotalItemValue());
-		ImGui.EndChild();
-
-		ImGui.Spacing();
-
-		ImGui.BeginChild("LootZonesChild", new Vector2(0, 0), false);
-
-		tableFlags =
-			ImGuiTableFlags.RowBg |
+		tableFlags = ImGuiTableFlags.RowBg |
 			ImGuiTableFlags.BordersOuter |
 			ImGuiTableFlags.BordersInnerV |
 			ImGuiTableFlags.SizingStretchProp;
@@ -190,7 +237,7 @@ public class MainWindow : Window, IDisposable {
 		headerPos = ImGui.GetCursorScreenPos();
 
 		if (ImGui.BeginTable("lootheader", 4, tableFlags)) {
-			/* NOTE: lables will get set later */
+			/* NOTE: labels will get set later */
 			ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 20.0f);
 			ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthStretch);
 			ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 55.0f);
@@ -215,6 +262,7 @@ public class MainWindow : Window, IDisposable {
 
 				if (ImGui.InvisibleButton($"##HeaderBtn{col}", textSize)) {
 					globalSort ??= new SortState();
+
 					if (globalSort.Column == col)
 						globalSort.Ascending = !globalSort.Ascending;
 					else {
@@ -238,169 +286,30 @@ public class MainWindow : Window, IDisposable {
 		/* NOTE: sticky header math */
 		headerHeight = ImGui.GetCursorScreenPos().Y - headerPos.Y;
 		minHeaderHeight = ImGui.GetFrameHeight() * HeaderHeightMultiplier;
+
 		if (headerHeight < minHeaderHeight)
 			headerHeight = minHeaderHeight;
 
 		ImGui.PushClipRect(
-		    new Vector2(childPos.X, childPos.Y + headerHeight),
-		    new Vector2(childPos.X + childSize.X, childPos.Y + childSize.Y),
-		    true
+			new Vector2(childPos.X, childPos.Y + headerHeight),
+			new Vector2(childPos.X + childSize.X, childPos.Y + childSize.Y),
+			true
 		);
 
 		ImGui.SetCursorScreenPos(new Vector2(
-		    childPos.X,
-		    childPos.Y + headerHeight - scrollY
+			childPos.X,
+			childPos.Y + headerHeight - scrollY
 		));
 
 		zones = SortZones(plugin.LootManager.Loot, globalSort);
-
 		foreach (KeyValuePair<string, List<LootItem>> kvp in zones) {
 			if (kvp.Value == null)
 				continue;
 
 			if (!(hideItems && hidenZones.Contains(kvp.Key)))
-				DrawItemList(kvp.Key, kvp.Value);
+				DrawListOfItems(kvp.Key, kvp.Value);
 		}
-
 		ImGui.PopClipRect();
-		ImGui.EndChild();
-	}
-
-	/// <summary>
-	/// Draws the game icon for the specified item, if valid.
-	/// </summary>
-	/// <param name="itemId">The item ID to draw an icon for.</param>
-	private static void
-	DrawIcon(uint itemId)
-	{
-		Vector2 iconSize = new Vector2(20, 20);
-		ISharedImmediateTexture? sharedTexture = GetIcon(itemId);
-
-		if (sharedTexture == null) {
-			ImGui.TextUnformatted("");
-			return;
-		}
-
-		using IDalamudTextureWrap? wrap = sharedTexture.GetWrapOrEmpty();
-		if (wrap != null) {
-			ImGui.SetCursorPosX(ImGui.GetCursorPosX() - 20f);
-			ImGui.Image(wrap.Handle, iconSize);
-		} else {
-			ImGui.TextUnformatted("");
-		}
-	}
-
-	/// <summary>
-	/// Draws the total item counter.
-	/// </summary>
-	private void
-	DrawItemCounter()
-	{
-		ImGui.TextUnformatted($"Total count: {plugin.LootManager.GetTotalItemQuantity()}");
-		ImGui.SameLine();
-
-		using (ImRaii.PushFont(UiBuilder.IconFont))
-			ImGui.TextDisabled($"{FontAwesomeIcon.QuestionCircle.ToIconString()}");
-
-		if (ImGui.IsItemHovered()) {
-			ImGui.BeginTooltip();
-			ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
-			ImGui.TextUnformatted("Only traditional items are counted.");
-			ImGui.TextUnformatted("Currencies such as Gil, Scrips, or Tomestones are ignored.");
-			ImGui.PopTextWrapPos();
-			ImGui.EndTooltip();
-		}
-	}
-
-	/// <summary>
-	/// Draws a single loot item row inside a zone table:
-	/// </summary>
-	/// <param name="item">The loot item to draw.</param>
-	private void
-	DrawItem(LootItem item)
-	{
-		ReadOnlySeString itemName;
-		ImGui.TableNextRow();
-		ImGui.TableSetColumnIndex(0);
-		DrawIcon(item.ItemId);
-
-		ImGui.TableNextColumn();
-		itemName = ItemUtil.GetItemName(item.ItemId, true);
-		ImGui.PushID((int)item.ItemId);
-		ImGui.TextColored(GetRarityColor(item.Rarity), itemName.ToString());
-		DrawItemContext(item, itemName);
-		DrawItemTooltip(item, itemName);
-		ImGui.PopID();
-
-		ImGui.TableNextColumn();
-		ImGui.TextUnformatted(Util.FormatNumber(item.Quantity));
-		ImGui.TableNextColumn();
-		ImGui.TextUnformatted(item.Value == 0 ? "N/A" : Util.FormatGil(item.Value * item.Quantity));
-	}
-
-	/// <summary>
-	/// Draws the right-click context menu for a loot item.
-	/// </summary>
-	/// <param name="item">The loot item the context applies to.</param>
-	/// <param name="itemName">The resolved item name.</param>
-	private void
-	DrawItemContext(LootItem item, ReadOnlySeString itemName)
-	{
-		if (ImGui.BeginPopupContextItem("##ItemContext")) {
-			if (ImGui.MenuItem("Ignore Item")) {
-				plugin.Configuration.IgnoredItemIds.Add(item.ItemId);
-				plugin.Configuration.Save();
-			}
-			if (ImGui.MenuItem("Hide Item"))
-				hidenItems.Add(item.ItemId);
-			if (ImGui.MenuItem("Copy Name"))
-				ImGui.SetClipboardText(itemName.ToString());
-			ImGui.EndPopup();
-		}
-	}
-
-	/// <summary>
-	/// Draws a tooltip for the hovered loot item.
-	/// </summary>
-	/// <param name="item">The loot item being hovered.</param>
-	/// <param name="itemName">The readable name of the item.</param>
-	private static void
-	DrawItemTooltip(LootItem item, ReadOnlySeString itemName)
-	{
-		byte rarity;
-		int amount;
-		int value;
-		string name;
-
-		if (!ImGui.IsItemHovered())
-			return;
-
-		rarity = item.Rarity;
-		amount = item.Quantity;
-		value = item.Value;
-		name = itemName.ToString();
-
-		ImGui.BeginTooltip();
-		ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
-
-		ImGui.TextColored(GetRarityColor(rarity), name);
-		ImGui.SameLine();
-		ImGui.TextUnformatted($"x {Util.FormatNumber(amount)}");
-
-		if (value != 0)
-			ImGui.TextUnformatted($"MB: {Util.FormatGil(value)} (total: {Util.FormatGil(amount * value)})");
-
-#if DEBUG
-		ImGui.Separator();
-		ImGui.TextUnformatted($"Id: {item.ItemId}");
-		ImGui.TextUnformatted($"BaseId: {Util.GetItemBaseId(item.ItemId)}");
-		ImGui.TextUnformatted($"Rarity: {item.Rarity}");
-		ImGui.TextUnformatted($"Tradable: {Util.IsTradable(item.ItemId)}");
-		ImGui.TextUnformatted($"IsCurrency: {Util.IsCurrency(item.ItemId)}");
-#endif //* DEBUG */
-
-		ImGui.PopTextWrapPos();
-		ImGui.EndTooltip();
 	}
 
 	/// <summary>
@@ -410,7 +319,7 @@ public class MainWindow : Window, IDisposable {
 	/// <param name="zone">The territory ID for the zone.</param>
 	/// <param name="items">The list of loot items in that zone.</param>
 	private void
-	DrawItemList(string zone, List<LootItem> items)
+	DrawListOfItems(string zone, List<LootItem> items)
 	{
 		int col;
 		uint headerBg;
@@ -503,6 +412,143 @@ public class MainWindow : Window, IDisposable {
 		}
 
 		ImGui.EndTable();
+	}
+
+	/// <summary>
+	/// Draws the game icon for the specified item, if valid.
+	/// </summary>
+	/// <param name="itemId">The item ID to draw an icon for.</param>
+	private static void
+	DrawIcon(uint itemId)
+	{
+		Vector2 iconSize = new Vector2(20, 20);
+		ISharedImmediateTexture? sharedTexture = GetIcon(itemId);
+
+		if (sharedTexture == null) {
+			ImGui.TextUnformatted("");
+			return;
+		}
+
+		using IDalamudTextureWrap? wrap = sharedTexture.GetWrapOrEmpty();
+		if (wrap != null) {
+			ImGui.SetCursorPosX(ImGui.GetCursorPosX() - 20f);
+			ImGui.Image(wrap.Handle, iconSize);
+		} else {
+			ImGui.TextUnformatted("");
+		}
+	}
+
+	/// <summary>
+	/// Draws a single loot item row inside a zone table:
+	/// </summary>
+	/// <param name="item">The loot item to draw.</param>
+	private void
+	DrawItem(LootItem item)
+	{
+		ReadOnlySeString itemName;
+		ImGui.TableNextRow();
+		ImGui.TableSetColumnIndex(0);
+		DrawIcon(item.ItemId);
+
+		ImGui.TableNextColumn();
+		itemName = ItemUtil.GetItemName(item.ItemId, true);
+		ImGui.PushID((int)item.ItemId);
+		ImGui.TextColored(GetRarityColor(item.Rarity), itemName.ToString());
+		DrawItemContext(item, itemName);
+		DrawItemTooltip(item, itemName);
+		ImGui.PopID();
+
+		ImGui.TableNextColumn();
+		ImGui.TextUnformatted(Util.FormatNumber(item.Quantity));
+		ImGui.TableNextColumn();
+		ImGui.TextUnformatted(item.Value == 0 ? "N/A" : Util.FormatGil(item.Value * item.Quantity));
+	}
+
+	/// <summary>
+	/// Draws the right-click context menu for a loot item.
+	/// </summary>
+	/// <param name="item">The loot item the context applies to.</param>
+	/// <param name="itemName">The resolved item name.</param>
+	private void
+	DrawItemContext(LootItem item, ReadOnlySeString itemName)
+	{
+		if (ImGui.BeginPopupContextItem("##ItemContext")) {
+			if (ImGui.MenuItem("Ignore Item")) {
+				plugin.Configuration.IgnoredItemIds.Add(item.ItemId);
+				plugin.Configuration.Save();
+			}
+			if (ImGui.MenuItem("Hide Item"))
+				hidenItems.Add(item.ItemId);
+			if (ImGui.MenuItem("Copy Name"))
+				ImGui.SetClipboardText(itemName.ToString());
+			ImGui.EndPopup();
+		}
+	}
+
+	/// <summary>
+	/// Draws the total item counter.
+	/// </summary>
+	private void
+	DrawItemCounter()
+	{
+		ImGui.TextUnformatted($"Total count: {plugin.LootManager.GetTotalItemQuantity()}");
+		ImGui.SameLine();
+
+		using (ImRaii.PushFont(UiBuilder.IconFont))
+			ImGui.TextDisabled($"{FontAwesomeIcon.QuestionCircle.ToIconString()}");
+
+		if (ImGui.IsItemHovered()) {
+			ImGui.BeginTooltip();
+			ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
+			ImGui.TextUnformatted("Only traditional items are counted.");
+			ImGui.TextUnformatted("Currencies such as Gil, Scrips, or Tomestones are ignored.");
+			ImGui.PopTextWrapPos();
+			ImGui.EndTooltip();
+		}
+	}
+
+	/// <summary>
+	/// Draws a tooltip for the hovered loot item.
+	/// </summary>
+	/// <param name="item">The loot item being hovered.</param>
+	/// <param name="itemName">The readable name of the item.</param>
+	private static void
+	DrawItemTooltip(LootItem item, ReadOnlySeString itemName)
+	{
+		byte rarity;
+		int amount;
+		int value;
+		string name;
+
+		if (!ImGui.IsItemHovered())
+			return;
+
+		rarity = item.Rarity;
+		amount = item.Quantity;
+		value = item.Value;
+		name = itemName.ToString();
+
+		ImGui.BeginTooltip();
+		ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
+
+		ImGui.TextColored(GetRarityColor(rarity), name);
+		ImGui.SameLine();
+		ImGui.TextUnformatted($"x {Util.FormatNumber(amount)}");
+
+		if (value != 0)
+			ImGui.TextUnformatted($"MB: {Util.FormatGil(value)} (total: {Util.FormatGil(amount * value)})");
+
+#if DEBUG
+		ImGui.Separator();
+		ImGui.TextUnformatted($"Id: {item.ItemId}");
+		ImGui.TextUnformatted($"BaseId: {Util.GetItemBaseId(item.ItemId)}");
+		ImGui.TextUnformatted($"Rarity: {item.Rarity}");
+		ImGui.TextUnformatted($"Tradable: {Util.IsTradable(item.ItemId)}");
+		ImGui.TextUnformatted($"IsCurrency: {Util.IsCurrency(item.ItemId)}");
+#endif //* DEBUG */
+
+		ImGui.PopTextWrapPos();
+		ImGui.EndTooltip();
 	}
 
 	/// <summary>
@@ -850,5 +896,4 @@ public class MainWindow : Window, IDisposable {
 		ComfyLoot.Log.Verbose("[MainWindow] Disposing UI");
 		/* nothing to clean */
 	}
-
 }
