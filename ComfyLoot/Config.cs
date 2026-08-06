@@ -16,10 +16,6 @@ public enum DtrBarOption {
 public class Config : IPluginConfiguration {
 	
 	/// <summary>
-	/// This should never never be manipulated, this is only a unit test utility
-	/// </summary>
-	public static bool IsTestEnvironment { get; set; } = false;
-	/// <summary>
 	/// Globably toggles all experimental features
 	/// </summary>
 	public static bool STABLE { get; } = false;

@@ -251,9 +251,12 @@ public class MainWindow : Window, IDisposable {
 	private static void
 	DrawIcon(uint itemId)
 	{
-		Vector2 iconSize = new Vector2(20, 20);
-		ISharedImmediateTexture? sharedTexture = GetIcon(itemId);
+		Vector2 iconSize;
+		ISharedImmediateTexture? sharedTexture;
 
+		iconSize = new Vector2(20, 20);
+		
+		sharedTexture = GetIcon(itemId);
 		if (sharedTexture == null) {
 			ImGui.TextUnformatted("");
 			return;

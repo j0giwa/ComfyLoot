@@ -188,8 +188,7 @@ public static class Util {
 		rarity = 1; /* fallback */
 
 		/* HACK: PWlugindata not accesble during tests, skipping */ 
-		if (Config.IsTestEnvironment
-		|| ComfyLoot.DataManager == null)
+		if (ComfyLoot.DataManager == null)
 			return 1;
 
 		sheet = ComfyLoot.DataManager.GetExcelSheet<Item>();
