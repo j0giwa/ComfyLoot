@@ -1,5 +1,9 @@
 # Version History
 
+## 1.0.4.0
+- Fixed some issues with the main UI
+- Added IPC to interact with other plugins
+
 ## 1.0.3.0
 - API15
 - fixed error where certain loot sources show up as "???" on the filter tab
