@@ -21,7 +21,7 @@ These references come from C, but the spirit applies to minimalist and maintaina
 
 ## About AI generated content.
 
-TL;DR: don't
+TL;DR: don't!
 
 Lets get the elephant out of the room: Code written without understanding is just bloat with extra steps. 
 AI-slopware compiles, passes tests it accidentally satisfies and fails the ones that matter in production.

@@ -1,10 +1,7 @@
 using System;
 using System.Globalization;
-using System.Text;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Utility;
-using Dalamud.Game.Text.SeStringHandling;
-using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
@@ -51,14 +48,12 @@ public static class Util {
 
 		suffix = "";
 		value = number;
-		if (Math.Abs(value) >= 1_000_000)
-		{
+		if (Math.Abs(value) >= 1_000_000) {
 			value /= 1_000_000;
 			suffix = "M";
 		}
 
-		if (Math.Abs(value) >= 1_000)
-		{
+		if (Math.Abs(value) >= 1_000) {
 			value /= 1_000;
 			suffix = "K";
 		}
@@ -192,9 +187,8 @@ public static class Util {
 
 		rarity = 1; /* fallback */
 
-		/* HACK: Plugindata not accesble during tests, skipping */ 
-		if (Config.IsTestEnvironment
-		|| ComfyLoot.DataManager == null)
+		/* HACK: PWlugindata not accesble during tests, skipping */ 
+		if (ComfyLoot.DataManager == null)
 			return 1;
 
 		sheet = ComfyLoot.DataManager.GetExcelSheet<Item>();
@@ -216,12 +210,12 @@ public static class Util {
 	/// </summary>
 	/// <param name="name">The zone name.</param>
 	/// <returns>The zone ID, or <c>0</c> if not found.</returns>
-	public static uint
+	public static uint 
 	GetZoneId(string name)
 	{
 		string zoneName;
 		ExcelSheet<TerritoryType>? sheet;
-		TerritoryType? found;
+		TerritoryType? partialMatch;
 
 		if (string.IsNullOrWhiteSpace(name))
 			return 0;
@@ -232,32 +226,28 @@ public static class Util {
 			return 0;
 		}
 
-		found = null;
+		partialMatch = null;
+
 		foreach (TerritoryType zone in sheet) {
-			zoneName = zone.PlaceName.Value.Name.ExtractText() ?? "";
-			if (zoneName.Equals(name, StringComparison.OrdinalIgnoreCase)) {
-				found = zone;
-				break;
+			if (zone.PlaceName.Value.Name.IsEmpty)
+				zoneName = "";
+			else
+				zoneName = zone.PlaceName.Value.Name.ExtractText();
+
+			if (zoneName.Equals(name, StringComparison.OrdinalIgnoreCase))
+				return zone.RowId;
+
+			if (partialMatch == null) {
+				if (zoneName.Contains(name, StringComparison.OrdinalIgnoreCase))
+					partialMatch = zone;
 			}
 		}
+		
+		if (partialMatch != null)
+			return partialMatch.Value.RowId;
 
-		if (found == null) {
-			foreach (TerritoryType zone in sheet) {
-				zoneName = zone.PlaceName.Value.Name.ExtractText() ?? "";
-				if (zoneName.Contains(name, StringComparison.OrdinalIgnoreCase)) {
-					found = zone;
-					break;
-				}
-			}
-		}
-
-		if (found == null) {
-			ComfyLoot.Log.Warning("[Lumina] Zone not found: {Zone}",
-				name);
-			return 0;
-		}
-
-		return found.Value.RowId;
+		ComfyLoot.Log.Warning("[Lumina] Zone not found: {Zone}", name);
+		return 0;
 	}
 
 	/// <summary>
@@ -319,8 +309,7 @@ public static class Util {
 	public static bool
 	IsCurrency(uint itemId)
 	{
-		/* NOTE: Lookup solution turned out o be overly agressive */
-
+		/* NOTE: Lookup solution turned out to be overly agressive */
 		switch (itemId) {
 		case (uint)Currency.GIL: /* FALLTHROUGH */
 		case (uint)Currency.STORM_SEAL:

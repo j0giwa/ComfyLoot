@@ -89,7 +89,6 @@ public class ConfigWindow : Window, IDisposable {
 	/// Draws the configuration section for the Dalamud DTR (server info) bar.
 	/// </summary>
 	/// <param name="serverinfo">Reference to the enable flag for the DTR entry.</param>
-	/// <param name="dtrOption">Reference to the selected display mode.</param>
 	private void
 	DrawDtrSection(ref bool serverinfo)
 	{
@@ -101,6 +100,11 @@ public class ConfigWindow : Window, IDisposable {
 		}
 	}
 
+	/// <summary>
+	/// Draws the submenu for the DTR value configuration
+	/// </summary>
+	/// <param name="serverinfo">Reference to the enable flag for the DTR entry.</param>
+	/// <param name="dtrOption">Reference to the selected display mode.</param>
 	private void
 	DrawDtrSubsection(ref bool serverinfo, ref DtrBarOption dtrOption)
 	{
@@ -139,6 +143,9 @@ public class ConfigWindow : Window, IDisposable {
 			ImGui.EndDisabled();
 	}
 
+	/// <summary>
+	/// Draws a tooltip that marks a feature as testing only.
+	/// </summary>
 	private void
 	DrawExperimentalTooltip()
 	{
@@ -150,7 +157,6 @@ public class ConfigWindow : Window, IDisposable {
 		if (ImGui.IsItemHovered()) {
 			ImGui.BeginTooltip();
 			ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0f);
-
 			ImGui.TextUnformatted("Experimental Feature");
 			ImGui.TextUnformatted("May get changed drasticly or removed");
 			ImGui.PopTextWrapPos();
