@@ -25,6 +25,8 @@ public sealed class ComfyLootIPC : IDisposable {
 	private readonly ICallGateProvider<string, bool> resetLoot;
 	private readonly ICallGateProvider<uint, bool> ignoreItem;
 	private readonly ICallGateProvider<string, bool> ignoreSource;
+	private readonly ICallGateProvider<uint, bool> unignoreItem;
+	private readonly ICallGateProvider<string, bool> unignoreSource;
 
 	/// <summary>
 	/// ComfyLootIPC:ctor
@@ -44,6 +46,12 @@ public sealed class ComfyLootIPC : IDisposable {
 
 		ignoreSource = pluginInterface.GetIpcProvider<string, bool>($"{ROOT}.IgnoreSource");
 		ignoreSource.RegisterFunc(IgnoreSource);
+
+		unignoreItem = pluginInterface.GetIpcProvider<uint, bool>($"{ROOT}.UnIgnoreItem");
+		unignoreItem.RegisterFunc(UnIgnoreItem);
+
+		unignoreSource = pluginInterface.GetIpcProvider<string, bool>($"{ROOT}.UnIgnoreSource");
+		unignoreSource.RegisterFunc(UnIgnoreSource);
 	}
 
 	/// <summary>
@@ -110,6 +118,26 @@ public sealed class ComfyLootIPC : IDisposable {
 		return true; /* HACK: ICallGateProvider doesn't seem to accept voids */
 	}
 
+	private bool
+	UnIgnoreSource(string name)
+	{
+		if (plugin.Configuration.IgnoredZones.Contains(name))
+			plugin.Configuration.IgnoredZones.Remove(name);
+
+		plugin.Configuration.Save();
+		return true; /* HACK: ICallGateProvider doesn't seem to accept voids */
+	}
+
+	private bool
+	UnIgnoreItem(uint id)
+	{
+		if (plugin.Configuration.IgnoredItemIds.Contains(id))
+			plugin.Configuration.IgnoredItemIds.Remove(id);
+
+		plugin.Configuration.Save();
+		return true; /* HACK: ICallGateProvider doesn't seem to accept voids */
+	}
+	
 	public void
 	Dispose()
 	{
