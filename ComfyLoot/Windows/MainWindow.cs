@@ -47,8 +47,7 @@ public class MainWindow : Window, IDisposable {
 	/// </summary>
 	/// <param name="plugin">Reference to the parent <see cref="ComfyLoot"/> plugin.</param>
 	/// <param name="loot">Reference the active loot manager instance.</param>
-	public MainWindow(ComfyLoot plugin)
-		: base("Loottracker###comfyloot_ui", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
+	public MainWindow(ComfyLoot plugin) : base("Loottracker###comfyloot_ui", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
 	{
 
 		this.plugin = plugin;
@@ -228,17 +227,18 @@ public class MainWindow : Window, IDisposable {
 		ImGui.PopID();
 	}
 
+	/// <summary>
+	/// Draws a contextmenu for the header
+	/// </summary>
 	private void
 	DrawHeaderContext()
 	{
 		if (ImGui.BeginPopupContextItem("##HeaderContext")) {
-			if (ImGui.MenuItem("Reset")) {
+			if (ImGui.MenuItem("Reset"))
 				loot.Clear();
-			}
 
-			if (ImGui.MenuItem("Copy to clipboard")) {
+			if (ImGui.MenuItem("Copy to clipboard"))
 				ImGui.SetClipboardText(JsonSerializer.Serialize(loot.Loot));
-			}
 
 			ImGui.EndPopup();
 		}
@@ -255,7 +255,7 @@ public class MainWindow : Window, IDisposable {
 		ISharedImmediateTexture? sharedTexture;
 
 		iconSize = new Vector2(20, 20);
-		
+
 		sharedTexture = GetIcon(itemId);
 		if (sharedTexture == null) {
 			ImGui.TextUnformatted("");
@@ -272,7 +272,7 @@ public class MainWindow : Window, IDisposable {
 	}
 
 	/// <summary>
-	/// Draws a single loot item row inside a zone table:
+	/// Draws a single loot item row inside a zone table.
 	/// </summary>
 	/// <param name="item">The loot item to draw.</param>
 	private void
@@ -467,6 +467,9 @@ public class MainWindow : Window, IDisposable {
 		ImGui.EndTable();
 	}
 
+	/// <summary>
+	/// Draws a list of lootlists.
+	/// </summary>
 	private void
 	DrawListOfListsOfItems()
 	{

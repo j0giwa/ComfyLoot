@@ -1,6 +1,9 @@
 # Version History
 
 ## 1.0.4.0
+- Added Unignore-gate to IPC
+
+## 1.0.4.0
 - Fixed some issues with the main UI
 - Added IPC to interact with other plugins
 
