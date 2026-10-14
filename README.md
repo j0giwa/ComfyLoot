@@ -1,17 +1,18 @@
-# ComfyLoot
-
-![ComfyLoot Logo](https://raw.githubusercontent.com/j0giwa/ComfyLoot/refs/heads/master/Data/icon.png)
-
-[![Download count](https://img.shields.io/endpoint?url=https://qzysathwfhebdai6xgauhz4q7m0mzmrf.lambda-url.us-east-1.on.aws/ComfyLoot)](https://github.com/j0giwa/ComfyLoot)
-
-Tracks the contents and market value of items dropped while killing monsters.
-And drops from some other activities such as dungeons, raids, gathering, and maps.
-
-Inspired by [RuneLite](https://github.com/runelite/runelite/wiki/Loot-Tracker).
-
-> [!WARNING]
-> AI Generated Content Disclosure <br><br>
-> This project follows a anti AI policy, no AI generated line will ever make it into a stable build.
+<p align="center">
+  <img src="https://raw.githubusercontent.com/j0giwa/ComfyLoot/refs/heads/master/Data/icon.png" width="96" alt="ComfyLoot Logo" />
+</p>
+<h1 align="center">ComfyLoot</h1>
+<p align="center">
+  Tracks the contents and market value of items dropped while killing monsters.<br>
+  And drops from some other activities such as dungeons, raids, gathering, and maps.<br>
+  <br>
+  Inspired by <a href="https://wwhttps://github.com/runelite/runelite/wiki/Loot-Trackerw.google.com" target="_blank">Runelite</a>.
+</p>
+<p align="center">
+  <a href="https://github.com/j0giwa/ComfyLoot/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/j0giwa/ComfyLoot?style=flat-square&color=orange"></a>
+  <a href="https://github.com/j0giwa/ComfyLoot/releases"><img alt="Downloads" src="https://img.shields.io/endpoint?url=https://qzysathwfhebdai6xgauhz4q7m0mzmrf.lambda-url.us-east-1.on.aws/ComfyLoot?style=flat-square&color=orange&cacheSeconds=300"></a>
+  <a href="LICENSE.md"><img alt="License" src="https://img.shields.io/badge/license-AGPL--3.0--or--later-orange?style=flat-square"></a>
+</p>
 
 ## Features
 
@@ -87,6 +88,12 @@ A: Even tho this is the whole point of the plugin, this has to be disbabled.
    Im based in the EU, due to privacy laws i have to make this an opt-in feature.
    Nothing i can do about that.
 ```
+
+## AI usage
+
+> [!WARNING]
+> AI Generated Content Disclosure <br><br>
+> This project follows a anti AI policy, no AI generated line will ever make it into a stable build.
 
 ## Acknowledgments
 - Thanks to the [Dalamud](https://github.com/goatcorp/Dalamud) peeps to make this project possible
