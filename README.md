@@ -2,6 +2,8 @@
 
 ![ComfyLoot Logo](https://raw.githubusercontent.com/j0giwa/ComfyLoot/refs/heads/master/Data/icon.png)
 
+[![Download count](https://img.shields.io/endpoint?url=https://qzysathwfhebdai6xgauhz4q7m0mzmrf.lambda-url.us-east-1.on.aws/ComfyLoot)](https://github.com/j0giwa/ComfyLoot)
+
 Tracks the contents and market value of items dropped while killing monsters.
 And drops from some other activities such as dungeons, raids, gathering, and maps.
 
