@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/j0giwa/ComfyLoot/refs/heads/master/Data/icon.png" width="96" alt="ComfyLoot Logo" />
+  <img src="Data/icon.png" width="96" alt="ComfyLoot Logo" />
 </p>
 <h1 align="center">ComfyLoot</h1>
 <p align="center">
@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/j0giwa/ComfyLoot/refs/heads/master/Data/image1.png" width="320" alt="ComfyLoot UI in game" />
+  <img src="Data/image1.png" width="320" alt="ComfyLoot UI in game" />
 </p>
 
 ## Features
