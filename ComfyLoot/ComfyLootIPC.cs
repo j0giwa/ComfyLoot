@@ -118,6 +118,13 @@ public sealed class ComfyLootIPC : IDisposable {
 		return true; /* HACK: ICallGateProvider doesn't seem to accept voids */
 	}
 
+	/// <summary>
+	/// Removes a loot source/zone name to the ignored source list.
+	/// Loot from ignored sources will no longer be tracked.
+	/// IPC: ComfyLoot.IgnoreSource
+	/// </summary>
+	/// <param name="name">The name of the source or zone to remove.</param>
+	/// <returns><code>true</code></returns>
 	private bool
 	UnIgnoreSource(string name)
 	{
@@ -128,6 +135,13 @@ public sealed class ComfyLootIPC : IDisposable {
 		return true; /* HACK: ICallGateProvider doesn't seem to accept voids */
 	}
 
+	/// <summary>
+	/// Removes an item ID to the ignored item list.
+	/// Ignored items will will no longer be tracked.
+	/// IPC: ComfyLoot.IgnoreItem
+	/// </summary>
+	/// <param name="id">The ID of the Item to remove.</param>
+	/// <returns><code>true</code></returns>
 	private bool
 	UnIgnoreItem(uint id)
 	{

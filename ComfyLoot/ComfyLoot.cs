@@ -22,7 +22,7 @@ namespace ComfyLoot;
 /// </summary>
 public sealed class ComfyLoot : IDalamudPlugin {
 	private const string CommandName = "/loot";
-
+	
 	[PluginService]
 	internal static IChatGui ChatGui { get; private set; } = null!;
 	[PluginService]
