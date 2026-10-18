@@ -14,9 +14,11 @@
   <a href="LICENSE.md"><img alt="License" src="https://img.shields.io/badge/license-AGPL--3.0--or--later-orange?style=flat-square"></a>
 </p>
 
-## Features
+<p align="center">
+  <img src="https://raw.githubusercontent.com/j0giwa/ComfyLoot/refs/heads/master/Data/image1.png" width="320" alt="ComfyLoot UI in game" />
+</p>
 
-![ComfyLoot UI](https://raw.githubusercontent.com/j0giwa/ComfyLoot/refs/heads/master/Data/image1.png)
+## Features
 
 - Tracks items dropped from enemies and other loot sources
 - Displays total loot value (based on market prices, optionally)
@@ -95,8 +97,12 @@ A: Even tho this is the whole point of the plugin, this has to be disbabled.
 > AI Generated Content Disclosure <br><br>
 > This project follows a anti AI policy, no AI generated line will ever make it into a stable build.
 
+## Legal
+
+Using the online features means accepting the [Privacy Policy](PRIVACY.md).
+Licensed under AGPL-3.0-or-later. See [LICENSE.md](LICENSE.md). An independent fan project, not affiliated with or endorsed by Square Enix.
+
 ## Acknowledgments
-- Thanks to the [Dalamud](https://github.com/goatcorp/Dalamud) peeps to make this project possible
-- Thanks to the Runelite developers for inspiration
-- Universalis API for marketboard data
-- Thanks to our beloved Ireina for the cute icon
+- Thanks to the [Dalamud](https://github.com/goatcorp/Dalamud) peeps and [Universalis](https://universalis.app) to make this project possible in the first place.
+- Thanks to our beloved Ireina for the cute icon.
+- Thanks to the Runelite devs for inspiration.

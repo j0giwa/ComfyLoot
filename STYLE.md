@@ -17,21 +17,13 @@ These references come from C, but the spirit applies to minimalist and maintaina
 - https://www.kernel.org/doc/Documentation/process/coding-style.rst
 - https://suckless.org/coding_style/
 
----
-
 ## About AI generated content.
 
-TL;DR: don't!
+TL;DR: no.
 
-Lets get the elephant out of the room: Code written without understanding is just bloat with extra steps. 
-AI-slopware compiles, passes tests it accidentally satisfies and fails the ones that matter in production.
-You get layers of abstractions nobody chose, dependencies nobody audits, and bugs nobody can reason about.
-Not to mention the blatant security liabity question.
-
-No AI generated code should make it in the stable branch of the Dalamud repository, 
-usage is, albeit barely, acceptable to outline proof of concepts for experimental features.
-(Reminder: experimental featurs will only make it into stable once users deemed them a nessecity)
-This code should however still match the style guide, this purposefully contains quirks that ai by default does not do, unless specificaly instructed.
+Lets get the elephant out of the room: AI-slopware is just bloat with extra steps. 
+No AI generated code should make it in the stable branch of the Dalamud repository, take resposibity for every line written, "chatgpt said... x" is not an excuse for bugs.
+Usage is, albeit barely, acceptable to outline proof of concepts for experimental features. (experimental featurs will only make it into stable once users deemed them a nessecity)
 
 ## File Layout
 
@@ -53,27 +45,13 @@ This code should however still match the style guide, this purposefully contains
 
 - Avoid multiple classes per file unless **trivial** or **strongly related.**
 
----
-
 ## C# Features
 
 - Use **standard C# without dependencies** on platform-specific extensions or experimental features.
 - Avoid LINQ or reflection unless it simplifies the code significantly.
-- Avoid unnessesary syntactic suggar
+- Avoid unnessesary syntactic suggar, you are not impressing anyone.
 - Avoid async/await unless concurrency is essential.
 - Do not mix declarations and logic unnecessarily.
-
----
-
-## Comments
-
-- Use Doc comments `///` to summarize functions
-- Prefer `/* block comments */` over `//`.
-- Document intent, not mechanics.
-- Only comment what isn’t obvious from the code itself.
-  - Functions should be written as trivial as possible
-
----
 
 ## Blocks and Bracing
 
@@ -93,14 +71,12 @@ else
   - One branch requires it.
   - It improves clarity or consistency.
 
----
 
 ## Indentation and Whitespace
 
-- Use tabs for indentation, spaces for alignment.
-  - Never mix tabs/spaces for indentation.
-  - Do not indent `#region`, `#define`, etc., with tabs—use spaces if alignment is needed.
-- No trailing whitespace.
+- Use tabs for indentation and spaces for alignment. This ensures everything will line up independent of tab size. This means:
+  - No tabs except beginning of line.
+  - Use spaces - not tabs - for multiline comments/macros as the indentation level is 0, where it began.
 - No space between method name and `(`, but a space after keywords:
 
 ```csharp
@@ -114,8 +90,7 @@ if (condition) {
 ```csharp
 Bar(x, y);
 ```
-
----
+- No trailing whitespace.
 
 ## Functions and Methods
 
@@ -132,13 +107,11 @@ ComputeSum(int a, int b)
 ```
 
 - Declare private methods as `static` where applicable.
-- Order method definitions logically, matching declaration order.
-- Functions should be **short and focused**. Prefer functions that:
-  - Fit within one or two screens (80x24).
-  - Do one thing, and do it well.
+- Await every awaitable, and no `async void`. Draw code cannot await, because a frame cannot pause.
 - The maximum acceptable length of a function is **inversely proportional to its complexity and nesting level**. A simple function may be longer (e.g. a long but flat `switch`), but a deeply nested or complex function must be shorter.
-
----
+- Favor functions that are **short and focused**.
+  - Fit within one or two screens (ISO/ANSI screen: 80x24).
+  - Do one thing, and do it well.
 
 ## Variables
 
@@ -146,11 +119,8 @@ ComputeSum(int a, int b)
 - Avoid Hungarian notation or prefixes like `m_` or `_`.
 - Otherwise use typical C# conventions without noise.
 
----
-
 ## Keywords and Syntax
-
-- Always use braces for clarity unless a single statement is genuinely clearer without them.
+- Use `for` over `foreach`. A foreach over an interface boxes its enumerator and allocates on every pass; a for loop over the indexer does not.
 - Use compound assignments or combined expressions where short and clear:
 
 ```csharp
@@ -158,8 +128,6 @@ if ((stream = OpenFile(path)) == null) {
 	Fail();
 }
 ```
-
----
 
 ## Switch Statements
 
@@ -179,8 +147,6 @@ default:
 }
 ```
 
----
-
 ## Using Directives
 
 - Sort using directives **alphabetically**.
@@ -193,23 +159,17 @@ using System.Collections.Generic;
 using MyApp.Core;
 ```
 
----
-
 ## Naming and Types
 
 - Use **PascalCase** for type names.
 - Use **camelCase** for variables and parameters.
 - Do **not typedef or alias** built-in types (e.g., don’t create `using MyInt = int;`).
 
----
-
 ## Line Length
 
 - Try to keep lines at reasonable length (max 79 characters).
     - exceptions can be made (C# does have some long ClassNames)
 - Break long expressions logically and cleanly.
-
----
 
 ## Booleans and Conditions
 
@@ -230,12 +190,15 @@ if (!CheckInput(input)) {
 }
 ```
 
----
-
 ## Error Handling
 
-- Prefer `try/catch` for expected runtime errors, **but do not overuse**.
+. When functions return `-1` for error test against `0` not `-1`:
+```csharp
+if (Check() < 0)
+	Fallback();
+```
 - On critical failure, fail early.
+- Use `try/catch` for expected runtime errors **but do not overuse**, solve issues instead of dodging them.
 - **Do not swallow exceptions silently.**
 
 ```csharp
@@ -247,25 +210,28 @@ try {
 }
 ```
 
----
-
 ## Enums and Constants
 
 - Use `enum` for semantically related groups.
 - Use `const` or `static readonly` for other constants.
 
 ```csharp
+private const int MaxBufferSize = 4096;
+private const int MagicNumber = 0xDEADBEEF;
 private enum Direction {
 	DIRECTION_X,
 	DIRECTION_Y,
 	DIRECTION_Z
 }
-
-private const int MaxBufferSize = 4096;
-private const int MagicNumber = 0xDEADBEEF;
 ```
 
----
+## Comments
+
+- Use Doc comments `///` to summarize functions
+- Prefer `/* block comments */` over `//`.
+- Document intent, not mechanics.
+- Only comment what isn’t obvious from the code itself.
+  - Functions should be written as trivial as possible.
 
 ## Miscellaneous
 
